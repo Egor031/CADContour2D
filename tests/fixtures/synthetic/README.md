@@ -1,6 +1,6 @@
 # Synthetic fixtures
 
-Входы будущего Synthetic Point Cloud Generator по [канонической спецификации](../../../docs/tools/synthetic-cloud-generator.md). `geometry/` содержит идеальную геометрию в миллиметрах, `scans/` — независимые переиспользуемые сценарии измерения. Geometry и scan выбираются отдельно; файлы для каждой их комбинации не нужны. Генератор ещё не реализован; XYZ/ASC и manifest результатов здесь не созданы. Большие облака позднее воспроизводятся из двух JSON, seed и версии генератора, а не обязательно хранятся в Git.
+Входы Synthetic Point Cloud Generator по [канонической спецификации](../../../docs/tools/synthetic-cloud-generator.md). `geometry/` содержит идеальную геометрию в миллиметрах, `scans/` — независимые переиспользуемые сценарии измерения. Geometry и scan выбираются отдельно; файлы для каждой их комбинации не нужны. [Базовая реализация](../../../tools/synthetic_cloud_generator/README.md) поддерживает все восемь geometry с clean_horizontal, clean_vertical и short_segments_horizontal; остальные scenarios относятся к следующему этапу и явно отклоняются. Generated XYZ/ASC и manifest здесь не хранятся; большие облака воспроизводятся из двух JSON, seed и версии генератора.
 
 | Geometry | Форма / назначение |
 |---|---|

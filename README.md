@@ -183,7 +183,9 @@ ctest --preset windows-debug
 cmake --build --preset windows-debug --target all_qmllint
 ```
 
-В каждой конфигурации CTest запускает один smoke test, проверяющий OpenCV, Eigen и spdlog через GoogleTest. `all_qmllint` — штатный Qt target для статической проверки QML.
+Без development tools в каждой конфигурации CTest запускает один smoke test, проверяющий OpenCV, Eigen и spdlog через GoogleTest. `all_qmllint` — штатный Qt target для статической проверки QML.
+
+Базовый Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его Release configure/build, 54 generator tests и существующий dependency smoke проверены: 55/55 PASS; QML lint также прошёл. Команды и ограничения текущего этапа — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
 
 ### Run
 
@@ -210,14 +212,15 @@ start /wait "" build\windows-debug\CADContour2D.exe
 
 ## Project Status
 
-**Базовый каркас приложения создан и проверен; функциональная реализация ещё не начата.**
+**Базовый каркас приложения и базовая вертикаль вспомогательного synthetic generator созданы и проверены. Функциональная реализация production application ещё не начата.**
 
 На текущем этапе:
 
 - сформированы функциональные требования;
 - определена архитектура приложения;
 - определены алгоритмические контракты и открытые исследовательские решения;
-- согласован набор итоговых примитивов LINE/ARC/CIRCLE и спецификация synthetic generator с двумя независимыми JSON-входами; генератор и synthetic JSON fixtures ещё не созданы;
+- согласован набор итоговых примитивов LINE/ARC/CIRCLE; созданы synthetic JSON fixtures и базовый generator: validation, horizontal/vertical analytic scan, sampling/maxLineLength, isolated contacts и streaming XYZ/ASC с manifest;
+- проверены все 8 geometry × 3 базовых scenarios, determinism и streaming smoke на 8.58 млн points; advanced passes/shifts и synthetic defects пока явно отклоняются;
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - фактически проверены configure, clean build, dependency smoke test, QML lint и запуск обеих конфигураций.
 

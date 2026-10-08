@@ -25,6 +25,10 @@ target_link_libraries(CADContour2D PRIVATE
 )
 
 include(CTest)
+option(CADCONTOUR2D_BUILD_TOOLS "Build development/test tools" OFF)
+if(CADCONTOUR2D_BUILD_TOOLS)
+    add_subdirectory(tools/synthetic_cloud_generator)
+endif()
 if(BUILD_TESTING)
     add_subdirectory(tests)
 endif()

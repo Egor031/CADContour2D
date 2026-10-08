@@ -11,3 +11,15 @@ target_link_libraries(dependency_smoke PRIVATE
 
 include(GoogleTest)
 gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST)
+
+if(CADCONTOUR2D_BUILD_TOOLS)
+    add_executable(synthetic_generator_tests synthetic_generator_tests.cpp)
+    set_target_properties(synthetic_generator_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+    target_link_libraries(synthetic_generator_tests PRIVATE synthetic_generator GTest::gtest_main)
+    target_compile_definitions(synthetic_generator_tests PRIVATE
+        SYNTHETIC_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures/synthetic"
+        SYNTHETIC_GENERATOR_EXE="$<TARGET_FILE:synthetic-cloud-generator>"
+    )
+    add_dependencies(synthetic_generator_tests synthetic-cloud-generator)
+    gtest_discover_tests(synthetic_generator_tests DISCOVERY_MODE PRE_TEST)
+endif()
