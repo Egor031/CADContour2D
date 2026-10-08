@@ -406,7 +406,7 @@ background / empty area
 - результат должен описывать внешнюю границу выбранной детали;
 - внутренние отверстия и вырезы не становятся частью внешнего контура;
 - результат должен быть замкнут;
-- точные LineSegment/CircularArc/BSpline на этом этапе не требуются;
+- точные LineSegment/CircularArc/Circle на этом этапе не требуются; rough polyline не является итоговым CAD-примитивом или DXF POLYLINE/LWPOLYLINE;
 - при неоднозначности нескольких независимых кандидатов операция сообщает об этом пользователю, а не выбирает автоматически самую большую деталь.
 
 ### Current approach
@@ -723,6 +723,8 @@ Precise CAD Geometry
 
 Обязательные свойства результата сохраняются независимо от конкретного метода.
 
+Итоговые кандидаты первой версии ограничены LINE (`LineSegment`), ARC (`CircularArc`) и CIRCLE (`Circle`). Это распространяется на fitting, ручное редактирование, Geometry Optimization, topology и validation. Контур — замкнутая последовательность LINE/ARC либо самостоятельный CIRCLE. SPLINE/BSpline и ELLIPSE не поддерживаются; расширение требует отдельного изменения требований. Если этим набором невозможно удовлетворить обязательные ограничения, возвращается failure, а не другой тип кривой.
+
 ---
 
 ## 16. Supporting Boundary Points
@@ -777,15 +779,14 @@ Boundary extraction должен:
 
 Разделить последовательность boundary data на участки, которые разумно представить отдельными CAD-примитивами.
 
-Минимальные типы:
+Типы сегментов цепочки первой версии:
 
 ```text
 LineSegment
 CircularArc
-BSpline
 ```
 
-Circle обычно представляет самостоятельный замкнутый объект, например отверстие.
+Circle представляет самостоятельный замкнутый контур, внешний или внутренний; он не является сегментом цепочки.
 
 ### Required
 
@@ -794,7 +795,6 @@ Segmentation должна:
 - сохранять реальные углы;
 - позволять касательные переходы;
 - учитывать Fixed Geometry;
-- не превращать весь сложный контур в один spline;
 - способствовать минимизации разумного числа примитивов;
 - работать в пределах пользовательского tolerance.
 
@@ -932,7 +932,7 @@ end angle
 
 ### Required
 
-Arc используется вместо spline, если круговая модель удовлетворяет качеству.
+CircularArc принимается только при соблюдении качества и всех обязательных ограничений. Если участок не удаётся представить LINE/ARC в пределах допуска, другой тип кривой не вводится автоматически.
 
 Необходимо учитывать:
 
@@ -948,48 +948,15 @@ Arc используется вместо spline, если круговая мо
 
 ---
 
-## 22. BSpline Fitting
-
-BSpline используется для участков, которые нельзя разумно представить более простым primitive в пределах требуемого качества.
+## 22. Границы геометрической модели
 
 ### Required
 
-Spline не является default representation.
+Первая версия строит только LINE/ARC/CIRCLE по [requirements.md, §24](requirements.md#24-точная-геометрия). Неподдерживаемые SPLINE/BSpline и ELLIPSE не являются fallback при неудачном fitting.
 
-Перед принятием spline необходимо проверить возможность представить участок:
+Сложный участок может быть разделён на несколько LINE/ARC, только если результат сохраняет tolerance, one-sided constraint, Fixed Geometry, C0, Corner/Tangent semantics и допустимую topology. Это fitting measured data, а не разрешение автоматически аппроксимировать неподдерживаемые входные CAD entities.
 
-```text
-LineSegment
-CircularArc
-```
-
-### Fitting objectives
-
-Нужно одновременно стремиться к:
-
-- соблюдению tolerance;
-- минимальному разумному числу control points;
-- continuity;
-- сохранению реальной формы;
-- соблюдению one-sided constraint.
-
-### Endpoint constraints
-
-Spline должен корректно соединяться с соседними элементами.
-
-Для `Tangent` необходимо ограничение на направление касательной.
-
-### Open decision
-
-Не определены окончательно:
-
-- spline degree;
-- knot strategy;
-- initial control-point count;
-- adaptive refinement;
-- simplification method.
-
-Эти решения должны быть выбраны экспериментально.
+Если обязательные ограничения невозможно соблюсти, результат — CannotSatisfyTolerance или иной соответствующий failure (§§31, 37–38). Расширение набора primitives требует отдельного изменения требований.
 
 ---
 
@@ -1063,14 +1030,7 @@ required acceptance condition
 
 ### Required priority
 
-Если кандидаты одинаково удовлетворяют обязательным ограничениям:
-
-```text
-LineSegment предпочтительнее BSpline
-CircularArc предпочтительнее BSpline
-```
-
-Более простой primitive предпочтительнее сложного.
+Выбор ограничен LINE/ARC/CIRCLE. Если допустимые кандидаты одинаково удовлетворяют обязательным ограничениям, предпочтение отдаётся компактному устойчивому представлению: прямолинейный участок — LINE, круговой — ARC, полная окружность — самостоятельный CIRCLE. Соседние совместимые LINE/ARC могут объединяться; допустимость проверяется для всего результата.
 
 Однако простота не имеет приоритета над:
 
@@ -1364,7 +1324,7 @@ required topology/continuity и one-sided validation
 
 ### Required
 
-- cutout остаётся замкнутым;
+- cutout остаётся замкнутой последовательностью LINE/ARC либо самостоятельным CIRCLE;
 - автоматически удаляемая область не увеличивается в material region;
 - Fixed Geometry не изменяется.
 
@@ -1381,11 +1341,11 @@ required topology/continuity и one-sided validation
 
 ### Output
 
-Замкнутая последовательность CAD primitives.
+Замкнутая последовательность LINE/ARC либо самостоятельный CIRCLE.
 
 ### Required
 
-- `LineSegment`, `CircularArc`, `BSpline` используются по необходимости;
+- используются только `LineSegment`/`CircularArc` в цепочке либо самостоятельный `Circle`;
 - контур замкнут;
 - C0 всегда соблюдается;
 - Tangent junctions удовлетворяют tangent constraint;
@@ -1410,9 +1370,7 @@ Geometry Optimization является отдельной явно запуск�
 Line + Line → Line
 Arc + Arc → Arc
 несколько простых совместимых primitives → один primitive
-BSpline → Line
-BSpline → Arc
-уменьшение количества control points BSpline
+замкнутая цепочка совместимых Arc одной окружности → Circle
 удаление избыточного короткого элемента
 ```
 
@@ -1452,7 +1410,7 @@ Fixed primitive не заменяется и не объединяется сп�
 
 ### Required
 
-Проверяются порядок primitives, общие endpoints, closure, отсутствие разрывов и соблюдение Corner/Tangent junctions.
+Проверяется допустимый набор LINE/ARC/CIRCLE. Для цепочки LINE/ARC проверяются порядок primitives, общие endpoints, closure, отсутствие разрывов и соблюдение Corner/Tangent junctions. CIRCLE является самостоятельным аналитически замкнутым контуром; его радиус должен быть положительным конечным числом.
 
 Для первой версии допускаются один outer contour и `0..N` holes/cutouts внутри него. Самопересечения, взаимные пересечения и касания независимых контуров/границ, а также вложенные material islands запрещены.
 
@@ -1570,7 +1528,9 @@ Parallel processing допускается, но не является обяз�
 - line-arc junction;
 - Corner;
 - Tangent;
-- spline-like freeform contour.
+- сложный замкнутый контур из LINE/ARC;
+- самостоятельный внешний CIRCLE и внутренние CIRCLE;
+- отказ при невозможности соблюсти обязательные ограничения набором LINE/ARC/CIRCLE.
 
 Следует добавлять контролируемые:
 
@@ -1579,6 +1539,8 @@ Parallel processing допускается, но не является обяз�
 - пропуски points.
 
 Преимущество synthetic tests — известная ground truth geometry.
+
+Для Synthetic Point Cloud Generator каноническая geometry задаётся отдельным Geometry JSON, условия измерения — Scan Scenario JSON. Pipeline и контракт описаны в [спецификации генератора](tools/synthetic-cloud-generator.md). DXF/NX не являются входом генератора. Artifacts изменяют measurements, а не ground truth; CADContour2D получает только XYZ/ASC. Такие сценарии проверяют ROI, ручное редактирование и устойчивость алгоритмов, но не требуют автоматического defect detection.
 
 ### 42.2. Real scan data
 
@@ -1591,8 +1553,7 @@ Parallel processing допускается, но не является обяз�
 - circularity thresholds;
 - segmentation;
 - robust estimator;
-- grouping tolerance;
-- spline strategy.
+- grouping tolerance.
 
 До проверки representative real scans допускаются synthetic tests, unit tests и experimental prototypes. Synthetic data сама по себе не подтверждает окончательный выбор rough/precise algorithm для реальных scans.
 
@@ -1649,7 +1610,6 @@ I/O volume, если существенно
 - [Precise segmentation (§17)](#17-segmentation-precise-contour).
 - [Автоматическая junction classification (§18)](#18-junction-classification).
 - [Line, circle и arc fitting (§§19–21)](#19-line-fitting).
-- [BSpline strategy (§22)](#22-bspline-fitting).
 - [Robust filtering/estimation (§23)](#23-robust-estimation).
 - [Primitive selection (§25)](#25-primitive-selection).
 - [Orientation convention (§28)](#28-представление-стороны-материала).
@@ -1673,7 +1633,7 @@ Point-cache layout, spatial index, persistence и DXF compatibility остают
 - сглаживать Corner;
 - игнорировать Tangent constraint;
 - превращать весь precise contour в полилинию без необходимости;
-- использовать BSpline как default representation для всех участков;
+- вводить итоговые primitives вне LINE/ARC/CIRCLE или использовать неподдерживаемую кривую как fallback;
 - автоматически запускать следующую тяжёлую операцию;
 - менять `cell` без полного перестроения density map;
 - возвращать нарушающую обязательные ограничения geometry как `success`.
@@ -1707,7 +1667,7 @@ Point-cache layout, spatial index, persistence и DXF compatibility остают
 2. Precise stage работает по реальным точкам reduced cloud.
 3. Rough geometry является приближением, а не точной CAD geometry.
 4. Реальные точки отбираются около текущей активной rough geometry по явному Build Reduced Point Cloud; отдельного Confirmed state нет.
-5. Precise contour строится из CAD-примитивов, а не из огромного числа коротких line segments.
+5. Precise contour — замкнутая цепочка LINE/ARC либо самостоятельный CIRCLE; огромная полилиния через все measured points не является целью fitting.
 6. Более простой primitive предпочтительнее сложного только при соблюдении всех требований качества.
 7. Fixed Geometry имеет приоритет над automatic fitting.
 8. Все связанные primitives должны обеспечивать C0 continuity.

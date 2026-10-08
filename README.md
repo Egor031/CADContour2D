@@ -40,14 +40,17 @@ X Y Z
 - отверстия;
 - внутренние вырезы.
 
-Финальная геометрия экспортируется в DXF с сохранением геометрических типов там, где это возможно:
+Итоговая CAD-геометрия первой версии содержит только LINE, ARC и CIRCLE. Контур — замкнутая последовательность LINE/ARC либо самостоятельный CIRCLE; внешний и все внутренние контуры замкнуты. Это единый контракт автоматического fitting, ручного редактирования, precise-stage, Geometry Optimization и validation.
+
+Финальная геометрия экспортируется в компактный 2D DXF для Siemens NX с сохранением типов и координатами в миллиметрах:
 
 ```text
 LineSegment → LINE
 CircularArc → ARC
 Circle      → CIRCLE
-BSpline     → SPLINE
 ```
+
+SPLINE/BSpline и ELLIPSE не поддерживаются в первой версии. DXF передаёт восстановленную геометрию; сохранение NX constraints, 3D bodies и истории построения не требуется. Версия DXF и совместимость будущего exporter проверяются отдельно.
 
 Приложение также использует сохраняемый рабочий проект `.pc2dproj` и локальный постоянный кэш исходных точек.
 
@@ -136,6 +139,8 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
+| [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
+| [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
 
 ## Build / Run / Tests
 
@@ -212,6 +217,7 @@ start /wait "" build\windows-debug\CADContour2D.exe
 - сформированы функциональные требования;
 - определена архитектура приложения;
 - определены алгоритмические контракты и открытые исследовательские решения;
+- согласован набор итоговых примитивов LINE/ARC/CIRCLE и спецификация synthetic generator с двумя независимыми JSON-входами; генератор и synthetic JSON fixtures ещё не созданы;
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - фактически проверены configure, clean build, dependency smoke test, QML lint и запуск обеих конфигураций.
 
