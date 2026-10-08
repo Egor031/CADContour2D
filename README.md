@@ -139,18 +139,81 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ## Build / Run / Tests
 
-Конфигурация сборки, запуска и тестов ещё не создана; проверенных команд пока нет.
+### Prerequisites
+
+- Windows x64 и MSVC с поддержкой C++20; команды выполняются из x64 Developer Command Prompt (окружение штатного `vcvars64.bat`).
+- Официальная установка Qt 6.12 с Core, Qml, Quick и Quick Controls; Qt через vcpkg не устанавливается.
+- CMake и Ninja доступны в `PATH` текущего процесса.
+- `VCPKG_ROOT` указывает на установленный vcpkg, `QT_ROOT` — на каталог Qt kit, содержащий `bin`, `lib` и `include`.
+- При первой настройке нужен сетевой доступ к registry и исходникам зависимостей; последующие настройки используют кэш vcpkg.
+
+Проверенное окружение: Visual Studio 2026, MSVC 19.51.36260.0 / v145 (14.51.36231), Windows SDK 10.0.26100.0, Qt 6.12.0 `msvc2022_64`, CMake 3.30.5, Ninja 1.12.1. Проверки выполнены вне sandbox Codex; глобальный `PATH` не изменяется.
+
+### Dependencies
+
+`vcpkg.json` использует manifest mode и фиксированный `builtin-baseline` из установленного vcpkg registry snapshot. Это закрепляет версии port recipes без отдельных произвольных overrides. Presets подключают toolchain через `VCPKG_ROOT`, используют triplet `x64-windows` и размещают установленные пакеты внутри соответствующего build directory.
+
+Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. Эти библиотеки используются только в отдельном headless dependency smoke test; production executable зависит от Qt.
+
+### Configure / Build / Tests
+
+Из корня репозитория в указанной CMD-среде:
+
+```bat
+chcp 65001 >nul
+cmake --fresh --preset windows-release
+cmake --build --preset windows-release --clean-first
+ctest --preset windows-release
+cmake --build --preset windows-release --target all_qmllint
+```
+
+UTF-8 code page нужна в проверенной русскоязычной среде MSVC для корректного распознавания `/showIncludes` в CMake/Ninja. Она меняется только в текущей консоли. `--fresh` повторяет configure с новым CMake cache; `--clean-first` пересобирает targets проекта, сохраняя кэш зависимостей.
+
+Debug также фактически проверен:
+
+```bat
+cmake --fresh --preset windows-debug
+cmake --build --preset windows-debug --clean-first
+ctest --preset windows-debug
+cmake --build --preset windows-debug --target all_qmllint
+```
+
+В каждой конфигурации CTest запускает один smoke test, проверяющий OpenCV, Eigen и spdlog через GoogleTest. `all_qmllint` — штатный Qt target для статической проверки QML.
+
+### Run
+
+Добавление Qt runtime в `PATH` относится только к текущей консоли и её дочерним процессам:
+
+```bat
+set "PATH=%QT_ROOT%\bin;%PATH%"
+start /wait "" build\windows-release\CADContour2D.exe
+```
+
+Проверен и Debug запуск:
+
+```bat
+start /wait "" build\windows-debug\CADContour2D.exe
+```
+
+Приложение показывает QML `ApplicationWindow` с русской надписью и кнопкой закрытия. Для обоих вариантов проверены создание видимого окна, загрузка Qt Quick Controls и штатное закрытие с кодом 0. Это запуск из установленного Qt kit, не deployment package.
+
+### Known Diagnostics
+
+- Qt сообщает об отсутствующем `Qt6TaskTree` для необязательного `Qt6QmlAssetDownloaderPrivate`, а также `WrapVulkanHeaders`. Текущий QML-модуль их не использует; сборка, lint и runtime прошли.
+- При сборке OpenCV его CMake detection не распознаёт `MSVC_VERSION=1951` и сообщает `Cannot set OpenCV_RUNTIME`. vcpkg собрал x64 библиотеки с `/MD` и `/MDd`; link и dependency smoke test прошли в Release и Debug. Также есть предупреждения стороннего OpenCV о старых CMake policies и metadata `OPENCV_BUILD_INFO_STR`.
+- Встроенный загрузчик vcpkg получил SSL error 35 для Eigen и fmt. Официальные архивы загружены системным curl в download cache и проверены по SHA-512 из port recipes; проверка TLS и хэшей не отключалась. Это ограничение загрузки в текущем сетевом окружении, не ошибка компиляции.
 
 ## Project Status
 
-**Подготовка репозитория и проектной документации.**
+**Базовый каркас приложения создан и проверен; функциональная реализация ещё не начата.**
 
 На текущем этапе:
 
 - сформированы функциональные требования;
 - определена архитектура приложения;
 - определены алгоритмические контракты и открытые исследовательские решения;
-- подготавливается начальная структура репозитория.
+- созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
+- фактически проверены configure, clean build, dependency smoke test, QML lint и запуск обеих конфигураций.
 
-Функциональная реализация приложения ещё не считается начатой.
+Import, cache, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 
