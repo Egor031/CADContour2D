@@ -1,0 +1,39 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 30,
+  "seed": 1010,
+  "passes": [
+    { "region": { "min": [0, 0], "max": [75, 110] } },
+    {
+      "region": { "min": [65, 0], "max": [160, 110] },
+      "longitudinalShift": 0.25,
+      "transverseShift": 0.2,
+      "continuationShift": { "longitudinal": -0.1, "transverse": 0.15 }
+    },
+    {
+      "region": { "min": [20, 10], "max": [55, 40] },
+      "lineOffset": 0.4,
+      "longitudinalShift": -0.15,
+      "transverseShift": -0.1
+    }
+  ],
+  "defects": [
+    {
+      "type": "OutsideGridCloud",
+      "region": { "min": [155, 15], "max": [165, 25] },
+      "pointStepX": 0.5,
+      "pointStepY": 0.5
+    },
+    {
+      "type": "JaggedBoundary",
+      "region": { "min": [-1, 15], "max": [18, 35] },
+      "target": "outer",
+      "amplitude": 0.4,
+      "toothStep": 2,
+      "randomAmplitude": 0.1
+    }
+  ]
+}

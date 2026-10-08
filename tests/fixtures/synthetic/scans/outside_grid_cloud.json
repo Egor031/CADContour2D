@@ -1,0 +1,16 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 200,
+  "seed": 1007,
+  "defects": [
+    {
+      "type": "OutsideGridCloud",
+      "region": { "min": [155, 15], "max": [165, 25] },
+      "pointStepX": 0.5,
+      "pointStepY": 0.5
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 200,
+  "seed": 1008,
+  "defects": [
+    {
+      "type": "JaggedBoundary",
+      "region": { "min": [-1, 15], "max": [18, 35] },
+      "target": "outer",
+      "amplitude": 0.6,
+      "toothStep": 2,
+      "randomAmplitude": 0.15
+    }
+  ]
+}

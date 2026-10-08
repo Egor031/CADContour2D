@@ -1,0 +1,26 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 20,
+  "seed": 1004,
+  "passes": [
+    {
+      "region": { "min": [0, 0], "max": [40, 110] },
+      "continuationShift": { "longitudinal": -0.15, "transverse": 0.2 }
+    },
+    {
+      "region": { "min": [40, 0], "max": [80, 110] },
+      "longitudinalShift": 0.25,
+      "transverseShift": 0.3,
+      "continuationShift": { "longitudinal": -0.15, "transverse": 0.2 }
+    },
+    {
+      "region": { "min": [80, 0], "max": [160, 110] },
+      "longitudinalShift": 0.5,
+      "transverseShift": 0.6,
+      "continuationShift": { "longitudinal": -0.15, "transverse": 0.2 }
+    }
+  ]
+}

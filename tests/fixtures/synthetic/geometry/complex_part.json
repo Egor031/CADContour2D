@@ -1,0 +1,67 @@
+{
+  "formatVersion": 1,
+  "units": "mm",
+  "outerContour": {
+    "type": "CHAIN",
+    "segments": [
+      { "type": "LINE", "start": [10, 0], "end": [130, 0] },
+      {
+        "type": "ARC",
+        "center": [130, 10],
+        "radius": 10,
+        "startAngle": -1.5707963267948966,
+        "sweepAngle": 1.5707963267948966
+      },
+      { "type": "LINE", "start": [140, 10], "end": [140, 80] },
+      {
+        "type": "ARC",
+        "center": [130, 80],
+        "radius": 10,
+        "startAngle": 0,
+        "sweepAngle": 1.5707963267948966
+      },
+      { "type": "LINE", "start": [130, 90], "end": [10, 90] },
+      {
+        "type": "ARC",
+        "center": [10, 80],
+        "radius": 10,
+        "startAngle": 1.5707963267948966,
+        "sweepAngle": 1.5707963267948966
+      },
+      { "type": "LINE", "start": [0, 80], "end": [0, 10] },
+      {
+        "type": "ARC",
+        "center": [10, 10],
+        "radius": 10,
+        "startAngle": 3.141592653589793,
+        "sweepAngle": 1.5707963267948966
+      }
+    ]
+  },
+  "innerContours": [
+    { "type": "CIRCLE", "center": [30, 25], "radius": 5 },
+    { "type": "CIRCLE", "center": [30, 65], "radius": 5.2 },
+    { "type": "CIRCLE", "center": [110, 45], "radius": 8 },
+    {
+      "type": "CHAIN",
+      "segments": [
+        { "type": "LINE", "start": [60, 37], "end": [80, 37] },
+        {
+          "type": "ARC",
+          "center": [80, 45],
+          "radius": 8,
+          "startAngle": -1.5707963267948966,
+          "sweepAngle": 3.141592653589793
+        },
+        { "type": "LINE", "start": [80, 53], "end": [60, 53] },
+        {
+          "type": "ARC",
+          "center": [60, 45],
+          "radius": 8,
+          "startAngle": 1.5707963267948966,
+          "sweepAngle": 3.141592653589793
+        }
+      ]
+    }
+  ]
+}

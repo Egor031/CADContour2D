@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "units": "mm",
+  "outerContour": {
+    "type": "CHAIN",
+    "segments": [
+      { "type": "LINE", "start": [0, 0], "end": [100, 0] },
+      { "type": "LINE", "start": [100, 0], "end": [100, 60] },
+      { "type": "LINE", "start": [100, 60], "end": [0, 60] },
+      { "type": "LINE", "start": [0, 60], "end": [0, 0] }
+    ]
+  },
+  "innerContours": [
+    {
+      "type": "CHAIN",
+      "segments": [
+        { "type": "LINE", "start": [35, 20], "end": [65, 20] },
+        { "type": "LINE", "start": [65, 20], "end": [65, 40] },
+        { "type": "LINE", "start": [65, 40], "end": [35, 40] },
+        { "type": "LINE", "start": [35, 40], "end": [35, 20] }
+      ]
+    }
+  ]
+}

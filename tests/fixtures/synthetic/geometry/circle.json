@@ -1,0 +1,6 @@
+{
+  "formatVersion": 1,
+  "units": "mm",
+  "outerContour": { "type": "CIRCLE", "center": [50, 50], "radius": 50 },
+  "innerContours": []
+}

@@ -1,0 +1,20 @@
+{
+  "formatVersion": 1,
+  "units": "mm",
+  "outerContour": {
+    "type": "CHAIN",
+    "segments": [
+      { "type": "LINE", "start": [0, 0], "end": [120, 0] },
+      { "type": "LINE", "start": [120, 0], "end": [120, 80] },
+      { "type": "LINE", "start": [120, 80], "end": [0, 80] },
+      { "type": "LINE", "start": [0, 80], "end": [0, 0] }
+    ]
+  },
+  "innerContours": [
+    { "type": "CIRCLE", "center": [25, 25], "radius": 5 },
+    { "type": "CIRCLE", "center": [60, 25], "radius": 5.2 },
+    { "type": "CIRCLE", "center": [95, 25], "radius": 10 },
+    { "type": "CIRCLE", "center": [40, 60], "radius": 7 },
+    { "type": "CIRCLE", "center": [85, 60], "radius": 7.2 }
+  ]
+}

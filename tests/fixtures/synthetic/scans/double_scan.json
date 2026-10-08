@@ -1,0 +1,17 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 200,
+  "seed": 1006,
+  "passes": [
+    {},
+    {
+      "region": { "min": [20, 10], "max": [80, 50] },
+      "lineOffset": 0.35,
+      "longitudinalShift": 0.2,
+      "transverseShift": 0.1
+    }
+  ]
+}

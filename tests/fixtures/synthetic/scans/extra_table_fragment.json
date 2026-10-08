@@ -1,0 +1,14 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 200,
+  "seed": 1009,
+  "defects": [
+    {
+      "type": "ExtraTableFragment",
+      "region": { "min": [155, 5], "max": [185, 65] }
+    }
+  ]
+}
