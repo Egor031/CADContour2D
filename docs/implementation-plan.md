@@ -1,0 +1,439 @@
+## 1. Текущее состояние репозитория
+
+**Основная программа находится на стадии проверенного каркаса. Реализация её рабочего workflow ещё не начата.** Это соответствует Project Status в [README.md](D:/ZherlitsynEE/CADContour2D/README.md) и подтверждается исходниками.
+
+План имеет статус рабочего документа: он определяет последовательность реализации, но не обладает приоритетом над requirements.md, architecture.md и algorithms.md.
+
+| Область | Фактическое состояние |
+|---|---|
+| Приложение | [src/main.cpp](D:/ZherlitsynEE/CADContour2D/src/main.cpp) создаёт `QGuiApplication`, загружает QML и обрабатывает ошибку создания окна. Application/domain layer отсутствует. |
+| GUI | [qml/Main.qml](D:/ZherlitsynEE/CADContour2D/qml/Main.qml) содержит окно, надпись и кнопку закрытия. Canvas, панели обработки, редакторы и модель проекта отсутствуют. |
+| Сборка | C++20, MSVC x64, Qt 6.12 Quick/QML, CMake, Ninja, Debug/Release presets. Зависимости закреплены vcpkg baseline. |
+| Подключение библиотек | Production executable использует Qt. OpenCV, Eigen и spdlog пока подключены к dependency smoke test; их наличие не означает наличие вычислительных подсистем. |
+| Тестирование | Есть GoogleTest/CTest, dependency smoke и тесты генератора. Тестов production parsing, cache, geometry, persistence или processing пока нет. |
+| Основной workflow | Import, Point Cache, Density Map, Rough Stage, Reduced Cloud, Precise Stage и DXF export отсутствуют. |
+| Генератор | Отдельная готовая вспомогательная подсистема. Production executable от него не зависит. Повторная разработка генератора не требуется. |
+
+**Git-состояние:** ветка `main`, HEAD `5664ef6452de813ca035f791fe313ac1115ecf0e`, сообщение последнего commit — `finalize synthetic generator validation and documentation`. Изменений отслеживаемых файлов и staged changes нет. Есть неотслеживаемый каталог `tests/fixtures/dxf/`. Его содержимое следует сохранить как пользовательские материалы.
+
+Повторно использовать можно:
+
+- существующие CMake presets, Qt Quick scaffold и GoogleTest/CTest;
+- восемь geometry fixtures, clean, multi-pass и artifact scenarios;
+- CLI генератора `--geometry … --scan … --output …`;
+- уже созданные локальные облака в `build/`, включая `large_plate.xyz` размером 1 029 576 096 байт;
+- Geometry JSON и manifest для **тестовой инфраструктуры**, но не как дополнительные входы алгоритмов основной программы.
+
+В отслеживаемых fixtures representative real scans не обнаружены. Их доступность необходимо установить перед подтверждением алгоритмических методов.
+
+Debug/Release, lint, запуск приложения и проверки генератора **задокументированы как ранее выполненные**. В текущей задаче я их не запускал. Выполнены только чтение и анализ; файлы и Git-состояние не изменены.
+
+Противоречий, мешающих составить план, не выявлено. Существенные ограничения отправной точки:
+
+1. Форматы cache/project, spatial index и reduced storage ещё не выбраны.
+2. Многие rough/precise методы имеют статус Open decision.
+3. Исторические NX DXF fixtures не подтверждают совместимость будущего exporter: это экспорт **из NX**, а требуется проверить импорт **в NX**. Их исторический статус описан в [отчёте](D:/ZherlitsynEE/CADContour2D/docs/nx-dxf-fixture-analysis.md).
+
+## 2. Предлагаемая стратегия реализации
+
+Предлагаю развивать программу **последовательными сквозными сценариями**, постепенно расширяя поддерживаемую геометрию:
+
+1. Импортировать облако, сохранить проект и открыть его без исходного ASC/XYZ.
+2. Построить density PNG, выбрать ROI, получить и отредактировать rough-геометрию.
+3. Выбрать реальные точки из cache, удалить посторонние точки и сохранить эти изменения.
+4. Получить корректную precise-геометрию сначала для окружностей и прямолинейных контуров, затем для смешанных LINE/ARC.
+5. Добавить отдельную оптимизацию и завершить проверку DXF/NX.
+6. Подтвердить весь workflow на реальных scans и целевой Windows-среде.
+
+Такой порядок следует зависимостям данных, но **сохранение, Undo, ошибки и безопасные workers появляются до массового ручного редактирования**, а GUI интегрируется с каждой подсистемой по мере её готовности.
+
+Архитектурные основания: [architecture.md, §§4–8](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:88), [§§23–31](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:730), [§§32–34](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:936).
+
+### Почему выбран этот порядок
+
+| Вариант | Преимущество | Недостаток |
+|---|---|---|
+| Сначала всё вычислительное ядро, затем GUI | Удобные headless experiments | Поздно выявляются проблемы редактирования, applicability, dataset lifecycle и UX |
+| Сначала весь GUI | Рано видна компоновка приложения | Много временных данных и риск закрепить неверное владение состоянием |
+| **Сквозные сценарии с ранним C++ state и persistence** | Проверяются реальные операции и архитектурные границы | Требует постепенно расширять сериализацию и application API |
+
+Основной вариант — третий.
+
+Исследования не должны блокировать весь проект. Подготовку real scans можно вести одновременно с импортом и cache; сравнение precise-методов — после появления доступа к реальным точкам; DXF/NX-пробу — после появления CAD domain model, независимо от готовности fitting.
+
+Для Open decision допустима изолированная экспериментальная реализация, сохраняющая Required и явно обозначенная как неподтверждённая. Она не становится основанием объявить первую версию готовой для реальных scans. Правила — [algorithms.md, §2](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:45) и [§§42–47](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1516).
+
+## 3. Общая дорожная карта
+
+| Этап | Задачи | Основные зависимости | Рабочий результат |
+|---|---|---|---|
+| Основа приложения | 01–02 | Существующий scaffold | C++ project state, команды, состояния операций, безопасные workers |
+| Import и Cache | 03–04 | 01–02 | Потоковый импорт и выборочное чтение постоянного cache |
+| Persistence | 05 | 03–04 | Save/Open и базовый recovery без зависимости от исходного файла |
+| Density и Canvas | 06 | 01–05 | Фиксированная PNG, zoom/pan, rectangular/lasso ROI |
+| Rough Stage | 07–10 | 06; задачи выполняются последовательно | Редактируемые outer, holes, HoleGroup, cutouts и исключения |
+| Reduced Cloud | 11–12 | 03, 05, 08–10 | Реальные точки, межэтапный reset, удаление точек, сохранение |
+| CAD-модель и редактор | 13 | 01, 05–06 | LINE/ARC/CIRCLE, topology validation, ручное редактирование и Fixed |
+| Precise Processing | 14–17 | 11–13 | Проверенная measured boundary и последовательное расширение refinement |
+| Geometry Optimization | 18 | 15–17 | Отдельная операция упрощения с повторной validation |
+| DXF/NX | 19 | Проба после 13; полная интеграция после 15–17 | Типосохраняющий DXF и проверенный импорт в NX |
+| Завершение первой версии | 20 | Все предыдущие этапы и внешние проверки | Полный workflow, реальные scans, ресурсы, GUI и распространение |
+
+Задачу 13 можно выполнять параллельно с поздними rough-задачами. Подготовку экспериментов 14 и NX-пробу 19 также не требуется откладывать до завершения всего предыдущего этапа.
+
+## 4. Подробный пошаговый план
+
+### Общие критерии для всех задач
+
+Эти правила применяются по месту и далее не повторяются полностью:
+
+- Domain/project state принадлежит C++; QML отображает состояние и передаёт действия пользователя.
+- Каждая тяжёлая операция запускается явно, работает вне GUI thread, поддерживает progress/cancel и публикует только завершённый применимый результат.
+- Failure/cancellation сохраняют прежний корректный результат; межэтапный подтверждённый reset — отдельное намеренное действие.
+- Новый dataset сначала полностью записывается, затем становится доступным текущему состоянию и сохранению.
+- Проверяются конечность параметров, представимость размеров, overflow и ресурсы. Универсальный произвольный RAM-limit не вводится.
+- Unit tests запускаются для затронутого компонента; integration tests — для нового сквозного сценария. На контрольных точках проверяются Debug/Release. При изменении QML выполняются lint и GUI-проверка.
+- Гигабайтные datasets не создаются обычными unit tests.
+- Алгоритмы получают только доступные production-входы. Ground truth используется внешним тестовым оценивателем.
+- Для artifact scenarios идеальная Geometry JSON не подменяет фактическую measured boundary: измеренные выступы нельзя объявлять ошибкой только из-за отличия от идеальной формы.
+- После реализации просматривается diff; документация обновляется при изменении контракта или фактического статуса. Успешно завершённая задача завершается отдельным commit по правилам репозитория.
+
+### 01. Минимальная C++ основа проекта и команд
+
+- **Цель:** создать владельца состояния, к которому будут подключаться реальные подсистемы.
+- **Содержание:** состояние открытого проекта, идентичность проекта, параметры, наличие/актуальность результатов, structured errors; application-команды и тонкая QML-связь. Общие model coordinates и преобразования координат; механизм Undo для реально появившихся изменений параметров.
+- **Предпосылки:** существующий scaffold.
+- **Область изменений:** `src`, `qml/Main.qml`, корневой CMake и production tests; логические `project`, `app`, базовая `geometry`.
+- **Результат:** GUI отображает состояние C++ проекта; изменение параметра и Undo меняют одну domain-модель.
+- **Проверка:** headless tests состояния и команд; преобразования координат с отрицательными/большими координатами; QML binding и запуск окна.
+- **Критерий завершения:** состояние не дублируется в QML, Undo восстанавливает его, вычислительные tests не требуют GUI.
+- **Открытые решения:** минимальное представление ревизий и результатов; raster origin/Y/boundary convention нужно согласовать здесь либо до задачи 06, без независимых вариантов в разных слоях.
+
+Основание: [architecture.md, §§9–11](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:374), [§27](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:827).
+
+### 02. Безопасное выполнение фоновых операций
+
+- **Цель:** установить общий контракт выполнения до подключения большого I/O.
+- **Содержание:** snapshot/immutable inputs, progress, cancellation, structured completion, проверка принадлежности проекту и актуальности входов; централизованная диагностика. GUI показывает ход операции и доступные действия.
+- **Предпосылки:** 01.
+- **Область изменений:** application layer, project state, QML-представление операций, tests.
+- **Результат:** операция не блокирует интерфейс и не может опубликовать устаревший результат.
+- **Проверка:** управляемые тестовые workers: задержанное завершение после смены проекта, изменения входов, отмены и reset; failure и освобождение временных ресурсов.
+- **Критерий завершения:** ни один из этих сценариев не перезаписывает новое состояние; частичный результат не публикуется.
+- **Открытые решения:** конкретный Qt threading mechanism и applicability mechanism. Выбрать простое достаточное решение, без универсального task framework.
+
+Основание: [architecture.md, §§24–26](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:744).
+
+### 03. Persistent Point Cache и пространственный доступ
+
+- **Цель:** получить постоянное хранилище, пригодное для больших облаков и локальной выборки.
+- **Содержание:** выбрать versioned binary layout, metadata, bounded streaming writer, reader и disk-oriented index; стабильную идентификацию исходных записей. Проработать создание индекса без полного массива точек в RAM, включая временные локальные datasets.
+- **Предпосылки:** 01–02.
+- **Область изменений:** новые логические `cache` и низкоуровневый `io`, CMake, headless tests.
+- **Результат:** поток точек записывается, cache повторно открывается, пространственные запросы возвращают соответствующие исходные записи.
+- **Проверка:** round-trip, точное содержимое range queries относительно последовательного эталона, границы блоков/ячеек, повторные measurements, версии, повреждённые/усечённые файлы, отказ записи.
+- **Критерий завершения:** cache immutable после публикации; selective query не требует чтения всех point records; writer имеет ограниченную память.
+- **Открытые решения:** tiles/grid против более простой блочной организации с пространственными metadata; precision, block layout, размер индекса. Выбор обосновать локальными измерениями объёма чтения и числа seeks. Compression добавлять только при подтверждённой пользе.
+
+Основание: [architecture.md, §§12–14](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:469).
+
+### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
+
+- **Цель:** заменить заглушку реальной пользовательской операцией.
+- **Содержание:** locale-independent parser `X Y Z`, проверка чисел и строк, bounds/count/Z metadata, подключение cache writer и index builder. Предупреждение о ненулевом Z с продолжением или отменой; отмена импорта и диагностика ошибок.
+- **Предпосылки:** 02–03.
+- **Область изменений:** `io`, `cache`, application layer, GUI импорта, tests.
+- **Результат:** пользователь выбирает ASC/XYZ и получает опубликованный локальный cache.
+- **Проверка:** разные допустимые формы чисел и line endings, ненулевой Z, malformed records, overflow/nonfinite values, read/write failure, отмена на разных фазах. Малые generator outputs; затем отдельный прогон существующего большого файла с измерением памяти и I/O.
+- **Критерий завершения:** source cloud не хранится целиком; предупреждение Z работает; неудачный импорт не подменяет текущий проект частичным cache.
+- **Открытые решения:** политика пустых строк и лишних tokens; момент запроса решения по Z. Зафиксировать до parser implementation, не превращая повреждённые строки в молчаливый success.
+
+Основание: [requirements.md, §§4–6](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:90), [algorithms.md, §5](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:152).
+
+### 05. Save/Open и базовый Autosave/Recovery
+
+- **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
+- **Содержание:** versioned `.pc2dproj`, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров и cache references. Отдельное recovery-состояние и предложение восстановления. Управление datasets, ещё используемыми последним save или Undo.
+- **Предпосылки:** 01–04.
+- **Область изменений:** `project`, файловый I/O, GUI Save/Open/Recovery, tests.
+- **Результат:** импортированный проект открывается без исходного ASC/XYZ.
+- **Проверка:** round-trip, перенос project directory, недоступный source, неизвестная версия, отсутствующий cache, прерывание записи по фазам; сохранность последнего explicit save и предыдущего recovery.
+- **Критерий завершения:** опубликованное состояние не ссылается на частичные datasets; отказ сохранения не уничтожает последнее корректное сохранение.
+- **Открытые решения:** JSON либо другой достаточный формат на существующих возможностях Qt; recovery triggers и lifecycle. Не создавать миграционную систему для несуществующих опубликованных версий.
+
+Далее каждая задача расширяет сериализацию **своих** данных. Persistence не откладывается отдельным большим этапом до конца.
+
+Основание: [architecture.md, §§28–31](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:853), [§44](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:1180).
+
+### 06. Density PNG, Engineering Canvas и ROI
+
+- **Цель:** получить физически корректную растровую основу rough-stage и рабочую область приложения.
+- **Содержание:** потоковое накопление counts из cache, проверка dimensions/resources, монотонное PNG encoding и metadata. Нативный Qt Quick canvas, zoom/pan, координаты в мм, rectangular/lasso ROI и возврат полной карты. Сохранение PNG, mapping и ROI.
+- **Предпосылки:** 01–05.
+- **Область изменений:** `raster`, coordinate mapping, C++ canvas, QML layout и панели, project persistence, tests.
+- **Результат:** пользователь явно строит карту с заданным `cell` и выбирает область анализа.
+- **Проверка:** аналитические counts, попадание на край bounding box, отрицательные координаты, PNG round-trip, монотонность/saturation, overflow и слишком малый `cell`; model/pixel/view correspondence; zoom не меняет dataset.
+- **Критерий завершения:** последующие rough-операции могут работать по повторно загруженной PNG; ROI не разрушает её; старый dataset сохраняется при failed rebuild.
+- **Открытые решения:** PNG bit depth и encoding; orientation/boundary convention; ресурсная стратегия крупных raster datasets. Encoding оценить на clean/multi-pass outputs и доступных real maps до закрепления rough detection.
+
+Основание: [algorithms.md, §6](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:217), [architecture.md, §§32–34](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:936).
+
+### 07. Рабочая mask и поиск rough outer contour
+
+- **Цель:** найти приблизительную границу выбранной детали.
+- **Содержание:** классификация foreground по PNG, ограниченная filtering/morphology, connected-region analysis, extraction и simplification замкнутой полилинии в model coordinates. При нескольких независимых кандидатах — диагностируемая неоднозначность.
+- **Предпосылки:** 06.
+- **Область изменений:** `raster`, rough domain state, application action, отображение результата, tests.
+- **Результат:** команда поиска создаёт rough outer contour без чтения исходных точек.
+- **Проверка:** rectangle, circle, line/arc part, разные направления сканирования, varying density и пропуски; отдельный table fragment; несколько кандидатов; ROI boundary; сохранение значимых features.
+- **Критерий завершения:** замкнутая редактируемая полилиния либо понятный failure; автоматического выбора самой большой детали нет.
+- **Открытые решения:** threshold/filtering и simplification tolerance. Сравнить ограниченное число кандидатов; без real maps результат остаётся экспериментальным.
+
+Основание: [algorithms.md, §§8–10](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:343).
+
+### 08. Редактор rough-контуров и семантика повторных операций
+
+- **Цель:** сделать rough outer contour практически пригодным для ручного подтверждения формы.
+- **Содержание:** selection/hit testing, перемещение, добавление и удаление вершин; drag как одно Undo-действие; предупреждение перед заменой ручных правок; автоматическая замена как одна команда. Сохранение ручных изменений и подключение recovery.
+- **Предпосылки:** 05–07.
+- **Область изменений:** rough geometry, application commands, canvas interaction, QML properties, persistence, tests.
+- **Результат:** пользователь исправляет контур, отменяет правки и продолжает работу после перезапуска.
+- **Проверка:** Undo/Redo последовательностей, drag transaction, Save/Open, повторный поиск с подтверждением/отказом, failure повторного поиска.
+- **Критерий завершения:** ручное редактирование не запускает поиск; успешный повторный поиск заменяет результат без matching/merging и корректно отменяется.
+- **Открытые решения:** interaction details и допустимость rough edits. Проверять физическую замкнутость и пригодность для последующих операций, не навязывая rough-контурy precise fitting.
+
+### 09. Rough holes, HoleGroup и их редактор
+
+- **Цель:** получить текущий управляемый набор отверстий.
+- **Содержание:** внутренние empty candidates относительно **исправленного** outer contour; circle classification/estimate; диаметрный фильтр и исключённые области; grouping; добавление/удаление, center/size editing, исправление membership и rough group size. Полный повторный поиск заменяет набор.
+- **Предпосылки:** 07–08.
+- **Область изменений:** `raster`, rough holes/groups/exclusions, canvas и панели, commands, persistence, tests.
+- **Результат:** пользователь находит и исправляет отверстия, группы и диапазон размеров.
+- **Проверка:** existing multiple-circle fixtures, круг против некруглого cutout, шумовые пустоты, неограниченный maximum, исключение малых отверстий, удаление и повторный поиск, Undo/Save/Open.
+- **Критерий завершения:** фильтрация и удаления сохраняют нужные исключения; полный повторный поиск может найти удалённое отверстие заново; HoleGroup не теряет индивидуальные центры.
+- **Открытые решения:** circularity, grouping method/tolerance, singleton/ambiguous membership. Проверить на real holes; пример исключения Ø4 мм и меньше покрыть небольшим целевым тестом, без расширения генератора.
+
+Основание: [requirements.md, §§13–16](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:283), [algorithms.md, §§11–12](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:459).
+
+### 10. Rough cutouts и согласованность исключённых областей
+
+- **Цель:** завершить rough-state для последующей выборки точек.
+- **Содержание:** поиск значимых внутренних пустых областей с учётом текущих holes/exclusions; closed contours, редактор, явное создание/переклассификация исключённой области. Общие проверки пригодности active rough geometry.
+- **Предпосылки:** 08–09.
+- **Область изменений:** `raster`, rough state, commands, canvas, persistence, tests.
+- **Результат:** outer, holes и cutouts совместно описывают выбранную деталь.
+- **Проверка:** rectangle_cutout и complex_part; маленькие raster voids; удалённые/отфильтрованные holes не возвращаются как cutouts; явная переклассификация; повторный поиск и Undo.
+- **Критерий завершения:** последующие операции используют текущую исправленную геометрию и исключения, а не старую классификацию.
+- **Открытые решения:** физический minimum significant size и обработка разорванных regions. Экспериментально проверить связь с `cell`.
+
+Основание: [algorithms.md, §13](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:578).
+
+### 11. Build Reduced Cloud и межэтапный reset
+
+- **Цель:** перейти от PNG к реальным измерениям.
+- **Содержание:** spatial candidate queries, точное расстояние до rough segments/circles, потоковая запись reduced dataset. Каждая исходная запись включается максимум один раз; независимые совпадающие measurements сохраняются. Принятие rough-state явным Build; подтверждённый reset при rough-изменениях; защита от старых workers.
+- **Предпосылки:** 03, 05, 08–10.
+- **Область изменений:** `pointcloud`, cache queries, project transitions, application layer, GUI, persistence, tests.
+- **Результат:** пользователь получает рабочее облако только около active rough geometry.
+- **Проверка:** выборка против полного последовательного эталона на малом cloud; vertices, circle distance, overlapping selection bands, exclusions, maxDistance boundary; cancellation/failure; reset confirmation/отказ; delayed worker после reset.
+- **Критерий завершения:** partial dataset не публикуется; cache не меняется; исключённые области не инициируют выборку; Undo не возвращает сброшенный precise-stage.
+- **Открытые решения:** reduced storage и ресурсная стратегия. Предпочтительная исходная гипотеза — project-owned dataset с выборочным чтением; RAM-представление допустимо по фактическому размеру.
+
+Основание: [requirements.md, §21](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:448), [algorithms.md, §14](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:629).
+
+### 12. Визуализация и редактирование reduced points
+
+- **Цель:** дать пользователю способ очистить measured data до fitting.
+- **Содержание:** пакетный native rendering без QML object на точку; selection и удаление; компактное представление правок и Undo; сохранение удалений; явный полный rebuild создаёт новый набор. Результаты precise processing после relevant edits имеют неприменённые изменения.
+- **Предпосылки:** 06, 11.
+- **Область изменений:** reduced storage/read API, canvas, commands, project persistence, GUI, tests.
+- **Результат:** пользователь удаляет посторонние точки и продолжает с тем же рабочим набором после открытия проекта.
+- **Проверка:** artifact outputs, selection после zoom/pan, Undo/Redo больших удалений, Save/Open, rebuild, cache immutability, память rendering и истории команд.
+- **Критерий завершения:** удалённые точки не возвращаются при открытии; algorithms видят только active points; отображение не изменяет вычислительный dataset.
+- **Открытые решения:** deletion mask/идентификаторы либо иной достаточный механизм; пакетная загрузка и возможное прореживание только отображения.
+
+### 13. CAD domain model, validation и ручной редактор
+
+- **Цель:** иметь полноценную геометрическую основу до автоматического fitting.
+- **Содержание:** LINE/ARC chain либо самостоятельный CIRCLE; порядок, shared junctions, closure, Corner/Tangent, material side и Automatic/Fixed. Topology validation, аналитические distances/intersections, rendering и ручное создание/исправление/удаление элементов. Draft редактирования отделён от принятой финальной geometry.
+- **Предпосылки:** 01, 05–06; полная привязка к precise-stage — после 11.
+- **Область изменений:** `geometry`, application commands, canvas/editor, persistence, headless tests.
+- **Результат:** корректную CAD-геометрию можно создать, исправить, зафиксировать и сохранить независимо от fitting.
+- **Проверка:** все primitive pairs, shared endpoints, tangent/corner, ARC directions и angular wrap, CIRCLE, self/inter-contour intersection/touch, containment, запрещённые islands, degeneracy и большие coordinate offsets.
+- **Критерий завершения:** topology определяется domain model; invalid draft не принимается как финальный результат и не экспортируется; Fixed round-trip и Undo работают.
+- **Открытые решения:** orientation convention, численные tolerances и методы topology predicates. Не использовать fitting tolerance как разрешённый topology gap; близкие endpoints не заменяют общий junction.
+
+Основание: [requirements.md, §§24–28](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:513), [algorithms.md, §§26–29](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1061).
+
+### 14. Supporting boundary и проверка одностороннего допуска
+
+- **Цель:** определить проверяемое основание принятия автоматической geometry.
+- **Содержание:** сравнить локальные методы support extraction относительно rough geometry; определить reference boundary, ordering, material side, интерполяцию и проверку curves между samples. Отделить quality diagnostics от acceptance conditions; явные InsufficientData/ambiguity/failure.
+- **Предпосылки:** 11–13. Подготовка real datasets начинается раньше, после 04.
+- **Область изменений:** локализованные экспериментальные `pointcloud`/geometry algorithms и headless comparison tests; фиксация выбранных методов в документации после проверки.
+- **Результат:** support/reference data и validator, которыми действительно можно оценивать кандидаты fitting.
+- **Проверка:** clean known geometry; shifted/double/jagged scans, gaps, внутренние points; outer/inner curves; нарушения между samples; representative real scans с проверяемой интерпретацией границы.
+- **Критерий завершения:** известны reference model, assumptions, failure conditions, численная политика и ограничения; измеренные выступы не отбрасываются ради fit. Без real scans завершён только экспериментальный прототип.
+- **Открытые решения:** все перечисленные методы. Сначала сравнить несколько конкретных кандидатов из классов, указанных в документации; не создавать обширную исследовательскую платформу.
+
+Основание: [algorithms.md, §16](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:730), [§§28–31](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1134).
+
+### 15. Precise CIRCLE и уточнение известных отверстий
+
+- **Цель:** получить первый небольшой, но законченный automatic CAD-сценарий.
+- **Содержание:** circle estimate/refinement, constrained fitting либо correction с последующей validation; отдельные center/radius каждого known hole, сохранение HoleGroup и Fixed. Поддержать внешний круглый контур.
+- **Предпосылки:** 11–14.
+- **Область изменений:** precise algorithms, application actions, quality/status GUI, persistence, tests.
+- **Результат:** круглая деталь восстанавливается целиком; известные отверстия уточняются внутри существующего корректного outer contour.
+- **Проверка:** external circle и multiple-hole fixtures; смещение центра при уменьшении radius; различающиеся precise sizes в одной группе; Fixed, неполное покрытие и невозможный tolerance; полная candidate topology.
+- **Критерий завершения:** CIRCLE сохраняется как CIRCLE, excluded holes не возвращаются, global hole search отсутствует; автоматический результат проходит material и topology validation.
+- **Открытые решения:** estimator/refinement и достаточность angular coverage. Выбрать по сравнению и representative real scans.
+
+Основание: [algorithms.md, §20](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:883), [§32](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1267).
+
+### 16. Precise прямолинейные контуры и Fixed neighbours
+
+- **Цель:** получить законченный refinement для деталей и вырезов из LINE.
+- **Содержание:** segmentation прямолинейных участков, line candidates, fitting с material/endpoints/Fixed constraints, corner construction и closure. Независимые commands уточнения outer/cutouts; проверка всего resulting project geometry.
+- **Предпосылки:** 13–14; для совместной детали с отверстиями — 15.
+- **Область изменений:** precise processing, junction construction, application actions, GUI diagnostics, tests.
+- **Результат:** rectangle/triangle и прямоугольные cutouts превращаются в компактные CAD-контуры; свободные участки перестраиваются относительно Fixed lines.
+- **Проверка:** сохранение corners, shared closure, выступы сканирования, перенос координат, конфликт Fixed/tolerance, InsufficientData; cancellation и Undo автоматической замены.
+- **Критерий завершения:** принятые контуры проходят все Required; неподдержанный данным этапом curved case выдаёт диагностируемый отказ, а не массовый набор коротких LINE.
+- **Открытые решения:** robust line fitting, segmentation и constrained junction solution — сравнение относительно выбранной reference model.
+
+### 17. ARC, смешанные контуры и полный precise workflow
+
+- **Цель:** завершить автоматическое восстановление всего принятого набора геометрии.
+- **Содержание:** arc fitting и устойчивость на малой angular extent; LINE/ARC selection, mixed segmentation, Corner/Tangent classification, shared junction construction с Fixed neighbours. Outer/cutouts как chains или CIRCLE; полноценный ручной цикл edit → Fixed → refine → unfix.
+- **Предпосылки:** 15–16.
+- **Область изменений:** precise algorithms, geometry validation, editor integration, persistence, tests.
+- **Результат:** line_arc_part и complex_part проходят полный precise workflow.
+- **Проверка:** CW/CCW ARC, angular wrap, line–arc/arc–arc corners и tangency, внутренние вырезы, разные Fixed neighbours, замыкание, неоднозначность и topology conflicts; representative real contours.
+- **Критерий завершения:** все refinement actions применяют единую acceptance policy; неподдерживаемые curves не используются как fallback; невозможный результат не публикуется как success.
+- **Открытые решения:** primitive objective/heuristics, автоматическая junction classification и критерии arc stability. Требуется локальное сравнение кандидатов, а не доказательство глобального минимума primitives.
+
+Основание: [algorithms.md, §§17–25](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:776), [§§33–34](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1297).
+
+### 18. Отдельная Geometry Optimization
+
+- **Цель:** уменьшать избыточность уже корректной precise geometry.
+- **Содержание:** ограниченный набор оправданных преобразований: compatible LINE/ARC merging, избыточные элементы, совместимая closed arc chain → CIRCLE. Каждое предложение проходит полную validation; операция явно запускается пользователем и отменяется через Undo.
+- **Предпосылки:** 15–17.
+- **Область изменений:** geometry optimization, application action, diagnostics, tests.
+- **Результат:** пользователь может упростить принятый результат без потери обязательных свойств.
+- **Проверка:** уменьшающие число primitives случаи; преобразования, которые должны быть отклонены из-за Corner, Tangent, Fixed, topology или material constraint; cancellation/Undo.
+- **Критерий завершения:** refinement не запускает optimization автоматически; принятые преобразования сохраняют validation, Fixed и closure.
+- **Открытые решения:** порядок passes и критерии объединения. Минимальную длину не превращать в универсальный порог удаления реальных features.
+
+Основание: [algorithms.md, §35](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1359).
+
+### 19. DXF export и совместимость с Siemens NX
+
+- **Цель:** передать итоговую geometry в CAD с сохранением типов и масштаба.
+- **Содержание:** сначала минимальная export-проба на корректной domain geometry из 13; затем exporter LINE/ARC/CIRCLE, application action, безопасная запись и предупреждение о неприменённых precise-изменениях. Реальный NX import.
+- **Предпосылки:** проба — 13; полный пользовательский сценарий — 15–17.
+- **Область изменений:** `export`, application layer, GUI, export tests; генератор не затрагивается.
+- **Результат:** корректная текущая geometry экспортируется в мм и открывается в NX как редактируемые LINE/ARC/CIRCLE.
+- **Проверка:** независимое чтение export records, coordinates/types/units, CW ARC и wrap, CIRCLE, endpoints; NX import контрольных shapes и полного результата. Проверка отмены предупреждения, явного export текущей geometry и отказов записи.
+- **Критерий завершения:** exporter не читает QML и не запускает fitting; выбранный DXF вариант проверен в целевой NX-среде. Invalid final topology не разрешается предупреждением об outdated inputs.
+- **Открытые решения:** версия DXF, минимальный состав служебных sections и необходимость export library. Выбирать после малой interoperability-пробы; существующие NX-export fixtures не считать доказательством.
+
+Основание: [requirements.md, §34](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:760), [architecture.md, §38](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:1023).
+
+### 20. Завершение первой версии и системная приёмка
+
+- **Цель:** подтвердить пригодность согласованного приложения для полного рабочего процесса.
+- **Содержание:** полный integration/regression набор; GUI polish на уже работающих сценариях; ошибки, доступность действий, русские сообщения, DPI, клавиатура, focus и масштабируемые ресурсы. Проверка dataset lifecycle, recovery, ресурсов и Windows deployment без установленного development kit.
+- **Предпосылки:** все функциональные задачи, real-scan validation и NX validation.
+- **Область изменений:** интеграция, GUI, выявленные локальные defects, packaging и фактически проверенная документация сборки/запуска.
+- **Результат:** первая версия проходит весь workflow и продолжает сохранённую ручную работу после перезапуска.
+- **Проверка:** Debug/Release; clean/artifact/real scans; большой cache/reduced/raster; HDD и медленный source I/O; cancellation/project switch/reset/save races; interrupted saves/recovery; NX import; Windows 10/11 x64 и работа без обязательной дискретной GPU.
+- **Критерий завершения:** основные сценарии и failure paths пройдены; методы не имеют скрытого статуса неподтверждённых; ограничения и измеренная производительность документированы.
+- **Открытые решения:** окончательные performance expectations и packaging. Нормативы определять по измерениям на согласованном целевом оборудовании и типичных datasets.
+
+Это не первый момент проверки качества: задача 20 собирает результаты предыдущих этапов и проверяет их взаимодействие.
+
+## 5. Контрольные точки
+
+| Точка | Что пользователь уже может делать | Проверка и остающиеся ограничения | Почему можно двигаться дальше |
+|---|---|---|---|
+| **К1: сохраняемый импорт**, после 05 | Импортировать, отменить импорт, сохранить и открыть проект без source | Streaming/cache/persistence tests и большой import run. Геометрической обработки ещё нет | Постоянный источник данных и безопасный lifecycle готовы |
+| **К2: rough outer**, после 08 | Построить PNG, выбрать ROI, найти и исправить внешний контур, использовать Undo и recovery | Mapping, поиск, editing round-trip. Нет полного описания holes/cutouts | Можно проверять внутренние области относительно текущего контура |
+| **К3: полный rough**, после 10 | Управлять holes/groups/cutouts, исключать ненужные области | Последовательности поиска/редактирования/исключения. Rough остаётся приближением | Все нужные области явно представлены для extraction |
+| **К4: редактируемые реальные точки**, после 12 | Создать reduced cloud, удалить мусор, сохранить удаления, вернуться к rough через подтверждённый reset | Extraction oracle, deletion persistence, reset/workers. Automatic fitting ещё отсутствует | Есть действительный precise-input и безопасное редактирование |
+| **К5: первые precise shapes**, после 15–16 | Восстанавливать круги и LINE-контуры, уточнять известные holes, исправлять и фиксировать элементы | Material/topology/Fixed tests; real-scan status указан явно. Mixed ARC ещё ограничены | Acceptance pipeline проверен на законченных случаях |
+| **К6: весь геометрический workflow**, после 17–19 | Обрабатывать mixed contours, отдельно оптимизировать и экспортировать DXF | Полные synthetic/real cases и NX import. До 20 остаётся системная приёмка | Все функциональные подсистемы представлены |
+| **К7: первая версия**, после 20 | Проходить полный workflow в целевой среде | Системная матрица и подтверждённые ограничения | Есть основание объявить функциональную первую версию готовой |
+
+Если real scans или NX пока недоступны, К5–К6 можно достичь как инженерные функциональные состояния, но К7 остаётся незавершённой.
+
+## 6. Риски и открытые решения
+
+| Риск/вопрос | Способ снижения | Когда проверять |
+|---|---|---|
+| **Неоднозначная measured boundary и one-sided validation между samples** | Явная reference/interpolation model, проверка всей candidate curve, отказ при недостаточности данных; сравнение на реальных scans | Подготовка после 04; решение в 14 до принятия fitting |
+| **Sparse anisotropic scans: шаг вдоль линии и между линиями существенно различается** | Проверять Horizontal/Vertical/multi-pass, gaps и features разных размеров; не строить уверенную geometry при недостаточном покрытии | 06–07 и 14–17 |
+| **Robust filtering удаляет реальные выступы** | Отдельно оценивать material violations; неоднозначный мусор оставлять для ручного удаления; artifact ground truth не выдавать алгоритму | 12, 14–17 |
+| **Cache index даёт чрезмерные HDD seeks или требует большой памяти при построении** | Сравнить ограниченное число disk layouts; измерять read volume, seeks, temporary space и memory; строить индекс bounded способом | 03; повторить на большом файле в 04 и extraction в 11 |
+| **Density/reduced dataset оказывается большим, несмотря на streaming source** | Оценивать размеры до создания; selective/block access, bounded buffers; безопасный resource failure; measured rendering strategy | 06, 11–12 |
+| **Неприменимый worker восстанавливает сброшенные данные** | Project/input identity, applicability tests, invalidation при reset/close; publication только через application layer | 02, повторить при 11 и 15–18 |
+| **Undo/save/recovery удерживают либо удаляют не те datasets** | Явный lifecycle ссылок; не удалять данные последнего корректного save; проверять replacement и interrupted publication | 05, 11–12, 20 |
+| **Fixed, tangent, closure и tolerance конфликтуют** | Shared junction model, constrained fitting, contextual numerical policy, диагностируемый failure без изменения Fixed | 13–17 |
+| **PNG encoding/morphology меняют классификацию holes/cutouts** | Выбирать encoding до закрепления detection; сравнивать real maps; физические thresholds и regressions исключений | 06–10 |
+| **DXF принимается NX с неверным масштабом или потерей типов** | Ранняя export-проба и проверка импортированной geometry; не переносить выводы из исторического NX-export отчёта | После 13, до завершения 19 |
+| **GUI плохо работает на больших clouds или неудобен для инженерного редактирования** | Native batched rendering и проверка реальных действий на каждом checkpoint; DPI и слабая графика | С 06; полная проверка в 20 |
+
+### Какие решения действительно блокируют этапы
+
+- Cache layout и index construction — блокируют завершение 03.
+- Raster mapping и PNG encoding — блокируют окончательное построение 06 и закрепление rough detection.
+- Reference boundary и one-sided validator — блокируют принятие automatic precise geometry.
+- Representative real scans — блокируют подтверждение алгоритмов, **но не** разработку storage/UI и экспериментальных prototypes.
+- Целевая NX-среда — блокирует окончательное подтверждение interoperability, **но не** разработку exporter.
+- Внутренние имена классов, threading class, конкретный UI layout, buffer size и recovery interval можно выбирать непосредственно в соответствующей задаче.
+
+Performance-нормативы пока отсутствуют. Для их определения следует фиксировать dataset, hardware/storage, конфигурацию, cache conditions и измерять runtime по фазам, peak memory, объём I/O, latency отмены и отзывчивость GUI. Числа из проверки генератора нормативами основной программы не являются.
+
+## 7. Проверка полноты плана
+
+| Основной контракт | Покрытие |
+|---|---|
+| C++20, Qt Quick/QML, CMake; C++ ownership | 01–02 и все последующие задачи |
+| Streaming import, immutable persistent cache, spatial access | 03–04 |
+| Работа без исходного ASC/XYZ | 05 |
+| Fixed density PNG, `cell`, координаты, ROI | 01, 06 |
+| Rough outer/holes/groups/cutouts и ручные правки | 07–10 |
+| Исключения holes и отсутствие их автоматического возврата | 09–12, 15 |
+| Реальные reduced points, отсутствие duplication исходных записей | 11 |
+| Point editing и сохранение удалений | 12 |
+| Полный подтверждённый межэтапный reset без Undo | 11–12; foundation в 01–02 |
+| C0, Corner/Tangent, topology, Fixed | 13, 16–18 |
+| One-sided tolerance и measured features | 14–18 |
+| LINE/ARC/CIRCLE, компактность и отдельная optimization | 13, 15–18 |
+| Explicit operations, progress/cancel, applicability, failure safety | 02 и integration каждой операции |
+| Save/Open, versioning, autosave/recovery | 05 и расширения по каждому этапу |
+| DXF, мм, типы и предупреждение о неприменённых изменениях | 19 |
+| Русский удобный GUI, large-data rendering | 04–13, 15–20 |
+| Unit/integration/regression, resources, Debug/Release, real scans | Общие критерии, проверки задач, 20 |
+
+Вне плана оставлены:
+
+- повторная реализация и расширение готового генератора;
+- DXF/NX import в CADContour2D или генератор;
+- SPLINE/ELLIPSE, material islands, 3D и NX constraints/history;
+- автоматическое распознавание всех synthetic artifacts;
+- универсальная исследовательская платформа, обязательная GPU, преждевременные spatial libraries;
+- сохранение полной Undo history между запусками.
+
+Это либо прямо исключено текущими контрактами, либо не требуется для первой версии.
+
+## 8. Первый рекомендуемый шаг
+
+**Начать с задачи 01 — минимальной C++ модели проекта, команд и общей координатной основы.**
+
+Её объём следует ограничить единственным владельцем состояния, реальными параметрами, project/result identity, structured errors, проверяемыми coordinate conversions и тонкой связью с QML. Не требуется заранее реализовывать полную CAD-модель или все будущие подсистемы.
+
+Она создаёт основу для следующей задачи — безопасных workers — и предотвращает распределение состояния между будущими GUI-панелями. Первый проверяемый результат: интерфейс отображает C++ state, parameter edit/Undo работают, а domain tests запускаются без GUI.
+
+Планирование завершено. Реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись.
