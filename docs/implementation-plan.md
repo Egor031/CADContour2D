@@ -1,13 +1,13 @@
 ## 1. Текущее состояние репозитория
 
-**Основная программа находится на стадии проверенного каркаса. Реализация её рабочего workflow ещё не начата.** Это соответствует Project Status в [README.md](D:/ZherlitsynEE/CADContour2D/README.md) и подтверждается исходниками.
+**Основная программа находится на стадии проверенного каркаса. Реализация её рабочего workflow ещё не начата.** Это соответствует Project Status в [README.md](../README.md) и подтверждается исходниками.
 
 План имеет статус рабочего документа: он определяет последовательность реализации, но не обладает приоритетом над requirements.md, architecture.md и algorithms.md.
 
 | Область | Фактическое состояние |
 |---|---|
-| Приложение | [src/main.cpp](D:/ZherlitsynEE/CADContour2D/src/main.cpp) создаёт `QGuiApplication`, загружает QML и обрабатывает ошибку создания окна. Application/domain layer отсутствует. |
-| GUI | [qml/Main.qml](D:/ZherlitsynEE/CADContour2D/qml/Main.qml) содержит окно, надпись и кнопку закрытия. Canvas, панели обработки, редакторы и модель проекта отсутствуют. |
+| Приложение | [src/main.cpp](../src/main.cpp) создаёт `QGuiApplication`, загружает QML и обрабатывает ошибку создания окна. Application/domain layer отсутствует. |
+| GUI | [qml/Main.qml](../qml/Main.qml) содержит окно, надпись и кнопку закрытия. Canvas, панели обработки, редакторы и модель проекта отсутствуют. |
 | Сборка | C++20, MSVC x64, Qt 6.12 Quick/QML, CMake, Ninja, Debug/Release presets. Зависимости закреплены vcpkg baseline. |
 | Подключение библиотек | Production executable использует Qt. OpenCV, Eigen и spdlog пока подключены к dependency smoke test; их наличие не означает наличие вычислительных подсистем. |
 | Тестирование | Есть GoogleTest/CTest, dependency smoke и тесты генератора. Тестов production parsing, cache, geometry, persistence или processing пока нет. |
@@ -32,7 +32,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 1. Форматы cache/project, spatial index и reduced storage ещё не выбраны.
 2. Многие rough/precise методы имеют статус Open decision.
-3. Исторические NX DXF fixtures не подтверждают совместимость будущего exporter: это экспорт **из NX**, а требуется проверить импорт **в NX**. Их исторический статус описан в [отчёте](D:/ZherlitsynEE/CADContour2D/docs/nx-dxf-fixture-analysis.md).
+3. Исторические NX DXF fixtures не подтверждают совместимость будущего exporter: это экспорт **из NX**, а требуется проверить импорт **в NX**. Их исторический статус описан в [отчёте](nx-dxf-fixture-analysis.md).
 
 ## 2. Предлагаемая стратегия реализации
 
@@ -47,7 +47,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 Такой порядок следует зависимостям данных, но **сохранение, Undo, ошибки и безопасные workers появляются до массового ручного редактирования**, а GUI интегрируется с каждой подсистемой по мере её готовности.
 
-Архитектурные основания: [architecture.md, §§4–8](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:88), [§§23–31](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:730), [§§32–34](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:936).
+Архитектурные основания: [architecture.md, §§4–8](architecture.md#4-разделение-c-и-qml), [§§23–31](architecture.md#23-результаты-вычислений-и-их-актуальность), [§§32–34](architecture.md#32-рендеринг-интерфейса).
 
 ### Почему выбран этот порядок
 
@@ -61,7 +61,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 Исследования не должны блокировать весь проект. Подготовку real scans можно вести одновременно с импортом и cache; сравнение precise-методов — после появления доступа к реальным точкам; DXF/NX-пробу — после появления CAD domain model, независимо от готовности fitting.
 
-Для Open decision допустима изолированная экспериментальная реализация, сохраняющая Required и явно обозначенная как неподтверждённая. Она не становится основанием объявить первую версию готовой для реальных scans. Правила — [algorithms.md, §2](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:45) и [§§42–47](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1516).
+Для Open decision допустима изолированная экспериментальная реализация, сохраняющая Required и явно обозначенная как неподтверждённая. Она не становится основанием объявить первую версию готовой для реальных scans. Правила — [algorithms.md, §2](algorithms.md#2-статус-алгоритмических-решений) и [§§42–47](algorithms.md#42-тестирование-алгоритмов).
 
 ## 3. Общая дорожная карта
 
@@ -109,7 +109,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** состояние не дублируется в QML, Undo восстанавливает его, вычислительные tests не требуют GUI.
 - **Открытые решения:** минимальное представление ревизий и результатов; raster origin/Y/boundary convention нужно согласовать здесь либо до задачи 06, без независимых вариантов в разных слоях.
 
-Основание: [architecture.md, §§9–11](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:374), [§27](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:827).
+Основание: [architecture.md, §§9–11](architecture.md#9-состояние-проекта), [§27](architecture.md#27-undoredo).
 
 ### 02. Безопасное выполнение фоновых операций
 
@@ -122,7 +122,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** ни один из этих сценариев не перезаписывает новое состояние; частичный результат не публикуется.
 - **Открытые решения:** конкретный Qt threading mechanism и applicability mechanism. Выбрать простое достаточное решение, без универсального task framework.
 
-Основание: [architecture.md, §§24–26](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:744).
+Основание: [architecture.md, §§24–26](architecture.md#24-длительные-операции).
 
 ### 03. Persistent Point Cache и пространственный доступ
 
@@ -135,7 +135,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** cache immutable после публикации; selective query не требует чтения всех point records; writer имеет ограниченную память.
 - **Открытые решения:** tiles/grid против более простой блочной организации с пространственными metadata; precision, block layout, размер индекса. Выбор обосновать локальными измерениями объёма чтения и числа seeks. Compression добавлять только при подтверждённой пользе.
 
-Основание: [architecture.md, §§12–14](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:469).
+Основание: [architecture.md, §§12–14](architecture.md#12-persistent-point-cache).
 
 ### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
 
@@ -148,7 +148,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** source cloud не хранится целиком; предупреждение Z работает; неудачный импорт не подменяет текущий проект частичным cache.
 - **Открытые решения:** политика пустых строк и лишних tokens; момент запроса решения по Z. Зафиксировать до parser implementation, не превращая повреждённые строки в молчаливый success.
 
-Основание: [requirements.md, §§4–6](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:90), [algorithms.md, §5](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:152).
+Основание: [requirements.md, §§4–6](requirements.md#4-входные-данные), [algorithms.md, §5](algorithms.md#5-импорт-ascxyz).
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
@@ -163,7 +163,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 Далее каждая задача расширяет сериализацию **своих** данных. Persistence не откладывается отдельным большим этапом до конца.
 
-Основание: [architecture.md, §§28–31](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:853), [§44](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:1180).
+Основание: [architecture.md, §§28–31](architecture.md#28-project-persistence), [§44](architecture.md#44-безопасность-пользовательских-данных).
 
 ### 06. Density PNG, Engineering Canvas и ROI
 
@@ -176,7 +176,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** последующие rough-операции могут работать по повторно загруженной PNG; ROI не разрушает её; старый dataset сохраняется при failed rebuild.
 - **Открытые решения:** PNG bit depth и encoding; orientation/boundary convention; ресурсная стратегия крупных raster datasets. Encoding оценить на clean/multi-pass outputs и доступных real maps до закрепления rough detection.
 
-Основание: [algorithms.md, §6](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:217), [architecture.md, §§32–34](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:936).
+Основание: [algorithms.md, §6](algorithms.md#6-построение-density-map), [architecture.md, §§32–34](architecture.md#32-рендеринг-интерфейса).
 
 ### 07. Рабочая mask и поиск rough outer contour
 
@@ -189,7 +189,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** замкнутая редактируемая полилиния либо понятный failure; автоматического выбора самой большой детали нет.
 - **Открытые решения:** threshold/filtering и simplification tolerance. Сравнить ограниченное число кандидатов; без real maps результат остаётся экспериментальным.
 
-Основание: [algorithms.md, §§8–10](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:343).
+Основание: [algorithms.md, §§8–10](algorithms.md#8-получение-рабочей-raster-mask).
 
 ### 08. Редактор rough-контуров и семантика повторных операций
 
@@ -213,7 +213,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** фильтрация и удаления сохраняют нужные исключения; полный повторный поиск может найти удалённое отверстие заново; HoleGroup не теряет индивидуальные центры.
 - **Открытые решения:** circularity, grouping method/tolerance, singleton/ambiguous membership. Проверить на real holes; пример исключения Ø4 мм и меньше покрыть небольшим целевым тестом, без расширения генератора.
 
-Основание: [requirements.md, §§13–16](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:283), [algorithms.md, §§11–12](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:459).
+Основание: [requirements.md, §§13–16](requirements.md#13-поиск-отверстий-на-первом-этапе), [algorithms.md, §§11–12](algorithms.md#11-поиск-rough-holes).
 
 ### 10. Rough cutouts и согласованность исключённых областей
 
@@ -226,7 +226,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** последующие операции используют текущую исправленную геометрию и исключения, а не старую классификацию.
 - **Открытые решения:** физический minimum significant size и обработка разорванных regions. Экспериментально проверить связь с `cell`.
 
-Основание: [algorithms.md, §13](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:578).
+Основание: [algorithms.md, §13](algorithms.md#13-поиск-rough-cutouts).
 
 ### 11. Build Reduced Cloud и межэтапный reset
 
@@ -239,7 +239,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** partial dataset не публикуется; cache не меняется; исключённые области не инициируют выборку; Undo не возвращает сброшенный precise-stage.
 - **Открытые решения:** reduced storage и ресурсная стратегия. Предпочтительная исходная гипотеза — project-owned dataset с выборочным чтением; RAM-представление допустимо по фактическому размеру.
 
-Основание: [requirements.md, §21](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:448), [algorithms.md, §14](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:629).
+Основание: [requirements.md, §21](requirements.md#21-переходы-между-этапами), [algorithms.md, §14](algorithms.md#14-reduced-point-cloud-extraction).
 
 ### 12. Визуализация и редактирование reduced points
 
@@ -263,7 +263,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** topology определяется domain model; invalid draft не принимается как финальный результат и не экспортируется; Fixed round-trip и Undo работают.
 - **Открытые решения:** orientation convention, численные tolerances и методы topology predicates. Не использовать fitting tolerance как разрешённый topology gap; близкие endpoints не заменяют общий junction.
 
-Основание: [requirements.md, §§24–28](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:513), [algorithms.md, §§26–29](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1061).
+Основание: [requirements.md, §§24–28](requirements.md#24-точная-геометрия), [algorithms.md, §§26–29](algorithms.md#26-fixed-geometry-constraints).
 
 ### 14. Supporting boundary и проверка одностороннего допуска
 
@@ -276,7 +276,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** известны reference model, assumptions, failure conditions, численная политика и ограничения; измеренные выступы не отбрасываются ради fit. Без real scans завершён только экспериментальный прототип.
 - **Открытые решения:** все перечисленные методы. Сначала сравнить несколько конкретных кандидатов из классов, указанных в документации; не создавать обширную исследовательскую платформу.
 
-Основание: [algorithms.md, §16](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:730), [§§28–31](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1134).
+Основание: [algorithms.md, §16](algorithms.md#16-supporting-boundary-points), [§§28–31](algorithms.md#28-представление-стороны-материала).
 
 ### 15. Precise CIRCLE и уточнение известных отверстий
 
@@ -289,7 +289,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** CIRCLE сохраняется как CIRCLE, excluded holes не возвращаются, global hole search отсутствует; автоматический результат проходит material и topology validation.
 - **Открытые решения:** estimator/refinement и достаточность angular coverage. Выбрать по сравнению и representative real scans.
 
-Основание: [algorithms.md, §20](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:883), [§32](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1267).
+Основание: [algorithms.md, §20](algorithms.md#20-circle-fitting), [§32](algorithms.md#32-precise-hole-refinement).
 
 ### 16. Precise прямолинейные контуры и Fixed neighbours
 
@@ -313,7 +313,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** все refinement actions применяют единую acceptance policy; неподдерживаемые curves не используются как fallback; невозможный результат не публикуется как success.
 - **Открытые решения:** primitive objective/heuristics, автоматическая junction classification и критерии arc stability. Требуется локальное сравнение кандидатов, а не доказательство глобального минимума primitives.
 
-Основание: [algorithms.md, §§17–25](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:776), [§§33–34](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1297).
+Основание: [algorithms.md, §§17–25](algorithms.md#17-segmentation-precise-contour), [§§33–34](algorithms.md#33-precise-cutout-refinement).
 
 ### 18. Отдельная Geometry Optimization
 
@@ -326,7 +326,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** refinement не запускает optimization автоматически; принятые преобразования сохраняют validation, Fixed и closure.
 - **Открытые решения:** порядок passes и критерии объединения. Минимальную длину не превращать в универсальный порог удаления реальных features.
 
-Основание: [algorithms.md, §35](D:/ZherlitsynEE/CADContour2D/docs/algorithms.md:1359).
+Основание: [algorithms.md, §35](algorithms.md#35-geometry-optimization).
 
 ### 19. DXF export и совместимость с Siemens NX
 
@@ -339,7 +339,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Критерий завершения:** exporter не читает QML и не запускает fitting; выбранный DXF вариант проверен в целевой NX-среде. Invalid final topology не разрешается предупреждением об outdated inputs.
 - **Открытые решения:** версия DXF, минимальный состав служебных sections и необходимость export library. Выбирать после малой interoperability-пробы; существующие NX-export fixtures не считать доказательством.
 
-Основание: [requirements.md, §34](D:/ZherlitsynEE/CADContour2D/docs/requirements.md:760), [architecture.md, §38](D:/ZherlitsynEE/CADContour2D/docs/architecture.md:1023).
+Основание: [requirements.md, §34](requirements.md#34-экспорт-dxf), [architecture.md, §38](architecture.md#38-dxf-export).
 
 ### 20. Завершение первой версии и системная приёмка
 
