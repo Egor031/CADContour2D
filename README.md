@@ -147,7 +147,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 ### Prerequisites
 
 - Windows x64 и MSVC с поддержкой C++20; команды выполняются из x64 Developer Command Prompt (окружение штатного `vcvars64.bat`).
-- Официальная установка Qt 6.12 с Core, Qml, Quick и Quick Controls; Qt через vcpkg не устанавливается.
+- Официальная установка Qt 6.12 с Core, Gui, Qml, Quick и Quick Controls; Qt через vcpkg не устанавливается.
 - CMake и Ninja доступны в `PATH` текущего процесса.
 - `VCPKG_ROOT` указывает на установленный vcpkg, `QT_ROOT` — на каталог Qt kit, содержащий `bin`, `lib` и `include`.
 - При первой настройке нужен сетевой доступ к registry и исходникам зависимостей; последующие настройки используют кэш vcpkg.
@@ -166,26 +166,40 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ```bat
 chcp 65001 >nul
-cmake --fresh --preset windows-release
-cmake --build --preset windows-release --clean-first
+set "PATH=%QT_ROOT%\bin;%PATH%"
+cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=OFF
+cmake --build --preset windows-release
 ctest --preset windows-release
 cmake --build --preset windows-release --target all_qmllint
 ```
 
-UTF-8 code page нужна в проверенной русскоязычной среде MSVC для корректного распознавания `/showIncludes` в CMake/Ninja. Она меняется только в текущей консоли. `--fresh` повторяет configure с новым CMake cache; `--clean-first` пересобирает targets проекта, сохраняя кэш зависимостей.
+UTF-8 code page нужна в проверенной русскоязычной среде MSVC для корректного распознавания `/showIncludes` в CMake/Ninja. Она меняется только в текущей консоли. Qt `bin` в локальном `PATH` нужен также production tests, использующим Qt runtime.
 
 Debug также фактически проверен:
 
 ```bat
-cmake --fresh --preset windows-debug
-cmake --build --preset windows-debug --clean-first
+cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=OFF
+cmake --build --preset windows-debug
 ctest --preset windows-debug
 cmake --build --preset windows-debug --target all_qmllint
 ```
 
-Без development tools в каждой конфигурации CTest запускает один smoke test, проверяющий OpenCV, Eigen и spdlog через GoogleTest. `all_qmllint` — штатный Qt target для статической проверки QML.
+Без development tools CTest запускает 72 теста: 32 domain/application/coordinate, 34 view model, 5 production QML integration и один dependency smoke. Release: 72/72 PASS; Debug: 67 headless/smoke и затем 5/5 QML PASS. Итоговая полная регрессия с tools ниже также проверяет все production tests в обеих конфигурациях. Они включаются при `BUILD_TESTING` независимо от генератора. `all_qmllint` прошёл в Debug и Release.
+
+QML integration tests загружают тот же статический модуль `CADContour2D` и `Main.qml`, что приложение. Проверяются bindings, Apply/Enter/Undo/Redo/New/Close handlers, ошибочный draft, required injection и resize 400×380 / 1000×700. По умолчанию они используют offscreen + software + Basic: Windows NativeStyle в offscreen выдаёт диагностику размеров TextField. Проверка QML warnings остаётся строгой. Дополнительно проверено выполнение с настоящей Windows-платформой и её штатным стилем:
+
+```bat
+set "QT_QPA_PLATFORM=windows"
+build\windows-debug\qml_integration_tests.exe
+build\windows-release\qml_integration_tests.exe
+set "QT_QPA_PLATFORM="
+```
+
+Результат: 5/5 PASS в каждой конфигурации. Такая проверка создаёт и закрывает настоящие тестовые окна, но не заменяет визуальную пользовательскую приёмку.
 
 Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его Debug/Release configure/build, 95 generator tests и существующий dependency smoke проверены: 96/96 PASS в каждой конфигурации; QML lint также прошёл. Команды и ограничения — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
+
+После задачи 01 повторно выполнены `cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON` и аналогичный Release configure, build, CTest и `all_qmllint`: **167/167 PASS в каждой конфигурации** (71 production + 95 generator + smoke). Гигабайтные облака при этой регрессии не создавались.
 
 ### Run
 
@@ -202,7 +216,17 @@ start /wait "" build\windows-release\CADContour2D.exe
 start /wait "" build\windows-debug\CADContour2D.exe
 ```
 
-Приложение показывает QML `ApplicationWindow` с русской надписью и кнопкой закрытия. Для обоих вариантов проверены создание видимого окна, загрузка Qt Quick Controls и штатное закрытие с кодом 0. Это запуск из установленного Qt kit, не deployment package.
+Приложение создаёт новый C++-проект с `cell = 1 мм`. Окно показывает параметры, runtime identity, ревизию входов, отсутствие Density Map; доступны изменение `cell`, Undo/Redo и новый проект. Точка и запятая разрешены, ошибочный draft остаётся в поле. Изменения параметра не запускают вычислений. Это запуск из установленного Qt kit, не deployment package.
+
+В задаче 01 запуск настоящих Debug/Release окон и начальное состояние подтверждены через Windows accessibility; оба executable закрыты с кодом 0, runtime logs пусты. Автоматические QML tests проверили сценарий, resize и закрытие, включая native Windows run. Полная визуальная приёмка ожидается: Computer Use capture завершился `FrameArrived timed out` / `window capture timed out`; click не выполнился из-за отсутствия geometry capture. Эти ограничения не выдаются за успешный ручной сценарий.
+
+### Manual Acceptance — задача 01
+
+1. Запустить Debug или Release командой выше: `cell = 1`, карта отсутствует, Undo/Redo недоступны.
+2. Ввести `0,5`, нажать «Применить»: состояние и поле становятся `0.5`; «Отменить» возвращает `1`, «Повторить» — `0.5`.
+3. После Undo проверить `0`, `-1`, `NaN`, `1,2.3`: ошибка, draft сохраняется, cell и redo-ветка не меняются. Ввод `1,0` — no-op; Redo остаётся доступным. Проверить также Enter в поле.
+4. «Новый проект»: `1`, новая identity, ревизия `0`, пустая история. Карта всё время отсутствует.
+5. Уменьшить и увеличить окно, проверить доступность элементов и читаемость ошибок; закрыть окно. Сообщить о несовпадении значений, кнопок, сохранности ввода, clipping или проблемах закрытия.
 
 ### Known Diagnostics
 
@@ -212,18 +236,23 @@ start /wait "" build\windows-debug\CADContour2D.exe
 
 ## Project Status
 
-**Базовый каркас приложения проверен; Synthetic Point Cloud Generator готов для разработки CADContour2D по текущему контракту clean/artifact scenarios. Функциональная реализация production application ещё не начата.**
+**Задача 01 технически реализована; статус AWAITING MANUAL ACCEPTANCE. Synthetic Point Cloud Generator сохраняет готовность по текущему контракту clean/artifact scenarios.**
 
 На текущем этапе:
 
 - сформированы функциональные требования;
+- реализованы `cadcontour_core` (GUI-независимый `ProjectState`, structured command results, operation stamp и model/view mapping), `cadcontour_application` (единственный владелец состояния, команды и Qt Undo) и переиспользуемый `cadcontour_ui` (QObject view model и production QML);
+- `cell` — конечный положительный `double` в мм, по умолчанию `1`; identity и ревизии защищены от переполнения, уведомления публикуются после согласованного изменения состояния и истории, повторный вход отклоняется;
+- наличие/совместимость результатов отделены от ревизий операций. Фиктивных datasets или глобального единственного Density Map slot нет; хранилище версий и raster mapping в задаче 01 не реализованы;
 - определена архитектура приложения;
 - определены алгоритмические контракты и открытые исследовательские решения;
 - согласован набор итоговых примитивов LINE/ARC/CIRCLE; созданы synthetic JSON fixtures и базовый generator: validation, horizontal/vertical analytic scan, sampling/maxLineLength, isolated contacts и streaming XYZ/ASC с manifest;
 - проверены все 8 geometry × 4 чистых scenarios, включая Horizontal+Vertical без deduplication; все 32 outputs сохранили SHA-256 baseline 0.3.0; реализованы regions/offsets/continuation shifts, overlap/double scan, MissingPoints, OutsideGridCloud, JaggedBoundary, ExtraTableFragment и mixed artifacts; повторные artifact runs детерминированы;
 - финальный аудит Debug/Release сохранил все clean hashes и artifact determinism; пять representative cases дали одинаковые bytes между конфигурациями; чистый streaming case повторно создал 41.98 млн points / 1.030 GB, 25.30 с и peak working set 11.38 MiB; artifacted multi-pass smoke — 7.54 млн points / 167 MB, 4.73 с и peak working set 11.40 MiB;
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
-- фактически проверены configure, clean build, dependency smoke test, QML lint и запуск обеих конфигураций.
+- для исходного каркаса ранее проверены configure и clean build; в задаче 01 повторно выполнены configure/build, production tests, regression, dependency smoke, QML lint и запуск обеих конфигураций.
+
+Автоматические проверки задачи 01 и регрессия успешны; визуальная пользовательская приёмка остаётся обязательной. Задача 02 не начата.
 
 Import, cache, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 

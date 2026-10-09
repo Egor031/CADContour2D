@@ -12,6 +12,24 @@ target_link_libraries(dependency_smoke PRIVATE
 include(GoogleTest)
 gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST)
 
+add_executable(project_tests project_tests.cpp coordinate_tests.cpp)
+set_target_properties(project_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(project_tests PRIVATE cadcontour_application GTest::gtest_main)
+target_compile_options(project_tests PRIVATE /W4 /permissive- /fp:precise)
+gtest_discover_tests(project_tests DISCOVERY_MODE PRE_TEST)
+
+add_executable(view_model_tests view_model_tests.cpp)
+set_target_properties(view_model_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(view_model_tests PRIVATE cadcontour_ui cadcontour_uiplugin GTest::gtest_main)
+target_compile_options(view_model_tests PRIVATE /W4 /permissive- /utf-8)
+gtest_discover_tests(view_model_tests DISCOVERY_MODE PRE_TEST)
+
+qt_add_executable(qml_integration_tests qml_test_main.cpp qml_integration_tests.cpp)
+target_link_libraries(qml_integration_tests PRIVATE
+    cadcontour_ui cadcontour_uiplugin Qt6::Quick GTest::gtest)
+target_compile_options(qml_integration_tests PRIVATE /W4 /permissive- /utf-8)
+gtest_discover_tests(qml_integration_tests DISCOVERY_MODE PRE_TEST)
+
 if(CADCONTOUR2D_BUILD_TOOLS)
     add_executable(synthetic_generator_tests synthetic_generator_tests.cpp)
     set_target_properties(synthetic_generator_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
