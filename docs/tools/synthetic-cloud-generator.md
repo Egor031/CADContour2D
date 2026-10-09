@@ -6,7 +6,7 @@
 
 Генератор не входит в production workflow и `CADContour2D.exe`. Базовая реализация на C++20 находится в `tools/synthetic_cloud_generator/`: два JSON-входа, validation LINE/ARC/CIRCLE, Horizontal/Vertical, sampling, maxLineLength и streaming XYZ/ASC с manifest. Geometry и scan fixtures находятся в `tests/fixtures/synthetic/`.
 
-ScanPass/region/offsets, повторные и перекрывающиеся проходы и synthetic defects (§§4.2–4.3, 6–7) описывают согласованный контракт следующего этапа. Текущая реализация явно отклоняет любое поле `passes` и непустой `defects` с диагностикой `unsupported in current generator implementation`; пустой `defects` допустим. Cancellation и crash recovery пока не реализованы. Проверенные команды приведены в [README инструмента](../../tools/synthetic_cloud_generator/README.md).
+Поддерживаются чистые полные passes в порядке массива, включая Horizontal + Vertical, без deduplication. ScanPass region/offsets/shifts и synthetic defects (§§4.2–4.3, 6–7) остаются контрактом следующего этапа. Текущая реализация явно отклоняет эти поля pass и непустой `defects` с диагностикой `unsupported in current generator implementation`; пустой `defects` допустим. Cancellation и crash recovery пока не реализованы. Проверенные команды приведены в [README инструмента](../../tools/synthetic_cloud_generator/README.md).
 
 ```text
 Geometry JSON + Scan Scenario JSON
@@ -98,7 +98,7 @@ ARC с полным оборотом не допускается: полная �
 | Поле | Значение / назначение |
 |---|---|
 | `formatVersion` | Обязательное целое `1` |
-| `direction` | Обязательная строка `Horizontal` или `Vertical` |
+| `direction` | Обязательная строка `Horizontal` или `Vertical`; направление по умолчанию для passes |
 | `pointStep` | Обязательное конечное число `> 0`, целевой шаг вдоль segment, мм |
 | `lineStep` | Обязательное конечное число `> 0`, шаг между scan lines, мм |
 | `maxLineLength` | Обязательное конечное число `> 0`, максимальная идеальная длина segment, мм |
@@ -110,10 +110,11 @@ Geometry, её primitives и hints для восстановления в scenar
 
 ### 4.2. ScanPass
 
-ScanPass описывает отдельное виртуальное измерение. Все passes наследуют направление и положительные шаги корневого scenario; первая версия не требует смешивать Horizontal и Vertical в одном scenario. Такие условия проверяются разными scenario JSON на одной geometry.
+ScanPass описывает отдельное виртуальное измерение. Все passes наследуют положительные шаги корневого scenario; направление по умолчанию также наследуется, но может явно переопределяться через `direction` внутри pass. Поэтому один scenario может выполнять Horizontal и затем Vertical без изменения geometry или шагов.
 
 | Поле ScanPass | Значение / назначение |
 |---|---|
+| `direction` | Необязательная строка `Horizontal` или `Vertical`; отсутствие наследует корневое направление |
 | `region` | Необязательный прямоугольник по §4.3; отсутствие означает всю деталь |
 | `lineOffset` | Необязательное конечное смещение grid origin scan lines, мм; default `0` |
 | `longitudinalShift` | Необязательное конечное смещение всех measurements прохода вдоль scan line, мм; default `0` |
@@ -123,6 +124,8 @@ ScanPass описывает отдельное виртуальное измер
 Для Horizontal продольное положительное направление — +X, поперечное — +Y. Для Vertical продольное — +Y, поперечное — +X.
 
 Passes выполняются в порядке массива и могут частично перекрываться или повторно покрывать одну область. У повторных проходов могут различаться lineOffset и measurement shifts. Каждый проход создаёт независимый набор точек, даже если координаты совпадают. Automatic deduplication между проходами запрещена.
+
+В текущем чистом этапе объект pass допускает только `direction` или пустой объект `{}`. Пустой массив `passes` недопустим. `region`, `lineOffset`, `longitudinalShift`, `transverseShift` и `continuationShift` отклоняются даже при нулевых значениях: их поведение пока не реализовано. Отсутствие `passes` сохраняет прежний один полный проход.
 
 ### 4.3. Прямоугольная область
 
@@ -229,7 +232,7 @@ Manifest содержит как минимум:
 - направление, pointStep, lineStep и maxLineLength;
 - путь, формат и SHA-256 output.
 
-Базовый этап выполняет один полный проход без shifts/defects. При реализации advanced этапа manifest дополнительно сохранит фактически применённые ScanPass и synthetic defects.
+Manifest также содержит `passes`: направления и pointCount фактически выполненных полных проходов в порядке записи, включая единственный проход по умолчанию. Корневое `direction` хранит default, общие шаги задаются корневыми полями; сумма pass pointCount равна общему count. При реализации advanced этапа manifest дополнительно сохранит regions/shifts и synthetic defects.
 
 Для пустого output число точек равно нулю, bounding box отсутствует (`null`), а не выдумывается. Metadata не должны требовать хранения всего облака: счётчик и bounds обновляются потоково. Имена выходных manifest fields остаются деталями интерфейса инструмента; входные JSON поля определены §§3–4, 7.
 
@@ -273,7 +276,7 @@ tests/fixtures/synthetic/
 └── scans/
 ```
 
-Geometry fixtures и scan scenarios уже созданы и перечислены в [README fixtures](../../tests/fixtures/synthetic/README.md). Базовый этап поддерживает clean_horizontal, clean_vertical и short_segments_horizontal; остальные согласованные scenarios относятся к следующему этапу. Пользователь не обязан вручную описывать каждую деталь.
+Geometry fixtures и scan scenarios уже созданы и перечислены в [README fixtures](../../tests/fixtures/synthetic/README.md). Чистый этап поддерживает clean_horizontal, clean_vertical, short_segments_horizontal и clean_horizontal_vertical; остальные согласованные scenarios относятся к следующему этапу. Компактная performance geometry/config пара находится отдельно в `tests/fixtures/synthetic/performance/`. Пользователь не обязан вручную описывать каждую деталь.
 
 Большие generated XYZ/ASC не обязаны храниться в Git. Их воспроизводят из двух JSON, seed и generator version. Малые output могут храниться только при конкретной пользе для regression tests. Нагрузочные сценарии порядка 100k, 1M, 10M, 50M+ points полезны локально, но эти размеры не являются контрактом.
 

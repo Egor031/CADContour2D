@@ -11,7 +11,7 @@
 
 namespace synthetic {
 
-inline constexpr char generatorVersion[] = "0.2.0";
+inline constexpr char generatorVersion[] = "0.3.0";
 
 class Error : public std::runtime_error
 {
@@ -37,6 +37,7 @@ struct ScanScenario
     double lineStep;
     double maxLineLength;
     std::uint32_t seed;
+    std::vector<Direction> passes;
 };
 // A zero-width interval represents one isolated geometric contact.
 struct Interval { double min; double max; };
@@ -50,6 +51,9 @@ std::vector<Interval> materialIntervals(const PartGeometry &geometry,
                                       Direction direction, double coordinate);
 void sampleInterval(Interval interval, double maxLineLength, double pointStep,
                     const std::function<void(double)> &sink);
+std::vector<Direction> scanDirections(const ScanScenario &scan);
+void generatePass(const PartGeometry &geometry, const ScanScenario &scan,
+                  Direction direction, const PointSink &sink);
 void generate(const PartGeometry &geometry, const ScanScenario &scan, const PointSink &sink);
 
 struct DatasetStats

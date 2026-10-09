@@ -72,13 +72,19 @@ void sampleInterval(Interval interval, double maxLineLength, double pointStep,
         throw Error("scan: segmentation failed to cover interval", 5);
 }
 
-void generate(const PartGeometry &geometry, const ScanScenario &scan, const PointSink &sink)
+std::vector<Direction> scanDirections(const ScanScenario &scan)
+{
+    return scan.passes.empty() ? std::vector<Direction>{scan.direction} : scan.passes;
+}
+
+void generatePass(const PartGeometry &geometry, const ScanScenario &scan,
+                  Direction direction, const PointSink &sink)
 {
     positive(scan.pointStep, "pointStep");
     positive(scan.lineStep, "lineStep");
     positive(scan.maxLineLength, "maxLineLength");
     const auto bounds = geometryBounds(geometry);
-    const bool horizontal = scan.direction == Direction::Horizontal;
+    const bool horizontal = direction == Direction::Horizontal;
     const double origin = horizontal ? bounds.min.y : bounds.min.x;
     const double limit = horizontal ? bounds.max.y : bounds.max.x;
     const auto last = count(std::floor((limit - origin) / scan.lineStep), "scan line count");
@@ -90,12 +96,18 @@ void generate(const PartGeometry &geometry, const ScanScenario &scan, const Poin
         if (v > limit)
             break;
         previous = v;
-        for (const auto interval : materialIntervals(geometry, scan.direction, v)) {
+        for (const auto interval : materialIntervals(geometry, direction, v)) {
             sampleInterval(interval, scan.maxLineLength, scan.pointStep, [&](double u) {
                 sink(horizontal ? Point{u, v} : Point{v, u});
             });
         }
     }
+}
+
+void generate(const PartGeometry &geometry, const ScanScenario &scan, const PointSink &sink)
+{
+    for (const auto direction : scanDirections(scan))
+        generatePass(geometry, scan, direction, sink);
 }
 
 } // namespace synthetic

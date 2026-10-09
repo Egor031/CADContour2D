@@ -70,6 +70,14 @@ QString string(const QJsonValue &value, const QString &path)
     return value.toString();
 }
 
+Direction direction(const QJsonValue &value, const QString &path)
+{
+    const auto result = string(value, path);
+    if (result != "Horizontal" && result != "Vertical")
+        invalid(path, "expected Horizontal or Vertical");
+    return result == "Horizontal" ? Direction::Horizontal : Direction::Vertical;
+}
+
 Point point(const QJsonValue &value, const QString &path)
 {
     if (!value.isArray() || value.toArray().size() != 2)
@@ -147,16 +155,29 @@ ScanScenario parseScan(const QByteArray &json)
                            "maxLineLength", "seed", "passes", "defects"});
     if (integer(o["formatVersion"], "scan.formatVersion", 1) != 1)
         invalid("scan.formatVersion", "expected 1");
-    const auto direction = string(o["direction"], "scan.direction");
-    if (direction != "Horizontal" && direction != "Vertical")
-        invalid("scan.direction", "expected Horizontal or Vertical");
-    ScanScenario result{direction == "Horizontal" ? Direction::Horizontal : Direction::Vertical,
+    ScanScenario result{direction(o["direction"], "scan.direction"),
                         number(o["pointStep"], "scan.pointStep", true),
                         number(o["lineStep"], "scan.lineStep", true),
                         number(o["maxLineLength"], "scan.maxLineLength", true),
-                        static_cast<std::uint32_t>(integer(o["seed"], "scan.seed", 4294967295.0))};
-    if (o.contains("passes"))
-        invalid("scan.passes", "unsupported in current generator implementation");
+                        static_cast<std::uint32_t>(integer(o["seed"], "scan.seed", 4294967295.0)), {}};
+    if (o.contains("passes")) {
+        if (!o["passes"].isArray() || o["passes"].toArray().isEmpty())
+            invalid("scan.passes", "expected nonempty array");
+        const auto passes = o["passes"].toArray();
+        for (qsizetype i = 0; i < passes.size(); ++i) {
+            const auto path = "scan.passes[" + QString::number(i) + "]";
+            const auto pass = object(passes[i], path,
+                                     {"direction", "region", "lineOffset", "longitudinalShift",
+                                      "transverseShift", "continuationShift"});
+            for (const char *feature : {"region", "lineOffset", "longitudinalShift",
+                                        "transverseShift", "continuationShift"}) {
+                if (pass.contains(feature))
+                    invalid(path + "." + feature, "unsupported in current generator implementation");
+            }
+            result.passes.push_back(pass.contains("direction") ? direction(pass["direction"], path + ".direction")
+                                                                : result.direction);
+        }
+    }
     if (o.contains("defects")) {
         if (!o["defects"].isArray())
             invalid("scan.defects", "expected array");

@@ -168,30 +168,37 @@ DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
         throw Error("output: cannot create temporary files next to target", 4);
     Writer writer(points);
     const auto bounds = geometryBounds(geometry);
-    const bool horizontal = scan.direction == Direction::Horizontal;
-    const double origin = horizontal ? bounds.min.y : bounds.min.x;
-    const double limit = horizontal ? bounds.max.y : bounds.max.x;
-    // Check representable intervals/gaps per line before quantizing its points.
-    double checkedLine = std::numeric_limits<double>::quiet_NaN();
-    generate(geometry, scan, [&](Point p) {
-        const double v = horizontal ? p.y : p.x;
-        if (v != checkedLine) {
-            const auto intervals = materialIntervals(geometry, scan.direction, v);
-            std::optional<double> previous;
-            for (const auto i : intervals) {
-                const double a = coordinate(i.min).rounded, b = coordinate(i.max).rounded;
-                if (i.max > i.min && !(b > a))
-                    throw Error("output: six-decimal precision collapses a positive interval", 5);
-                if (previous && !(a > *previous))
-                    throw Error("output: six-decimal precision collapses a material gap", 5);
-                previous = b;
+    QJsonArray passes;
+    for (const auto direction : scanDirections(scan)) {
+        const bool horizontal = direction == Direction::Horizontal;
+        const double origin = horizontal ? bounds.min.y : bounds.min.x;
+        const double limit = horizontal ? bounds.max.y : bounds.max.x;
+        std::int64_t pointCount = 0;
+        // Check representable intervals/gaps per line before quantizing its points.
+        double checkedLine = std::numeric_limits<double>::quiet_NaN();
+        generatePass(geometry, scan, direction, [&](Point p) {
+            const double v = horizontal ? p.y : p.x;
+            if (v != checkedLine) {
+                const auto intervals = materialIntervals(geometry, direction, v);
+                std::optional<double> previous;
+                for (const auto i : intervals) {
+                    const double a = coordinate(i.min).rounded, b = coordinate(i.max).rounded;
+                    if (i.max > i.min && !(b > a))
+                        throw Error("output: six-decimal precision collapses a positive interval", 5);
+                    if (previous && !(a > *previous))
+                        throw Error("output: six-decimal precision collapses a material gap", 5);
+                    previous = b;
+                }
+                if (v < origin || v > limit)
+                    throw Error("output: scan line outside geometry bounds", 5);
+                checkedLine = v;
             }
-            if (v < origin || v > limit)
-                throw Error("output: scan line outside geometry bounds", 5);
-            checkedLine = v;
-        }
-        writer.point(p);
-    });
+            writer.point(p);
+            ++pointCount;
+        });
+        passes.append(QJsonObject{{"direction", horizontal ? "Horizontal" : "Vertical"},
+                                  {"pointCount", static_cast<qint64>(pointCount)}});
+    }
     const auto stats = writer.finish();
     close(points);
     const QDir directory = QFileInfo(output).absoluteDir();
@@ -207,8 +214,9 @@ DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
         {"scan", QJsonObject{{"path", reference(scanPath, directory)},
                               {"sha256", QString::fromLatin1(hash(scanBytes))}}},
         {"seed", static_cast<qint64>(scan.seed)},
-        {"direction", horizontal ? "Horizontal" : "Vertical"},
+        {"direction", scan.direction == Direction::Horizontal ? "Horizontal" : "Vertical"},
         {"pointStep", scan.pointStep}, {"lineStep", scan.lineStep}, {"maxLineLength", scan.maxLineLength},
+        {"passes", passes},
         {"output", reference(output, directory)}, {"outputFormat", extension},
         {"outputSha256", QString::fromLatin1(stats.sha256)},
         {"pointCount", static_cast<qint64>(stats.pointCount)}, {"boundingBox", bbox}

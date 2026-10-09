@@ -1,6 +1,6 @@
 # Synthetic fixtures
 
-Входы Synthetic Point Cloud Generator по [канонической спецификации](../../../docs/tools/synthetic-cloud-generator.md). `geometry/` содержит идеальную геометрию в миллиметрах, `scans/` — независимые переиспользуемые сценарии измерения. Geometry и scan выбираются отдельно; файлы для каждой их комбинации не нужны. [Базовая реализация](../../../tools/synthetic_cloud_generator/README.md) поддерживает все восемь geometry с clean_horizontal, clean_vertical и short_segments_horizontal; остальные scenarios относятся к следующему этапу и явно отклоняются. Generated XYZ/ASC и manifest здесь не хранятся; большие облака воспроизводятся из двух JSON, seed и версии генератора.
+Входы Synthetic Point Cloud Generator по [канонической спецификации](../../../docs/tools/synthetic-cloud-generator.md). `geometry/` содержит идеальную геометрию в миллиметрах, `scans/` — независимые переиспользуемые сценарии измерения. Geometry и scan выбираются отдельно; файлы для каждой их комбинации не нужны. [Чистая реализация](../../../tools/synthetic_cloud_generator/README.md) поддерживает все восемь geometry с clean_horizontal, clean_vertical, short_segments_horizontal и clean_horizontal_vertical; остальные scenarios относятся к следующему этапу и явно отклоняются. Generated XYZ/ASC и manifest здесь не хранятся; большие облака воспроизводятся из двух JSON, seed и версии генератора.
 
 | Geometry | Форма / назначение |
 |---|---|
@@ -17,6 +17,7 @@
 |---|---|
 | [clean_horizontal](scans/clean_horizontal.json), [clean_vertical](scans/clean_vertical.json) | pointStep 0.07 мм, lineStep 1 мм, maxLineLength 200 мм, без offsets/defects |
 | [short_segments_horizontal](scans/short_segments_horizontal.json) | maxLineLength 25 мм: прямоугольный интервал 100 мм разбивается на четыре segments |
+| [clean_horizontal_vertical](scans/clean_horizontal_vertical.json) | Полный Horizontal, затем полный Vertical; pointStep 0.07 мм, lineStep 1 мм, без shifts/regions/defects и deduplication |
 | [shifted_passes](scans/shifted_passes.json) | Три последовательные полосы по X; небольшие shifts и смещённые продолжения каждые 20 мм |
 | [overlapping_passes](scans/overlapping_passes.json) | Две полосы с перекрытием X = 45..65 мм и различимыми scan lines |
 | [double_scan](scans/double_scan.json) | Полный проход и повтор области (20, 10)..(80, 50) с offset |
@@ -26,3 +27,5 @@
 | [mixed_artifacts](scans/mixed_artifacts.json) | Перекрывающиеся полосы, локальный повторный scan, небольшие shifts, grid cloud и jagged boundary |
 
 Все сценарии имеют фиксированный seed. Их regions заданы в абсолютных миллиметрах; данный набор совместим с восемью geometry выше, но для произвольной будущей детали расположение regions нужно проверять. Все детали лежат в пределах X = 0..140 мм, Y = 0..100 мм; внешний мусор размещён справа с зазором не менее 15 мм. Jagged Boundary выбирает только небольшой участок outer boundary. Повторные measurements не должны deduplicate; artifacts не меняют ground truth и не передают CADContour2D подсказки об ошибочных точках.
+
+Отдельная performance пара: [large_plate.geometry.json](performance/large_plate.geometry.json) — пластина 3000 × 1000 мм с углами R50 и двумя круглыми отверстиями Ø200; [clean_horizontal.scan.json](performance/clean_horizontal.scan.json) — Horizontal, pointStep 0.07 мм, lineStep 1 мм, maxLineLength 200 мм. Inputs не содержат artifacts или randomness; XYZ ожидается порядка 1 GB. Эта пара не входит в малую integration matrix и не генерирует гигабайтный output при обычном запуске tests. Команда и фактический performance результат приведены в README инструмента.

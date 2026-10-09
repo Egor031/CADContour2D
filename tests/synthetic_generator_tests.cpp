@@ -152,6 +152,67 @@ TEST(SyntheticJson, AllAdvancedFixturesAreExplicitlyRejected)
     }
 }
 
+TEST(SyntheticJson, CleanPassDirectionsInheritanceAndValidation)
+{
+    const auto mixed = scan("clean_horizontal_vertical");
+    EXPECT_EQ(scanDirections(mixed), (std::vector<Direction>{Direction::Horizontal, Direction::Vertical}));
+    EXPECT_DOUBLE_EQ(mixed.pointStep, 0.07); EXPECT_DOUBLE_EQ(mixed.lineStep, 1);
+    auto s = QJsonDocument::fromJson(bytes(fixture("scans", "clean_vertical"))).object();
+    s["passes"] = QJsonArray{QJsonObject{}, QJsonObject{{"direction", "Horizontal"}}, QJsonObject{}};
+    EXPECT_EQ(scanDirections(parseScan(QJsonDocument(s).toJson())),
+              (std::vector<Direction>{Direction::Vertical, Direction::Horizontal, Direction::Vertical}));
+    for (const auto &value : {QJsonValue(QJsonArray{}), QJsonValue(QJsonObject{}),
+                              QJsonValue(QJsonArray{1}), QJsonValue(QJsonArray{QJsonObject{{"direction", "Diagonal"}}}),
+                              QJsonValue(QJsonArray{QJsonObject{{"direction", 1}}}),
+                              QJsonValue(QJsonArray{QJsonObject{{"pointStep", 0.1}}}),
+                              QJsonValue(QJsonArray{QJsonObject{{"unknown", true}}})}) {
+        s["passes"] = value;
+        EXPECT_THROW(parseScan(QJsonDocument(s).toJson()), Error);
+    }
+    for (const char *feature : {"region", "lineOffset", "longitudinalShift", "transverseShift", "continuationShift"}) {
+        s["passes"] = QJsonArray{QJsonObject{{feature, 0}}};
+        try {
+            parseScan(QJsonDocument(s).toJson());
+            FAIL() << feature;
+        } catch (const Error &e) {
+            EXPECT_NE(std::string(e.what()).find(std::string("scan.passes[0].") + feature), std::string::npos);
+            EXPECT_NE(std::string(e.what()).find("unsupported in current generator implementation"), std::string::npos);
+        }
+    }
+}
+
+TEST(SyntheticScan, CleanPassesConcatenateInOrderWithoutDeduplication)
+{
+    PartGeometry g{rectangle(0, 0, 2, 2), {}};
+    auto s = scan("clean_horizontal_vertical");
+    std::vector<Point> actual, expected;
+    generate(g, s, [&](Point p) { actual.push_back(p); });
+    s.passes.clear();
+    s.direction = Direction::Horizontal;
+    generate(g, s, [&](Point p) { expected.push_back(p); });
+    s.direction = Direction::Vertical;
+    generate(g, s, [&](Point p) { expected.push_back(p); });
+    ASSERT_EQ(actual.size(), expected.size());
+    for (std::size_t i = 0; i < actual.size(); ++i) {
+        EXPECT_DOUBLE_EQ(actual[i].x, expected[i].x); EXPECT_DOUBLE_EQ(actual[i].y, expected[i].y);
+    }
+    EXPECT_EQ(std::count_if(actual.begin(), actual.end(), [](Point p) { return p.x == 0 && p.y == 0; }), 2);
+}
+
+TEST(SyntheticGeometry, PerformancePlateBoundsAndHoleIntervals)
+{
+    const auto root = QStringLiteral(SYNTHETIC_FIXTURES) + "/performance/";
+    const auto g = parseGeometry(bytes(root + "large_plate.geometry.json"));
+    const auto s = parseScan(bytes(root + "clean_horizontal.scan.json"));
+    const auto b = geometryBounds(g);
+    EXPECT_DOUBLE_EQ(b.min.x, 0); EXPECT_DOUBLE_EQ(b.min.y, 0);
+    EXPECT_DOUBLE_EQ(b.max.x, 3000); EXPECT_DOUBLE_EQ(b.max.y, 1000);
+    intervals(g, Direction::Horizontal, 0, {{50, 2950}});
+    intervals(g, Direction::Horizontal, 500, {{0, 650}, {850, 2150}, {2350, 3000}});
+    EXPECT_EQ(scanDirections(s), (std::vector<Direction>{Direction::Horizontal}));
+    EXPECT_DOUBLE_EQ(s.pointStep, 0.07); EXPECT_DOUBLE_EQ(s.lineStep, 1);
+}
+
 TEST(SyntheticValidation, OpenZeroAndSelfIntersectingChains)
 {
     auto g = part("rectangle");
@@ -390,6 +451,17 @@ void checkDataset(const QString &output, const std::string &geometry, const std:
     EXPECT_DOUBLE_EQ(m["lineStep"].toDouble(), s.lineStep);
     EXPECT_DOUBLE_EQ(m["maxLineLength"].toDouble(), s.maxLineLength);
     EXPECT_EQ(m["direction"].toString(), s.direction == Direction::Horizontal ? "Horizontal" : "Vertical");
+    const auto passes = m["passes"].toArray();
+    const auto directions = scanDirections(s);
+    ASSERT_EQ(passes.size(), directions.size());
+    qint64 passCount = 0;
+    for (qsizetype i = 0; i < passes.size(); ++i) {
+        const auto pass = passes[i].toObject();
+        EXPECT_EQ(pass["direction"].toString(), directions[i] == Direction::Horizontal ? "Horizontal" : "Vertical");
+        EXPECT_GT(pass["pointCount"].toInteger(), 0);
+        passCount += pass["pointCount"].toInteger();
+    }
+    EXPECT_EQ(passCount, m["pointCount"].toInteger());
     EXPECT_EQ(m["outputFormat"].toString(), QFileInfo(output).suffix());
     EXPECT_FALSE(content.contains('\r'));
     EXPECT_FALSE(content.contains("-0.000000"));
@@ -421,7 +493,8 @@ void checkDataset(const QString &output, const std::string &geometry, const std:
     EXPECT_DOUBLE_EQ(box["max"].toArray()[1].toDouble(), b.max.y);
     EXPECT_EQ(box["min"].toArray()[2].toInt(), 0); EXPECT_EQ(box["max"].toArray()[2].toInt(), 0);
     if (geometry == "rectangle")
-        EXPECT_EQ(count, scenario == "clean_horizontal" ? 87230 : scenario == "clean_vertical" ? 86759 : 87413);
+        EXPECT_EQ(count, scenario == "clean_horizontal" ? 87230 : scenario == "clean_vertical" ? 86759
+                         : scenario == "clean_horizontal_vertical" ? 87230 + 86759 : 87413);
 }
 
 class DatasetFixture : public testing::TestWithParam<std::tuple<std::string, std::string>> {};
@@ -438,7 +511,8 @@ TEST_P(DatasetFixture, CliOutputAndManifest)
 }
 INSTANTIATE_TEST_SUITE_P(BasicMatrix, DatasetFixture,
                         testing::Combine(testing::ValuesIn(geometryNames),
-                                         testing::Values("clean_horizontal", "clean_vertical", "short_segments_horizontal")),
+                                         testing::Values("clean_horizontal", "clean_vertical", "short_segments_horizontal",
+                                                         "clean_horizontal_vertical")),
                         [](const auto &info) { return std::get<0>(info.param) + "_" + std::get<1>(info.param); });
 
 TEST(SyntheticIntegration, IndependentRunsAreByteIdentical)
@@ -450,6 +524,44 @@ TEST(SyntheticIntegration, IndependentRunsAreByteIdentical)
     ASSERT_TRUE(QFile::remove(output)); ASSERT_TRUE(QFile::remove(output + ".manifest.json"));
     ASSERT_EQ(run(args("rectangle", "clean_horizontal", output)).exitCode, 0);
     EXPECT_EQ(first, bytes(output)); EXPECT_EQ(manifest, bytes(output + ".manifest.json"));
+}
+
+TEST(SyntheticIntegration, MultiPassEqualsIndependentFilesAndIsByteDeterministic)
+{
+    QTemporaryDir directory; ASSERT_TRUE(directory.isValid());
+    const auto h = directory.filePath("horizontal.xyz"), v = directory.filePath("vertical.xyz");
+    const auto combined = directory.filePath("combined.xyz");
+    for (const auto &[scenario, output] : std::vector<std::pair<std::string, QString>>{
+             {"clean_horizontal", h}, {"clean_vertical", v}, {"clean_horizontal_vertical", combined}}) {
+        const auto result = run(args("complex_part", scenario, output));
+        ASSERT_EQ(result.exitCode, 0) << result.error.toStdString();
+    }
+    const auto content = bytes(combined), manifest = bytes(combined + ".manifest.json");
+    EXPECT_EQ(content, bytes(h) + bytes(v));
+    EXPECT_EQ(content.split('\n').count(QByteArray("10.000000 0.000000 0")), 2);
+    const auto m = QJsonDocument::fromJson(manifest).object();
+    const auto passes = m["passes"].toArray();
+    ASSERT_EQ(passes.size(), 2);
+    EXPECT_EQ(passes[0].toObject()["pointCount"].toInteger(), 168374);
+    EXPECT_EQ(passes[1].toObject()["pointCount"].toInteger(), 167482);
+    EXPECT_EQ(m["pointCount"].toInteger(), 168374 + 167482);
+    ASSERT_TRUE(QFile::remove(combined)); ASSERT_TRUE(QFile::remove(combined + ".manifest.json"));
+    ASSERT_EQ(run(args("complex_part", "clean_horizontal_vertical", combined)).exitCode, 0);
+    EXPECT_EQ(content, bytes(combined)); EXPECT_EQ(manifest, bytes(combined + ".manifest.json"));
+}
+
+TEST(SyntheticIntegration, LegacyCleanOutputHashesRemainUnchanged)
+{
+    // Recorded from generator 0.2.0 on the supported Release toolchain.
+    QTemporaryDir directory; ASSERT_TRUE(directory.isValid());
+    for (const auto &[scenario, hash] : std::vector<std::pair<std::string, QByteArray>>{
+             {"clean_horizontal", "538684d0cb1130be7f9441db3fcf0a0e1289fd4704633abed5a897ef188e41f8"},
+             {"clean_vertical", "032304ace0a726082e6dec370d860a1cd5362110300d9f00b63f7c39aa72b366"},
+             {"short_segments_horizontal", "2142bec90dc112e431c25f0e01fd5ede941ec0904fe66b93144ed30debe4a3ef"}}) {
+        const auto output = directory.filePath(QString::fromStdString(scenario) + ".xyz");
+        ASSERT_EQ(run(args("rectangle", scenario, output)).exitCode, 0);
+        EXPECT_EQ(sha256(bytes(output)), hash);
+    }
 }
 
 TEST(SyntheticIntegration, CliErrorsAndExistingTargetsRemainUntouched)
