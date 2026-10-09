@@ -201,6 +201,8 @@ Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_
 
 После задачи 01 повторно выполнены `cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON` и аналогичный Release configure, build, CTest и `all_qmllint`: **167/167 PASS в каждой конфигурации** (71 production + 95 generator + smoke). Гигабайтные облака при этой регрессии не создавались.
 
+После независимого ревью усилены координатные тесты. Повторно выполнены `cmake --build --preset windows-debug --target project_tests` и `ctest --preset windows-debug -R "^Coordinates\."`, затем аналогичные команды для `windows-release`: **8/8 PASS в каждой конфигурации**. Временная ошибка восстановления X на 1 мм вызвала ожидаемое падение обоих усиленных тестов в Debug и Release; после её удаления и повторной сборки снова получено 8/8 PASS. Production-код не изменялся.
+
 ### Run
 
 Добавление Qt runtime в `PATH` относится только к текущей консоли и её дочерним процессам:
@@ -218,9 +220,9 @@ start /wait "" build\windows-debug\CADContour2D.exe
 
 Приложение создаёт новый C++-проект с `cell = 1 мм`. Окно показывает параметры, runtime identity, ревизию входов, отсутствие Density Map; доступны изменение `cell`, Undo/Redo и новый проект. Точка и запятая разрешены, ошибочный draft остаётся в поле. Изменения параметра не запускают вычислений. Это запуск из установленного Qt kit, не deployment package.
 
-В задаче 01 запуск настоящих Debug/Release окон и начальное состояние подтверждены через Windows accessibility; оба executable закрыты с кодом 0, runtime logs пусты. Автоматические QML tests проверили сценарий, resize и закрытие, включая native Windows run. Полная визуальная приёмка ожидается: Computer Use capture завершился `FrameArrived timed out` / `window capture timed out`; click не выполнился из-за отсутствия geometry capture. Эти ограничения не выдаются за успешный ручной сценарий.
+В задаче 01 запуск настоящих Debug/Release окон и начальное состояние подтверждены через Windows accessibility; оба executable закрыты с кодом 0, runtime logs пусты. Автоматические QML tests проверили сценарий, resize и закрытие, включая native Windows run. Пользователь подтвердил успешное выполнение всех семи пунктов согласованной ручной приёмки, включая изменение размера окна и закрытие приложения.
 
-### Manual Acceptance — задача 01
+### Manual Acceptance — задача 01 (выполнена)
 
 1. Запустить Debug или Release командой выше: `cell = 1`, карта отсутствует, Undo/Redo недоступны.
 2. Ввести `0,5`, нажать «Применить»: состояние и поле становятся `0.5`; «Отменить» возвращает `1`, «Повторить» — `0.5`.
@@ -236,7 +238,7 @@ start /wait "" build\windows-debug\CADContour2D.exe
 
 ## Project Status
 
-**Задача 01 технически реализована; статус AWAITING MANUAL ACCEPTANCE. Synthetic Point Cloud Generator сохраняет готовность по текущему контракту clean/artifact scenarios.**
+**Задача 01 завершена; статус ACCEPTED. Synthetic Point Cloud Generator сохраняет готовность по текущему контракту clean/artifact scenarios.**
 
 На текущем этапе:
 
@@ -252,7 +254,7 @@ start /wait "" build\windows-debug\CADContour2D.exe
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - для исходного каркаса ранее проверены configure и clean build; в задаче 01 повторно выполнены configure/build, production tests, regression, dependency smoke, QML lint и запуск обеих конфигураций.
 
-Автоматические проверки задачи 01 и регрессия успешны; визуальная пользовательская приёмка остаётся обязательной. Задача 02 не начата.
+Автоматические проверки Debug/Release и ручная приёмка задачи 01 успешны. Независимое ревью завершено с вердиктом **PASS WITH COMMENTS**, блокирующих замечаний нет. Замечание к численному тесту устранено; риск сброса незавершённого ввода при будущих фоновых уведомлениях зафиксирован в задаче 02 [плана реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). Задача 02 не начата.
 
 Import, cache, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 
