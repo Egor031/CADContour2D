@@ -143,7 +143,7 @@ Floating-point equality не должна использоваться для г
 cell × cell мм
 ```
 
-Raster algorithms могут работать в pixel coordinates, но результаты rough geometry должны преобразовываться обратно в model coordinates.
+Raster algorithms могут работать в pixel coordinates, но результаты rough geometry должны преобразовываться обратно в model coordinates с mapping соответствующей версии. Изменение `cell` не сводится к масштабированию прежней rough geometry; результаты анализа принадлежат версии карты.
 
 View/screen coordinates не используются вычислительными алгоритмами.
 
@@ -248,7 +248,7 @@ write X/Y to cache
 
 Zoom не участвует в вычислении.
 
-Изменение `cell` означает полное построение новой density map.
+Получение карты с другим `cell` требует явного полного построения; изменение параметра не запускает алгоритм. Выбор ранее построенной версии не требует rasterization. Хранение версий и связанного Rough-состояния — [requirements.md, §8](requirements.md#8-фиксированный-размер-cell), идентичность и совместимость — [architecture.md, §§15, 23](architecture.md#15-density-map).
 
 ### Rasterization
 
@@ -452,7 +452,7 @@ Rough contour должен быть достаточно подробным дл
 
 Алгоритм получает текущие raster inputs и не пытается сохранить соответствие с вручную изменёнными вершинами предыдущего результата.
 
-Предупреждение, Undo внутри rough-stage и замена project state относятся к application layer. При изменении rough-входов после начала precise-stage application layer выполняет подтверждённый полный reset без Undo по [requirements.md, §21](requirements.md#21-переходы-между-этапами).
+Предупреждение, Undo внутри rough-stage и замена Rough-состояния соответствующей версии относятся к application layer. При изменении rough-входов после начала precise-stage application layer выполняет подтверждённый полный reset без Undo по [requirements.md, §21](requirements.md#21-переходы-между-этапами).
 
 ---
 
@@ -1635,7 +1635,7 @@ Point-cache layout, spatial index, persistence и DXF compatibility остают
 - превращать весь precise contour в полилинию без необходимости;
 - вводить итоговые primitives вне LINE/ARC/CIRCLE или использовать неподдерживаемую кривую как fallback;
 - автоматически запускать следующую тяжёлую операцию;
-- менять `cell` без полного перестроения density map;
+- менять `cell` уже построенной density map без полного построения новой карты (выбор сохранённой версии не требует перестроения);
 - возвращать нарушающую обязательные ограничения geometry как `success`.
 
 Изменение этих принципов требует пересмотра требований или архитектуры проекта.
