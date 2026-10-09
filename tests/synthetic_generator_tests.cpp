@@ -9,6 +9,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocale>
 #include <QProcess>
 #include <QTemporaryDir>
 
@@ -16,6 +17,7 @@
 #include <charconv>
 #include <cmath>
 #include <limits>
+#include <locale>
 #include <numbers>
 #include <string>
 #include <string_view>
@@ -408,6 +410,47 @@ TEST(SyntheticArtifacts, CleanScenariosIgnoreSeedAndMixedUsesOrdinaryComposition
     equalClouds(cloud(g, s), composed);
 }
 
+TEST(SyntheticArtifacts, InlineRandomStreamsPreserveOtherDefectEndpoints)
+{
+    PartGeometry g{rectangle(0, 0, 10, 10), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 0.5;
+    s.defects = {JaggedBoundary{Bounds{{-1, 0}, {1, 10}}, false, 0, 0.2, 2, 0.1}};
+    const auto expected = cloud(g, s);
+    const auto seed = randomStreamSeed(s, 0, 0);
+    s.defects.insert(s.defects.begin(), MissingPoints{std::nullopt, 0.3, 1, 3});
+    const auto actual = cloud(g, s);
+    EXPECT_EQ(seed, randomStreamSeed(s, 0, 1));
+    EXPECT_LT(actual.size(), expected.size());
+    for (double y = 0; y <= 10; ++y) {
+        const auto endpoint = std::find_if(expected.begin(), expected.end(), [y](Point p) { return p.y == y; });
+        ASSERT_NE(endpoint, expected.end());
+        EXPECT_TRUE(hasPoint(actual, endpoint->x, endpoint->y));
+        EXPECT_TRUE(hasPoint(actual, 10, y));
+    }
+}
+
+TEST(SyntheticStreaming, CompositeGenerationNeedsOnlyAnIncrementalSink)
+{
+    PartGeometry g{rectangle(0, 0, 200, 200), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 0.5; s.lineStep = 0.5; s.maxLineLength = 10;
+    s.passes = {{Direction::Horizontal, std::nullopt, 0, {}, {}},
+                {Direction::Vertical, std::nullopt, 0, {}, {0.125, 0.0625}}};
+    s.defects = {MissingPoints{std::nullopt, 0, 1, 3},
+                 JaggedBoundary{Bounds{{-1, 300}, {1, 301}}, false, 0, 0.2, 2, 0.1},
+                 OutsideGridCloud{Bounds{{210, 0}, {220, 10}}, 1, 1},
+                 ExtraTableFragment{Bounds{{230, 0}, {240, 10}}}};
+    std::int64_t count = 0;
+    Bounds bounds{{1e100, 1e100}, {-1e100, -1e100}};
+    generate(g, s, [&](Point p) {
+        ++count;
+        bounds.min.x = std::min(bounds.min.x, p.x); bounds.min.y = std::min(bounds.min.y, p.y);
+        bounds.max.x = std::max(bounds.max.x, p.x); bounds.max.y = std::max(bounds.max.y, p.y);
+    });
+    EXPECT_EQ(count, 401 * 401 + 401 * 420 + 121 + 441);
+    EXPECT_DOUBLE_EQ(bounds.min.x, 0); EXPECT_DOUBLE_EQ(bounds.min.y, 0);
+    EXPECT_DOUBLE_EQ(bounds.max.x, 240); EXPECT_DOUBLE_EQ(bounds.max.y, 202.375);
+}
+
 class GeometryFixture : public testing::TestWithParam<std::string> {};
 TEST_P(GeometryFixture, ReadsAndValidates)
 {
@@ -463,6 +506,37 @@ TEST(SyntheticJson, InvalidArcRadiusAndMissingFields)
     EXPECT_THROW(parseGeometry("{\"formatVersion\":1,\"units\":\"mm\"}"), Error);
     EXPECT_THROW(parseGeometry("{\"formatVersion\":1,\"units\":\"mm\",\"outerContour\":"
                                "{\"type\":\"CIRCLE\",\"center\":[0,0],\"radius\":0},\"innerContours\":[]}"), Error);
+}
+
+TEST(SyntheticJson, VersionsNonfiniteValuesAndNestedUnknownFieldsAreRejected)
+{
+    auto geometry = QJsonDocument::fromJson(bytes(fixture("geometry", "circle"))).object();
+    auto scenario = QJsonDocument::fromJson(bytes(fixture("scans", "clean_horizontal"))).object();
+    for (const auto value : {QJsonValue(0), QJsonValue(2), QJsonValue(1.5), QJsonValue("1"), QJsonValue()}) {
+        auto g = geometry; g["formatVersion"] = value;
+        auto s = scenario; s["formatVersion"] = value;
+        EXPECT_THROW(parseGeometry(QJsonDocument(g).toJson()), Error);
+        EXPECT_THROW(parseScan(QJsonDocument(s).toJson()), Error);
+    }
+    for (const auto token : {"NaN", "Infinity", "-Infinity", "1e400"}) {
+        auto input = bytes(fixture("scans", "clean_horizontal")); input.replace("0.07", token);
+        EXPECT_THROW(parseScan(input), Error);
+    }
+    for (const auto bad : {QJsonObject{{"unknown", 1}}, QJsonObject{{"center", QJsonArray{0, 0, 0}}},
+                           QJsonObject{{"radius", "50"}}}) {
+        auto g = geometry; auto outer = g["outerContour"].toObject();
+        for (auto it = bad.begin(); it != bad.end(); ++it) outer[it.key()] = it.value();
+        g["outerContour"] = outer;
+        EXPECT_THROW(parseGeometry(QJsonDocument(g).toJson()), Error);
+    }
+    for (const auto bad : {QJsonObject{{"type", "GaussianNoise"}},
+                           QJsonObject{{"type", "JaggedBoundary"}, {"target", "invalid"}},
+                           QJsonObject{{"type", "OutsideGridCloud"}, {"unknown", 1}}}) {
+        auto s = scenario; s["defects"] = QJsonArray{bad};
+        EXPECT_THROW(parseScan(QJsonDocument(s).toJson()), Error);
+    }
+    scenario["passes"] = QJsonArray{QJsonObject{{"continuationShift", QJsonObject{{"longitudinal", 0}}}}};
+    EXPECT_THROW(parseScan(QJsonDocument(scenario).toJson()), Error);
 }
 
 TEST(SyntheticJson, AllArtifactFixturesParse)
@@ -736,9 +810,10 @@ TEST(SyntheticGeometry, AdjacentArcsAndAlmostFullSingleArc)
 }
 
 struct RunResult { int exitCode; QByteArray out; QByteArray error; };
-RunResult run(const QStringList &args)
+RunResult run(const QStringList &args, const QString &workingDirectory = {})
 {
     QProcess process;
+    if (!workingDirectory.isEmpty()) process.setWorkingDirectory(workingDirectory);
     process.start(QStringLiteral(SYNTHETIC_GENERATOR_EXE), args);
     if (!process.waitForStarted() || !process.waitForFinished(120000))
         throw std::runtime_error(process.errorString().toStdString());
@@ -1008,6 +1083,63 @@ TEST(SyntheticIntegration, EmptyPassAndArtifactFailurePublishConsistentResults)
     EXPECT_NE(failure.exitCode, 0); EXPECT_TRUE(failure.out.isEmpty());
     EXPECT_FALSE(QFile::exists(a[5])); EXPECT_FALSE(QFile::exists(a[5] + ".manifest.json"));
     EXPECT_EQ(QDir(directory.path()).entryList(QDir::Files).size(), 3);
+}
+
+TEST(SyntheticIntegration, ExitCodesInputFailuresAndInvalidOutputParent)
+{
+    for (const QStringList a : {QStringList{}, QStringList{"--help", "extra"},
+                                QStringList{"--geometry"}, QStringList{"--unknown", "x"},
+                                QStringList{"--geometry", "x", "--geometry", "y"}}) {
+        const auto r = run(a); EXPECT_EQ(r.exitCode, 2); EXPECT_TRUE(r.out.isEmpty()); EXPECT_FALSE(r.error.isEmpty());
+    }
+    QTemporaryDir directory; ASSERT_TRUE(directory.isValid());
+    const auto output = directory.filePath("part.xyz");
+    auto a = args("rectangle", "clean_horizontal", output);
+    const auto success = run(a, directory.path());
+    ASSERT_EQ(success.exitCode, 0); EXPECT_FALSE(success.out.isEmpty()); EXPECT_TRUE(success.error.isEmpty());
+    checkDataset(output, "rectangle", "clean_horizontal");
+    const auto saved = bytes(output), metadata = bytes(output + ".manifest.json");
+    const auto inputPath = directory.filePath("invalid.json");
+    QFile input(inputPath); ASSERT_TRUE(input.open(QIODevice::WriteOnly)); ASSERT_EQ(input.write("{"), 1); input.close();
+    for (int field : {1, 3}) {
+        a = args("rectangle", "clean_horizontal", directory.filePath("failure.xyz")); a[field] = inputPath;
+        auto r = run(a); EXPECT_EQ(r.exitCode, 3); EXPECT_TRUE(r.out.isEmpty()); EXPECT_TRUE(r.error.contains("invalid.json"));
+        a[field] = directory.filePath("absent.json");
+        r = run(a); EXPECT_EQ(r.exitCode, 4); EXPECT_TRUE(r.out.isEmpty()); EXPECT_TRUE(r.error.contains("absent.json"));
+    }
+    a = args("rectangle", "clean_horizontal", inputPath + "/part.xyz");
+    auto r = run(a); EXPECT_EQ(r.exitCode, 4); EXPECT_TRUE(r.out.isEmpty()); EXPECT_TRUE(r.error.contains("temporary"));
+    EXPECT_EQ(bytes(inputPath), "{");
+    a[5] = directory.filePath("missing/part.xyz"); r = run(a);
+    EXPECT_EQ(r.exitCode, 4); EXPECT_TRUE(r.out.isEmpty());
+    a[5] = output; EXPECT_EQ(run(a).exitCode, 4);
+    EXPECT_EQ(bytes(output), saved); EXPECT_EQ(bytes(output + ".manifest.json"), metadata);
+    ASSERT_TRUE(QFile::remove(output)); EXPECT_EQ(run(a).exitCode, 4);
+    EXPECT_EQ(bytes(output + ".manifest.json"), metadata);
+    EXPECT_EQ(QDir(directory.path()).entryList(QDir::Files).size(), 2);
+}
+
+TEST(SyntheticIntegration, CommaLocaleDoesNotChangeSerialization)
+{
+    struct CommaPunctuation : std::numpunct<char> { char do_decimal_point() const override { return ','; } };
+    struct RestoreLocale {
+        std::locale standard = std::locale();
+        QLocale qt = QLocale();
+        ~RestoreLocale() { std::locale::global(standard); QLocale::setDefault(qt); }
+    } restore;
+    QTemporaryDir directory; ASSERT_TRUE(directory.isValid());
+    const auto output = directory.filePath("part.xyz");
+    const auto g = fixture("geometry", "rectangle"), s = fixture("scans", "clean_horizontal");
+    writeDataset(g, s, output);
+    const auto expected = bytes(output), manifest = bytes(output + ".manifest.json");
+    ASSERT_TRUE(QFile::remove(output)); ASSERT_TRUE(QFile::remove(output + ".manifest.json"));
+    std::locale::global(std::locale(std::locale::classic(), new CommaPunctuation));
+    QLocale::setDefault(QLocale(QLocale::German, QLocale::Germany));
+    EXPECT_EQ(std::use_facet<std::numpunct<char>>(std::locale()).decimal_point(), ',');
+    EXPECT_EQ(QLocale().decimalPoint(), ",");
+    writeDataset(g, s, output);
+    EXPECT_EQ(bytes(output), expected); EXPECT_EQ(bytes(output + ".manifest.json"), manifest);
+    checkDataset(output, "rectangle", "clean_horizontal");
 }
 
 } // namespace

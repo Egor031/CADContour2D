@@ -2,7 +2,7 @@
 
 Консольный development/test tool: отдельные Geometry JSON и Scan Scenario JSON преобразуются в XYZ/ASC и manifest. Он не входит в `CADContour2D.exe` и не передаёт ground truth основной программе.
 
-Входной контракт и дальнейший объём — [каноническая спецификация](../../docs/tools/synthetic-cloud-generator.md). Согласованные примеры — [synthetic fixtures](../../tests/fixtures/synthetic/README.md).
+Текущий контракт реализован и проверен; инструмент готов для разработки CADContour2D. Входной контракт — [каноническая спецификация](../../docs/tools/synthetic-cloud-generator.md). Согласованные примеры — [synthetic fixtures](../../tests/fixtures/synthetic/README.md).
 
 ## Build / Tests
 
@@ -12,13 +12,19 @@
 
 ```bat
 chcp 65001 >nul
-cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-release
+cmake --fresh --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-release --clean-first
 set "PATH=%QT_ROOT%\bin;%PATH%"
 ctest --preset windows-release --output-on-failure
+cmake --build --preset windows-release --target all_qmllint
+
+cmake --fresh --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-debug --clean-first
+ctest --preset windows-debug --output-on-failure
+cmake --build --preset windows-debug --target all_qmllint
 ```
 
-Эти configure/build/test операции проверены на toolchain проекта: MSVC 19.51, Qt 6.12.0, CMake 3.30.5 и Ninja 1.12.1. При выключенном `CADCONTOUR2D_BUILD_TOOLS` generator targets отсутствуют. Debug инструмента пока отдельно не проверен.
+Эти configure/build/test/lint операции проверены для Debug и Release на toolchain проекта: MSVC 19.51, Qt 6.12.0, CMake 3.30.5 и Ninja 1.12.1, включая сборку CADContour2D scaffold. При выключенном `CADCONTOUR2D_BUILD_TOOLS` generator targets отсутствуют.
 
 Targets:
 
@@ -26,7 +32,11 @@ Targets:
 - `synthetic-cloud-generator` — console executable;
 - `synthetic_generator_tests` — GoogleTest executable при `BUILD_TESTING=ON`.
 
-В Release CTest прошли 90 generator tests (44 unit/fixture, 46 integration) и существующий dependency smoke: 91/91 PASS; QML lint также прошёл. Интеграционная матрица запускает все 8 geometry с каждым из 4 чистых scenarios отдельными CLI processes; SHA-256 всех 32 outputs сравниваются с сохранённой baseline generator 0.3.0. Восемь artifact scenarios проверяются реальным CLI, численно по output/manifest и повторным запуском на byte determinism. Также проверяются shifts, continuation index, regions, сохранение повторных measurements, MissingPoints, outer/inner jagged boundaries и независимые clouds.
+В каждой конфигурации CTest прошли 95 generator tests и существующий dependency smoke: 96/96 PASS; QML lint также прошёл. Интеграционная матрица запускает все 8 geometry с каждым из 4 чистых scenarios отдельными CLI processes; SHA-256 всех 32 outputs совпадают с baseline generator 0.3.0. Восемь artifact scenarios проверяются реальным CLI, численно по output/manifest и повторным запуском на byte determinism. Также проверяются shifts, continuation index, regions, повторные measurements, MissingPoints, outer/inner jagged boundaries, независимые RNG streams и incremental point sink.
+
+Финальный аудит 2026-10-09 не обнаружил ошибок, требующих изменения geometry/intersection/sampling или сериализации. Добавлены проверки неправильных versions/nonfinite JSON/nested fields, CLI exit codes, запуска из другой working directory, I/O и locale. Проверены malformed/missing/locked inputs, отсутствующий output parent, parent-файл вместо directory, запрет создания файлов через ACL собственной test directory, существующие output/manifest и обе ошибки publication при создании конфликтующего target во время генерации. Существующий target сохраняется, временные файлы удаляются; при отказе публикации output уже опубликованный manifest откатывается.
+
+Пять representative cases дали byte-identical output и manifest между Debug и Release: rectangle + clean_horizontal; complex_part + clean_horizontal_vertical, missing_points, jagged_boundary, mixed_artifacts. Все восемь artifact outputs сохранили hashes предыдущих визуально проверенных datasets. Проверки с German Qt locale, standard-library decimal comma и CLI code page 1251 сохранили decimal point и hashes.
 
 ## CLI
 
@@ -50,7 +60,7 @@ build\windows-release\synthetic-cloud-generator.exe --geometry tests\fixtures\sy
 
 Exit codes: `0` — success, `2` — CLI error, `3` — invalid input/unsupported feature, `4` — I/O error, `5` — numerical/resource failure. Success summary пишется в stdout, diagnostics — в stderr с файлом и field path, когда он известен.
 
-## Поддерживаемый этап
+## Поддерживаемые возможности
 
 - `formatVersion=1`, mm; CHAIN из LINE/ARC или самостоятельный CIRCLE.
 - Closure, self-intersection/overlap, independent boundary intersection/touch, containment и отсутствие nested inner contours.
@@ -97,16 +107,16 @@ Output и manifest полностью готовятся во временных
 build\windows-release\synthetic-cloud-generator.exe --geometry tests\fixtures\synthetic\performance\large_plate.geometry.json --scan tests\fixtures\synthetic\performance\clean_horizontal.scan.json --output build\clean-performance\large_plate.xyz
 ```
 
-Фактическая проверка generator 0.3.0 на Release toolchain проекта, 2026-10-09:
+Повторная финальная проверка generator 0.4.0 на Release toolchain проекта, 2026-10-09:
 
 - 41 984 566 points; 1 029 576 096 bytes (1.030 GB, 0.959 GiB).
-- Генерация с запуском процесса и публикацией manifest: 23.37 с; последующая независимая проверка в это время не включена.
-- Наблюдаемый peak working set: 11 948 032 bytes (11.4 MiB), через `Process.PeakWorkingSet64` при опросе каждые 25 мс. Sampled peak private memory: 6 549 504 bytes (6.25 MiB).
-- Для малого rectangle (87 230 points, 1 896 098 bytes) тем же методом наблюдалось 6 242 304 bytes working set: увеличение output примерно в 543 раза не вызвало пропорционального роста RAM. Это smoke measurement, не универсальная гарантия времени или benchmark hardware.
-- Независимый потоковый подсчёт подтвердил 41 984 566 ASCII records; hashes обоих inputs и output совпали с manifest.
+- Генерация с запуском процесса и публикацией manifest: 25.30 с; последующая независимая проверка в это время не включена.
+- Наблюдаемый peak working set: 11 927 552 bytes (11.38 MiB), через `Process.PeakWorkingSet64` при опросе каждые 25 мс. Sampled peak private memory: 6 545 408 bytes (6.24 MiB).
+- Для малого rectangle (87 230 points, 1 896 098 bytes) тем же методом наблюдалось 10 567 680 bytes working set: увеличение output примерно в 543 раза не вызвало пропорционального роста RAM. Это smoke measurement, не универсальная гарантия времени или benchmark hardware.
+- Независимый потоковый readback всего нового и прежнего большого файла проверил ASCII, fixed 6 decimals, LF, Z=0, отсутствие отрицательного нуля, count/bounds; hashes inputs/output совпали с manifest. Output сохранил baseline 0.3.0.
 - Output SHA-256: `75810e6e316d4ef4a0dafc4c8220b3749abe3d97f34d923a029c82ac3e4fdd8c`.
 
-Большой XYZ, manifest и measurements оставлены в `build\clean-performance` для локальных проверок; они не коммитятся. Обычные unit/integration tests проверяют geometry/config и характерные intervals, но не создают гигабайтный dataset.
+Прежний большой XYZ сохранён в `build\clean-performance`; повторная генерация, manifest и measurements — в `build\final-generator-audit\performance`. Они не коммитятся. Обычные unit/integration tests проверяют geometry/config и характерные intervals, но не создают гигабайтный dataset.
 
 ## Artifact outputs и streaming smoke
 
@@ -116,18 +126,20 @@ build\windows-release\synthetic-cloud-generator.exe --geometry tests\fixtures\sy
 build\windows-release\synthetic-cloud-generator.exe --geometry tests\fixtures\synthetic\geometry\complex_part.json --scan tests\fixtures\synthetic\scans\mixed_artifacts.json --output build\artifact-clouds\08_complex_mixed_artifacts.xyz
 ```
 
-Streaming smoke generator 0.4.0, Release, 2026-10-09: complex_part, три passes из mixed_artifacts, четыре defects (OutsideGridCloud, JaggedBoundary, MissingPoints, ExtraTableFragment), pointStep 0.02 мм, lineStep 0.1 мм, maxLineLength 30 мм. Build-only config и результаты сохранены в `build\artifact-performance`, в Git не входят.
+Повторный streaming smoke generator 0.4.0, Release, 2026-10-09: complex_part, три passes из mixed_artifacts, четыре defects (OutsideGridCloud, JaggedBoundary, MissingPoints, ExtraTableFragment), pointStep 0.02 мм, lineStep 0.1 мм, maxLineLength 30 мм. Build-only config сохранён в `build\artifact-performance`; результаты финального аудита — в `build\final-generator-audit`, в Git не входят.
 
-- 7 535 828 points, 167 157 135 bytes; генерация с запуском процесса и публикацией manifest — 4.68 с.
-- Наблюдаемый peak working set 11 702 272 bytes (11.16 MiB); sampled peak private memory 6 602 752 bytes (6.30 MiB), Process.PeakWorkingSet64/PrivateMemorySize64 с опросом 25 мс.
-- Малый case с теми же artifacts и шагами 0.07/1 мм: 218 743 points, 4 852 727 bytes, 0.23 с, peak working set 11 218 944 bytes (10.70 MiB). Рост output примерно в 34 раза не вызвал пропорционального роста RAM.
-- Независимый потоковый подсчёт ASCII/LF records и SHA-256 inputs/output совпали с manifest; время этой проверки не входит во время генерации.
+- 7 535 828 points, 167 157 135 bytes; генерация с запуском процесса и публикацией manifest — 4.73 с.
+- Наблюдаемый peak working set 11 956 224 bytes (11.40 MiB); sampled peak private memory 6 561 792 bytes (6.26 MiB), Process.PeakWorkingSet64/PrivateMemorySize64 с опросом 25 мс.
+- Малый case с теми же artifacts и шагами 0.07/1 мм: 218 743 points, 4 852 727 bytes, 0.21 с, peak working set 11 276 288 bytes (10.75 MiB). Рост output примерно в 34 раза не вызвал пропорционального роста RAM.
+- Независимый потоковый readback формата/count/bounds и SHA-256 inputs/output совпал с manifest; время этой проверки не входит во время генерации. Hash прежнего performance output сохранён.
 - Большой output SHA-256: `26be4663f1ec3a21faaa6d7ecdccc9950632b2d61a501f214236152e19ec0dd3`.
 
-Это локальный smoke measurement, не универсальная гарантия скорости. Новый гигабайтный benchmark не проводился.
+Это локальные smoke measurements, не универсальная гарантия скорости. Исходный код хранит только geometry, данные scan line/segment и output buffer; MissingPoints/JaggedBoundary, overlap, table fragment, SHA-256, count и bounds не требуют полного cloud в RAM.
 
 ## Ограничения
 
 Не реализованы cancellation, DXF и GUI. Используется штатный Qt JSON parser без отдельной проверки duplicate keys; входные файлы должны иметь уникальные keys. Synthetic datasets не подтверждают методы CADContour2D на representative real scans.
 
 Jagged Boundary — простая модель displacement вдоль scan axis, без scanner physics; при lineStep, кратном toothStep, возможна одна фаза зубца. CADContour2D не обязан автоматически классифицировать synthetic artifacts как ошибки сканирования: без контекста детали решение остаётся за пользователем. XYZ не содержит defect labels.
+
+Clean clouds предназначены для базовых алгоритмических тестов, artifact clouds — для workflow и устойчивости. Пользователь может вручную удалить/исправить проблемные данные, построить свой контур или пересканировать слишком плохую деталь. Physical scanner model, crash-atomic transaction двух файлов и standalone deployment не входят в текущий объём; новые datasets/artifacts могут добавляться отдельно по необходимости.

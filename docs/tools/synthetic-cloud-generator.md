@@ -4,9 +4,11 @@
 
 Это каноническая спецификация вспомогательного инструмента разработки и тестирования CADContour2D. Генератор создаёт искусственные плоские облака, имитирующие проходы реального сканирования, для проверки импорта, cache, density map, rough-stage, reduced-cloud extraction, precise-stage, ручной обработки, regression tests и нагрузки.
 
-Генератор не входит в production workflow и `CADContour2D.exe`. Базовая реализация на C++20 находится в `tools/synthetic_cloud_generator/`: два JSON-входа, validation LINE/ARC/CIRCLE, Horizontal/Vertical, sampling, maxLineLength и streaming XYZ/ASC с manifest. Geometry и scan fixtures находятся в `tests/fixtures/synthetic/`.
+Генератор не входит в production workflow и `CADContour2D.exe`. Реализация на C++20 находится в `tools/synthetic_cloud_generator/`: два JSON-входа, validation LINE/ARC/CIRCLE, Horizontal/Vertical, sampling, maxLineLength и streaming XYZ/ASC с manifest. Geometry и scan fixtures находятся в `tests/fixtures/synthetic/`.
 
 Реализованы passes в порядке массива, включая Horizontal + Vertical, regions, offsets, continuation shifts, overlap/double scan и четыре synthetic artifacts: MissingPoints, OutsideGridCloud, JaggedBoundary и ExtraTableFragment. Независимые measurements сохраняются без deduplication; mixed case является обычной композицией этих механизмов. Cancellation и crash recovery пока не реализованы. Проверенные команды приведены в [README инструмента](../../tools/synthetic_cloud_generator/README.md).
+
+Текущий контракт реализован и проверен в Debug и Release; инструмент готов к использованию при разработке CADContour2D. Новые fixtures или artifacts добавляются позднее только по необходимости.
 
 ```text
 Geometry JSON + Scan Scenario JSON
@@ -290,7 +292,9 @@ tests/fixtures/synthetic/
 
 Geometry fixtures и все 12 scan scenarios реализованы и перечислены в [README fixtures](../../tests/fixtures/synthetic/README.md). Clean SHA-256 regression baseline сохранена отдельно для 8 geometry × 4 clean scenarios. Компактная performance geometry/config пара находится в `tests/fixtures/synthetic/performance/`. Пользователь не обязан вручную описывать каждую деталь.
 
-Большие generated XYZ/ASC не обязаны храниться в Git. Их воспроизводят из двух JSON, seed и generator version. Малые output могут храниться только при конкретной пользе для regression tests. Нагрузочные сценарии порядка 100k, 1M, 10M, 50M+ points полезны локально, но эти размеры не являются контрактом.
+Generated XYZ/ASC, manifests и временные measurements хранятся локально вне Git. Их воспроизводят из двух JSON, seed и generator version; в Git остаются inputs, tests и документация. Нагрузочные сценарии порядка 100k, 1M, 10M, 50M+ points полезны локально, но эти размеры не являются контрактом.
+
+Clean datasets используются для базовых алгоритмических тестов; artifact datasets — для проверки пользовательского workflow и устойчивости обработки. CADContour2D не обязан автоматически классифицировать synthetic artifacts как ошибки сканирования. Без контекста детали решение остаётся за пользователем: он может вручную удалить или исправить проблемные данные, построить свой контур либо пересканировать деталь, если scan слишком плохой. Synthetic data не заменяют representative real scans.
 
 Существующие [NX DXF fixtures](../../tests/fixtures/dxf/nx/) сохраняются без изменений. Они не являются основным положительным ground truth генератора. Возможное применение как negative/diagnostic fixtures решается отдельно, не требует DXF reader в generator.
 
@@ -336,4 +340,4 @@ Synthetic tests не заменяют representative real scans для подт�
 - Загружать весь большой output в RAM или смешивать scanning/defect injectors с production-кодом.
 - Проектировать большой каталог будущих дефектов или добавлять новые primitives «на будущее».
 
-Базовая рабочая вертикаль включает два JSON-входа, validation LINE/ARC/CIRCLE, horizontal/vertical scan, sampling/maxLineLength, контакты и детерминированный streaming output/manifest. Полный согласованный объём будет завершён отдельным этапом multiple passes/shifts и трёх описанных artifacts с соответствующими тестами. Выбор RNG будущего этапа и внутренняя структура кода не меняют входной JSON contract.
+Текущая версия включает весь согласованный pipeline: validation, analytic intervals и contacts, passes/regions, segmentation, measurement shifts и artifacts, sampling/MissingPoints, детерминированный streaming output и manifest. DXF, GUI, cancellation, crash-atomic transaction двух файлов, physical scanner model и automatic defect detection остаются вне текущего контракта.
