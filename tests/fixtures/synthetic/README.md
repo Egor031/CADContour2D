@@ -1,6 +1,6 @@
 # Synthetic fixtures
 
-Входы Synthetic Point Cloud Generator по [канонической спецификации](../../../docs/tools/synthetic-cloud-generator.md). `geometry/` содержит идеальную геометрию в миллиметрах, `scans/` — независимые переиспользуемые сценарии измерения. Geometry и scan выбираются отдельно; файлы для каждой их комбинации не нужны. [Чистая реализация](../../../tools/synthetic_cloud_generator/README.md) поддерживает все восемь geometry с clean_horizontal, clean_vertical, short_segments_horizontal и clean_horizontal_vertical; остальные scenarios относятся к следующему этапу и явно отклоняются. Generated XYZ/ASC и manifest здесь не хранятся; большие облака воспроизводятся из двух JSON, seed и версии генератора.
+Входы Synthetic Point Cloud Generator по [канонической спецификации](../../../docs/tools/synthetic-cloud-generator.md). `geometry/` содержит идеальную геометрию в миллиметрах, `scans/` — независимые переиспользуемые сценарии измерения. Geometry и scan выбираются отдельно; файлы для каждой их комбинации не нужны. [Реализация](../../../tools/synthetic_cloud_generator/README.md) поддерживает все восемь geometry и все 12 scenarios ниже. Generated XYZ/ASC и manifest здесь не хранятся; большие облака воспроизводятся из двух JSON, seed и версии генератора.
 
 | Geometry | Форма / назначение |
 |---|---|
@@ -21,11 +21,14 @@
 | [shifted_passes](scans/shifted_passes.json) | Три последовательные полосы по X; небольшие shifts и смещённые продолжения каждые 20 мм |
 | [overlapping_passes](scans/overlapping_passes.json) | Две полосы с перекрытием X = 45..65 мм и различимыми scan lines |
 | [double_scan](scans/double_scan.json) | Полный проход и повтор области (20, 10)..(80, 50) с offset |
+| [missing_points](scans/missing_points.json) | Редкие короткие пропуски 1–3 samples внутри region (20, 10)..(100, 70), probability 0.01; endpoints сохраняются |
 | [outside_grid_cloud](scans/outside_grid_cloud.json) | Отдельная сетка 10 × 10 мм, шаг 0.5 мм, X = 155..165 мм |
 | [jagged_boundary](scans/jagged_boundary.json) | Локальная внешняя граница в области (-1, 15)..(18, 35), амплитуда 0.6 мм |
 | [extra_table_fragment](scans/extra_table_fragment.json) | Отдельный участок 30 × 60 мм, X = 155..185 мм |
 | [mixed_artifacts](scans/mixed_artifacts.json) | Перекрывающиеся полосы, локальный повторный scan, небольшие shifts, grid cloud и jagged boundary |
 
-Все сценарии имеют фиксированный seed. Их regions заданы в абсолютных миллиметрах; данный набор совместим с восемью geometry выше, но для произвольной будущей детали расположение regions нужно проверять. Все детали лежат в пределах X = 0..140 мм, Y = 0..100 мм; внешний мусор размещён справа с зазором не менее 15 мм. Jagged Boundary выбирает только небольшой участок outer boundary. Повторные measurements не должны deduplicate; artifacts не меняют ground truth и не передают CADContour2D подсказки об ошибочных точках.
+Все сценарии имеют фиксированный seed. Их regions заданы в абсолютных миллиметрах; данный набор совместим с восемью geometry выше, но для произвольной будущей детали расположение regions нужно проверять. Все детали лежат в пределах X = 0..140 мм, Y = 0..100 мм; внешний мусор размещён справа с зазором не менее 15 мм. Jagged Boundary выбирает только небольшой участок outer boundary. Повторные measurements не должны deduplicate; artifacts не меняют ground truth и не передают CADContour2D подсказки об ошибочных точках. CADContour2D не обязан автоматически классифицировать synthetic artifacts как ошибки сканирования: без контекста детали решение остаётся за пользователем.
+
+[clean-output-hashes.json](clean-output-hashes.json) хранит SHA-256 и counts всех 8 geometry × 4 clean scenarios, фактически полученных generator 0.3.0 на windows-release до реализации artifacts. Regression tests generator 0.4.0 проверяют каждый из этих 32 outputs. Baseline не обновляется автоматически; intentional изменение clean output требует отдельного подтверждения причины.
 
 Отдельная performance пара: [large_plate.geometry.json](performance/large_plate.geometry.json) — пластина 3000 × 1000 мм с углами R50 и двумя круглыми отверстиями Ø200; [clean_horizontal.scan.json](performance/clean_horizontal.scan.json) — Horizontal, pointStep 0.07 мм, lineStep 1 мм, maxLineLength 200 мм. Inputs не содержат artifacts или randomness; XYZ ожидается порядка 1 GB. Эта пара не входит в малую integration matrix и не генерирует гигабайтный output при обычном запуске tests. Команда и фактический performance результат приведены в README инструмента.

@@ -1,0 +1,198 @@
+{
+  "generatorVersion": "0.3.0",
+  "profile": "windows-release",
+  "outputs": [
+    {
+      "geometry": "rectangle",
+      "scan": "clean_horizontal",
+      "sha256": "538684d0cb1130be7f9441db3fcf0a0e1289fd4704633abed5a897ef188e41f8",
+      "pointCount": 87230
+    },
+    {
+      "geometry": "rectangle",
+      "scan": "clean_vertical",
+      "sha256": "032304ace0a726082e6dec370d860a1cd5362110300d9f00b63f7c39aa72b366",
+      "pointCount": 86759
+    },
+    {
+      "geometry": "rectangle",
+      "scan": "short_segments_horizontal",
+      "sha256": "2142bec90dc112e431c25f0e01fd5ede941ec0904fe66b93144ed30debe4a3ef",
+      "pointCount": 87413
+    },
+    {
+      "geometry": "rectangle",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "4ceba886ce4036ce983019290a8174ef8b78c91e0adc05a91909d64e22b7a5fb",
+      "pointCount": 173989
+    },
+    {
+      "geometry": "circle",
+      "scan": "clean_horizontal",
+      "sha256": "fa12bd59444db3bf0cdd286660998c9001bb414dea71acc4e6729d3f665a1683",
+      "pointCount": 112230
+    },
+    {
+      "geometry": "circle",
+      "scan": "clean_vertical",
+      "sha256": "e13b72c6cef14162a8e0cf0e4ac537c00bca6243e57a37a5de39fe7f9f3632c0",
+      "pointCount": 112230
+    },
+    {
+      "geometry": "circle",
+      "scan": "short_segments_horizontal",
+      "sha256": "e2246af9b417837be5ccf069ebadb14834c8fa5d6ca68053e4e19d30f54e39e5",
+      "pointCount": 112445
+    },
+    {
+      "geometry": "circle",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "2de20191ab5299e9e31400ea49663a76aefbf69b21cad1dc12f1bae502ed10b2",
+      "pointCount": 224460
+    },
+    {
+      "geometry": "triangle",
+      "scan": "clean_horizontal",
+      "sha256": "c99b2ea77146d8b8cd979e5df63c6cc1c4714d733c14f8a1e2e00d3c376e1747",
+      "pointCount": 43670
+    },
+    {
+      "geometry": "triangle",
+      "scan": "clean_vertical",
+      "sha256": "c6b5921d8d6049f48b4f7d803f0af1173a3ee3fcda297d24bd2b581c312229cc",
+      "pointCount": 43015
+    },
+    {
+      "geometry": "triangle",
+      "scan": "short_segments_horizontal",
+      "sha256": "ec07370bc3d8a113d8b59fb1b66619de648b2a0831df8f45b85e9e346ecf096d",
+      "pointCount": 43750
+    },
+    {
+      "geometry": "triangle",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "0bc39f7b754f0e2085ead9f9777c03892359b1c74349d7cb25deffed991dbd5a",
+      "pointCount": 86685
+    },
+    {
+      "geometry": "rectangle_one_circle",
+      "scan": "clean_horizontal",
+      "sha256": "856e8cad4a2af09606d4ca4763f212e3e6ffb63d3e8ae49c27f52c4afc4b37bc",
+      "pointCount": 82830
+    },
+    {
+      "geometry": "rectangle_one_circle",
+      "scan": "clean_vertical",
+      "sha256": "5dc28a1d158f5d7a961409b8df93cd980713aedf649ab363653479fd54fc9d6d",
+      "pointCount": 82344
+    },
+    {
+      "geometry": "rectangle_one_circle",
+      "scan": "short_segments_horizontal",
+      "sha256": "6aabaa3f3f55cfed05fe6fd8d1daa5c250f4481920180b4fc330660209567411",
+      "pointCount": 82986
+    },
+    {
+      "geometry": "rectangle_one_circle",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "3c61224f5e4d6b02140818aef3bbf5a303b8e82c801dbbc84f60ebf1f21c7758",
+      "pointCount": 165174
+    },
+    {
+      "geometry": "rectangle_multiple_circles",
+      "scan": "clean_horizontal",
+      "sha256": "f15cbb90cd77985ef812f68225d3439bd3a1d22d66fe9f31d0311cba5886cc11",
+      "pointCount": 127844
+    },
+    {
+      "geometry": "rectangle_multiple_circles",
+      "scan": "clean_vertical",
+      "sha256": "d82cade880a43b27a5434d781a8671a92c647eab2a455f76a89cdb264cccecbc",
+      "pointCount": 127298
+    },
+    {
+      "geometry": "rectangle_multiple_circles",
+      "scan": "short_segments_horizontal",
+      "sha256": "345d29048bb90469dc8a4ed71923891b08b09c04dc9451e68fc7c660153997f5",
+      "pointCount": 128051
+    },
+    {
+      "geometry": "rectangle_multiple_circles",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "4a3528ffc62301659a25cd36d44b307bd444ae5fd177ba98525f266a9c84ed1a",
+      "pointCount": 255142
+    },
+    {
+      "geometry": "rectangle_cutout",
+      "scan": "clean_horizontal",
+      "sha256": "69c5dbb5eb95576229aa33bb5d67db8965ec1e3e2f8b5e03bc68a059a3b7464a",
+      "pointCount": 79098
+    },
+    {
+      "geometry": "rectangle_cutout",
+      "scan": "clean_vertical",
+      "sha256": "4825966c96b3d4ed471078d73273de9c4d6d98b16f606c361df42974736d6f3c",
+      "pointCount": 78494
+    },
+    {
+      "geometry": "rectangle_cutout",
+      "scan": "short_segments_horizontal",
+      "sha256": "c9b33cd328872bbcd25de8ba5f0f7ab4247ef72f61cfa5241c6e365b90e81afb",
+      "pointCount": 79262
+    },
+    {
+      "geometry": "rectangle_cutout",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "2bc65ac416cc89c9dac0553d23fb3872ccc437c85f4eba5fd36bd588cf2657ee",
+      "pointCount": 157592
+    },
+    {
+      "geometry": "line_arc_part",
+      "scan": "clean_horizontal",
+      "sha256": "45560e2bad4301046bd667113739b924b27fbbe731e6552ea4bc2cd9dd7969a6",
+      "pointCount": 55858
+    },
+    {
+      "geometry": "line_arc_part",
+      "scan": "clean_vertical",
+      "sha256": "7976a9addfecf1cc03047a5e4e0fbddd7045c71e6d4581fd6fda2086f4ca6dac",
+      "pointCount": 55096
+    },
+    {
+      "geometry": "line_arc_part",
+      "scan": "short_segments_horizontal",
+      "sha256": "a8ca8658bec5eca992b92ffbc556cad32b7732b294e37d3938f40dbf71d20d1b",
+      "pointCount": 55959
+    },
+    {
+      "geometry": "line_arc_part",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "c354647563a3b49e0ee079336329d9c6b13e0edc28bc416b980a774097fbc9ca",
+      "pointCount": 110954
+    },
+    {
+      "geometry": "complex_part",
+      "scan": "clean_horizontal",
+      "sha256": "5914f4621de70cb529400a9314adb245fa7965ee6b0d3468fd49cdcb2d417cc5",
+      "pointCount": 168374
+    },
+    {
+      "geometry": "complex_part",
+      "scan": "clean_vertical",
+      "sha256": "3d6ec3daa4c2aec1484d765b4321046164ca978fbc050cc3d0212eb5ab90d738",
+      "pointCount": 167482
+    },
+    {
+      "geometry": "complex_part",
+      "scan": "short_segments_horizontal",
+      "sha256": "7df1c184cfd3d8712d864e74e678f973ae0619465e9bbd0e598fd4eacdaa760d",
+      "pointCount": 168749
+    },
+    {
+      "geometry": "complex_part",
+      "scan": "clean_horizontal_vertical",
+      "sha256": "4b4fde2b850508bc8ba475a3faf221d3c400cebd6246aaeae4784e6074733664",
+      "pointCount": 335856
+    }
+  ]
+}

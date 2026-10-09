@@ -16,6 +16,7 @@
 #include <limits>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 
 namespace synthetic {
 namespace {
@@ -136,7 +137,53 @@ bool exists(const QString &path)
     return info.exists() || info.isSymLink();
 }
 
+QJsonObject regionJson(Bounds b)
+{
+    return {{"min", QJsonArray{b.min.x, b.min.y}}, {"max", QJsonArray{b.max.x, b.max.y}}};
+}
+
+QJsonObject passJson(const ScanPass &pass)
+{
+    return {{"direction", pass.direction == Direction::Horizontal ? "Horizontal" : "Vertical"},
+            {"region", pass.region ? QJsonValue(regionJson(*pass.region)) : QJsonValue(QJsonValue::Null)},
+            {"lineOffset", pass.lineOffset}, {"longitudinalShift", pass.shift.longitudinal},
+            {"transverseShift", pass.shift.transverse},
+            {"continuationShift", QJsonObject{{"longitudinal", pass.continuation.longitudinal},
+                                              {"transverse", pass.continuation.transverse}}}};
+}
+
+QJsonObject defectJson(const Defect &defect)
+{
+    return std::visit([](const auto &d) -> QJsonObject {
+        using T = std::decay_t<decltype(d)>;
+        if constexpr (std::is_same_v<T, OutsideGridCloud>)
+            return {{"type", "OutsideGridCloud"}, {"region", regionJson(d.region)},
+                    {"pointStepX", d.pointStepX}, {"pointStepY", d.pointStepY}};
+        else if constexpr (std::is_same_v<T, ExtraTableFragment>)
+            return {{"type", "ExtraTableFragment"}, {"region", regionJson(d.region)}};
+        else if constexpr (std::is_same_v<T, JaggedBoundary>) {
+            QJsonObject result{{"type", "JaggedBoundary"}, {"region", regionJson(d.region)},
+                               {"target", d.inner ? "inner" : "outer"}, {"amplitude", d.amplitude},
+                               {"toothStep", d.toothStep}, {"randomAmplitude", d.randomAmplitude}};
+            if (d.inner) result["innerIndex"] = static_cast<qint64>(d.innerIndex);
+            return result;
+        } else
+            return {{"type", "MissingPoints"},
+                    {"region", d.region ? QJsonValue(regionJson(*d.region)) : QJsonValue(QJsonValue::Null)},
+                    {"probability", d.probability}, {"minRunLength", static_cast<qint64>(d.minRunLength)},
+                    {"maxRunLength", static_cast<qint64>(d.maxRunLength)}, {"preserveEndpoints", true}};
+    }, defect);
+}
+
 } // namespace
+
+void validateOutputSegment(Point first, Point last)
+{
+    const auto ax = coordinate(first.x), ay = coordinate(first.y);
+    const auto bx = coordinate(last.x), by = coordinate(last.y);
+    if ((first.x != last.x || first.y != last.y) && ax.rounded == bx.rounded && ay.rounded == by.rounded)
+        throw Error("output: six-decimal precision collapses a positive measured segment", 5);
+}
 
 DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
                           const QString &outputPath)
@@ -160,6 +207,7 @@ DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
     }
     try {
         scan = parseScan(scanBytes);
+        validateScenario(geometry, scan);
     } catch (const Error &e) {
         throw Error((scanPath + ": " + QString::fromUtf8(e.what())).toStdString(), e.exitCode);
     }
@@ -169,16 +217,20 @@ DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
     Writer writer(points);
     const auto bounds = geometryBounds(geometry);
     QJsonArray passes;
-    for (const auto direction : scanDirections(scan)) {
+    const auto resolvedPasses = scanPasses(scan);
+    for (std::size_t passIndex = 0; passIndex < resolvedPasses.size(); ++passIndex) {
+        const auto &pass = resolvedPasses[passIndex];
+        const auto direction = pass.direction;
+        const bool clean = cleanPass(scan, pass);
         const bool horizontal = direction == Direction::Horizontal;
         const double origin = horizontal ? bounds.min.y : bounds.min.x;
         const double limit = horizontal ? bounds.max.y : bounds.max.x;
         std::int64_t pointCount = 0;
         // Check representable intervals/gaps per line before quantizing its points.
         double checkedLine = std::numeric_limits<double>::quiet_NaN();
-        generatePass(geometry, scan, direction, [&](Point p) {
+        generatePass(geometry, scan, passIndex, [&](Point p) {
             const double v = horizontal ? p.y : p.x;
-            if (v != checkedLine) {
+            if (clean && v != checkedLine) {
                 const auto intervals = materialIntervals(geometry, direction, v);
                 std::optional<double> previous;
                 for (const auto i : intervals) {
@@ -196,8 +248,27 @@ DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
             writer.point(p);
             ++pointCount;
         });
-        passes.append(QJsonObject{{"direction", horizontal ? "Horizontal" : "Vertical"},
-                                  {"pointCount", static_cast<qint64>(pointCount)}});
+        auto info = passJson(pass);
+        info["pointCount"] = static_cast<qint64>(pointCount);
+        passes.append(info);
+    }
+    QJsonArray defects;
+    for (std::size_t i = 0; i < scan.defects.size(); ++i) {
+        auto info = defectJson(scan.defects[i]);
+        std::int64_t pointCount = 0;
+        generateStandalone(scan, i, [&](Point p) { writer.point(p); ++pointCount; });
+        info["standalonePointCount"] = static_cast<qint64>(pointCount);
+        QJsonArray streams;
+        if (std::holds_alternative<MissingPoints>(scan.defects[i]) || std::holds_alternative<JaggedBoundary>(scan.defects[i])) {
+            std::size_t ordinal = 0;
+            for (std::size_t j = 0; j < i; ++j) if (scan.defects[j].index() == scan.defects[i].index()) ++ordinal;
+            for (std::size_t j = 0; j < resolvedPasses.size(); ++j) {
+                const auto id = info["type"].toString() + "/" + QString::number(ordinal) + "/pass/" + QString::number(j);
+                streams.append(QJsonObject{{"id", id}, {"seedHex", QString::number(randomStreamSeed(scan, j, i), 16).rightJustified(16, '0')}});
+            }
+        }
+        info["randomStreams"] = streams;
+        defects.append(info);
     }
     const auto stats = writer.finish();
     close(points);
@@ -217,6 +288,7 @@ DatasetStats writeDataset(const QString &geometryPath, const QString &scanPath,
         {"direction", scan.direction == Direction::Horizontal ? "Horizontal" : "Vertical"},
         {"pointStep", scan.pointStep}, {"lineStep", scan.lineStep}, {"maxLineLength", scan.maxLineLength},
         {"passes", passes},
+        {"defects", defects}, {"rng", "mt19937_64/splitmix64-seeds/top53-v1"},
         {"output", reference(output, directory)}, {"outputFormat", extension},
         {"outputSha256", QString::fromLatin1(stats.sha256)},
         {"pointCount", static_cast<qint64>(stats.pointCount)}, {"boundingBox", bbox}

@@ -74,11 +74,14 @@ void sampleInterval(Interval interval, double maxLineLength, double pointStep,
 
 std::vector<Direction> scanDirections(const ScanScenario &scan)
 {
-    return scan.passes.empty() ? std::vector<Direction>{scan.direction} : scan.passes;
+    std::vector<Direction> result;
+    for (const auto &pass : scanPasses(scan))
+        result.push_back(pass.direction);
+    return result;
 }
 
-void generatePass(const PartGeometry &geometry, const ScanScenario &scan,
-                  Direction direction, const PointSink &sink)
+void generateCleanPass(const PartGeometry &geometry, const ScanScenario &scan,
+                       Direction direction, const PointSink &sink)
 {
     positive(scan.pointStep, "pointStep");
     positive(scan.lineStep, "lineStep");
@@ -106,8 +109,12 @@ void generatePass(const PartGeometry &geometry, const ScanScenario &scan,
 
 void generate(const PartGeometry &geometry, const ScanScenario &scan, const PointSink &sink)
 {
-    for (const auto direction : scanDirections(scan))
-        generatePass(geometry, scan, direction, sink);
+    validateScenario(geometry, scan);
+    const auto passes = scanPasses(scan);
+    for (std::size_t i = 0; i < passes.size(); ++i)
+        generatePass(geometry, scan, i, sink);
+    for (std::size_t i = 0; i < scan.defects.size(); ++i)
+        generateStandalone(scan, i, sink);
 }
 
 } // namespace synthetic

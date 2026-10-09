@@ -86,6 +86,61 @@ Point point(const QJsonValue &value, const QString &path)
     return {number(a[0], path + "[0]"), number(a[1], path + "[1]")};
 }
 
+Bounds region(const QJsonValue &value, const QString &path)
+{
+    const auto o = object(value, path, {"min", "max"});
+    const Bounds result{point(o["min"], path + ".min"), point(o["max"], path + ".max")};
+    if (!(result.max.x > result.min.x) || !(result.max.y > result.min.y)
+        || !std::isfinite(result.max.x - result.min.x) || !std::isfinite(result.max.y - result.min.y))
+        invalid(path, "expected finite positive rectangle extents");
+    return result;
+}
+
+double optionalNumber(const QJsonObject &o, const char *field, const QString &path)
+{
+    return o.contains(field) ? number(o[field], path + "." + field) : 0;
+}
+
+Defect defect(const QJsonValue &value, const QString &path)
+{
+    if (!value.isObject()) invalid(path, "expected object");
+    const auto type = string(value.toObject()["type"], path + ".type");
+    if (type == "OutsideGridCloud") {
+        const auto o = object(value, path, {"type", "region", "pointStepX", "pointStepY"});
+        return OutsideGridCloud{region(o["region"], path + ".region"),
+                                number(o["pointStepX"], path + ".pointStepX", true),
+                                number(o["pointStepY"], path + ".pointStepY", true)};
+    }
+    if (type == "ExtraTableFragment") {
+        const auto o = object(value, path, {"type", "region"});
+        return ExtraTableFragment{region(o["region"], path + ".region")};
+    }
+    if (type == "JaggedBoundary") {
+        const auto o = object(value, path, {"type", "region", "target", "innerIndex", "amplitude",
+                                          "toothStep", "randomAmplitude"});
+        const auto target = string(o["target"], path + ".target");
+        if (target != "outer" && target != "inner") invalid(path + ".target", "expected outer or inner");
+        if (target == "outer" && o.contains("innerIndex")) invalid(path + ".innerIndex", "not allowed for outer");
+        const auto index = target == "inner" ? static_cast<std::size_t>(integer(o["innerIndex"], path + ".innerIndex", 4294967295.0)) : 0;
+        const double random = optionalNumber(o, "randomAmplitude", path);
+        if (random < 0) invalid(path + ".randomAmplitude", "must be nonnegative");
+        return JaggedBoundary{region(o["region"], path + ".region"), target == "inner", index,
+                              number(o["amplitude"], path + ".amplitude", true),
+                              number(o["toothStep"], path + ".toothStep", true), random};
+    }
+    if (type == "MissingPoints") {
+        const auto o = object(value, path, {"type", "region", "probability", "minRunLength", "maxRunLength"});
+        const double probability = number(o["probability"], path + ".probability");
+        if (probability < 0 || probability > 1) invalid(path + ".probability", "expected 0..1");
+        const auto min = o.contains("minRunLength") ? static_cast<std::uint32_t>(integer(o["minRunLength"], path + ".minRunLength", 3)) : 1;
+        const auto max = o.contains("maxRunLength") ? static_cast<std::uint32_t>(integer(o["maxRunLength"], path + ".maxRunLength", 3)) : 3;
+        if (min < 1 || max < min) invalid(path, "expected 1 <= minRunLength <= maxRunLength <= 3");
+        return MissingPoints{o.contains("region") ? std::optional<Bounds>{region(o["region"], path + ".region")} : std::nullopt,
+                             probability, min, max};
+    }
+    invalid(path + ".type", "unsupported defect type");
+}
+
 Contour contour(const QJsonValue &value, const QString &path)
 {
     if (!value.isObject())
@@ -159,7 +214,7 @@ ScanScenario parseScan(const QByteArray &json)
                         number(o["pointStep"], "scan.pointStep", true),
                         number(o["lineStep"], "scan.lineStep", true),
                         number(o["maxLineLength"], "scan.maxLineLength", true),
-                        static_cast<std::uint32_t>(integer(o["seed"], "scan.seed", 4294967295.0)), {}};
+                        static_cast<std::uint32_t>(integer(o["seed"], "scan.seed", 4294967295.0)), {}, {}};
     if (o.contains("passes")) {
         if (!o["passes"].isArray() || o["passes"].toArray().isEmpty())
             invalid("scan.passes", "expected nonempty array");
@@ -169,20 +224,24 @@ ScanScenario parseScan(const QByteArray &json)
             const auto pass = object(passes[i], path,
                                      {"direction", "region", "lineOffset", "longitudinalShift",
                                       "transverseShift", "continuationShift"});
-            for (const char *feature : {"region", "lineOffset", "longitudinalShift",
-                                        "transverseShift", "continuationShift"}) {
-                if (pass.contains(feature))
-                    invalid(path + "." + feature, "unsupported in current generator implementation");
+            ScanPass parsed{pass.contains("direction") ? direction(pass["direction"], path + ".direction") : result.direction,
+                            pass.contains("region") ? std::optional<Bounds>{region(pass["region"], path + ".region")} : std::nullopt,
+                            optionalNumber(pass, "lineOffset", path),
+                            {optionalNumber(pass, "longitudinalShift", path), optionalNumber(pass, "transverseShift", path)}, {}};
+            if (pass.contains("continuationShift")) {
+                const auto shift = object(pass["continuationShift"], path + ".continuationShift", {"longitudinal", "transverse"});
+                parsed.continuation = {number(shift["longitudinal"], path + ".continuationShift.longitudinal"),
+                                       number(shift["transverse"], path + ".continuationShift.transverse")};
             }
-            result.passes.push_back(pass.contains("direction") ? direction(pass["direction"], path + ".direction")
-                                                                : result.direction);
+            result.passes.push_back(parsed);
         }
     }
     if (o.contains("defects")) {
         if (!o["defects"].isArray())
             invalid("scan.defects", "expected array");
-        if (!o["defects"].toArray().isEmpty())
-            invalid("scan.defects", "unsupported in current generator implementation");
+        const auto array = o["defects"].toArray();
+        for (qsizetype i = 0; i < array.size(); ++i)
+            result.defects.push_back(defect(array[i], "scan.defects[" + QString::number(i) + "]"));
     }
     return result;
 }

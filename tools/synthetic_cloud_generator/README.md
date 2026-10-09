@@ -26,7 +26,7 @@ Targets:
 - `synthetic-cloud-generator` — console executable;
 - `synthetic_generator_tests` — GoogleTest executable при `BUILD_TESTING=ON`.
 
-В проверенной Release-конфигурации CTest выполняет 67 generator tests (30 unit/fixture и 37 integration) и существующий dependency smoke test: 68/68 PASS. Интеграционная матрица запускает все 8 geometry с каждым из 4 чистых scenarios отдельными CLI processes. SHA-256 всех 24 прежних geometry × scan outputs сравнивались с generator 0.2.0 и сохранились; hashes трёх rectangle cases закреплены regression test.
+В Release CTest прошли 90 generator tests (44 unit/fixture, 46 integration) и существующий dependency smoke: 91/91 PASS; QML lint также прошёл. Интеграционная матрица запускает все 8 geometry с каждым из 4 чистых scenarios отдельными CLI processes; SHA-256 всех 32 outputs сравниваются с сохранённой baseline generator 0.3.0. Восемь artifact scenarios проверяются реальным CLI, численно по output/manifest и повторным запуском на byte determinism. Также проверяются shifts, continuation index, regions, сохранение повторных measurements, MissingPoints, outer/inner jagged boundaries и независимые clouds.
 
 ## CLI
 
@@ -59,8 +59,11 @@ Exit codes: `0` — success, `2` — CLI error, `3` — invalid input/unsupporte
 - `maxLineLength` и один общий seam соседних segments; без global deduplication.
 - `clean_horizontal`, `clean_vertical`, `short_segments_horizontal`.
 - `clean_horizontal_vertical`: два полных независимых прохода, сначала Horizontal, затем Vertical; общие pointStep 0.07 мм и lineStep 1 мм, без shifts/regions/defects/randomness.
+- Pass regions, lineOffset, longitudinal/transverse shifts и continuation shifts с индексом segment, начиная заново в каждом material interval.
+- `shifted_passes`, `overlapping_passes`, `double_scan` без объединения measurements.
+- `missing_points`, `outside_grid_cloud`, `jagged_boundary`, `extra_table_fragment`, `mixed_artifacts`.
 
-Необязательный непустой `passes` задаёт порядок проходов. Объект pass допускает только `direction: "Horizontal"|"Vertical"` или `{}` с наследованием корневого direction; положительные шаги всегда наследуются. Отсутствие passes сохраняет прежний один проход. Повторно измеренные совпадающие точки сохраняются без deduplication.
+Необязательный непустой `passes` задаёт порядок проходов. Direction и положительные шаги наследуются из корня; direction можно переопределить. Region ограничивает идеальное покрытие, затем JaggedBoundary меняет выбранные contour endpoints, применяются shifts, sampling и MissingPoints. Повторного clipping и global deduplication нет. `{}` задаёт полный чистый pass. Отсутствие passes сохраняет прежний один проход.
 
 Проверенный запуск, после создания `build\clean-clouds`:
 
@@ -74,11 +77,13 @@ ARC сохраняет signed sweep (CCW/CW), включая переход че
 
 ## Output / воспроизводимость
 
-ASCII, без header, `X Y 0`, шесть знаков после точки у X/Y, decimal point и LF независимо от locale. Отрицательный ноль нормализуется. Output rounding имеет погрешность около 0.0000005 мм на coordinate; spacing задаётся до сериализации. Схлопывание положительного interval или material gap из-за output precision приводит к явной ошибке.
+ASCII, без header, `X Y 0`, шесть знаков после точки у X/Y, decimal point и LF независимо от locale. Отрицательный ноль нормализуется. Output rounding имеет погрешность около 0.0000005 мм на coordinate; spacing задаётся до сериализации. Схлопывание положительного interval или material gap чистого прохода из-за output precision приводит к явной ошибке. После artifacts проверяется сохранение положительного measured segment; его положение и gaps могут намеренно отличаться от ground truth.
 
-Порядок: pass → scan line → interval/contact → segment → point. Используется byte buffer порядка 1 MiB; полного массива cloud нет.
+Порядок: pass → scan line → interval/contact → segment → point; после поверхности standalone clouds в порядке defects. Используется byte buffer порядка 1 MiB; полного массива cloud нет. Inline defects используют только локальное состояние текущего segment/scan line.
 
-Manifest содержит версию generator/manifest, references и SHA-256 обоих входов, seed, default direction/steps/maxLineLength, `passes` с фактическими directions/counts, output format/reference/hash, общий count и bounds записанных rounded points. Timestamp и temporary paths отсутствуют. Два независимых запуска clean case с одинаковым path context дали byte-identical output и manifest. Гарантия относится к текущему поддерживаемому toolchain; отдельная numeric profile subsystem не вводится. Seed сохраняется, но в чистом этапе randomness отсутствует.
+Manifest содержит версию generator/manifest, references и SHA-256 обоих входов, seed, default direction/steps/maxLineLength, resolved `passes` с regions/shifts/counts, defects с parameters/standalone counts/random streams, output format/reference/hash, общий count и bounds записанных rounded points. Timestamp и temporary paths отсутствуют. Повторные clean/artifact runs с одинаковым path context дают byte-identical output и manifest. Гарантия относится к текущему поддерживаемому toolchain; отдельная numeric profile subsystem не вводится. Clean output не зависит от seed.
+
+Randomness: mt19937_64, SplitMix64 seed derivation по seed/pass/type/ordinal, uniform из верхних 53 bits. Jagged Boundary использует локальный triangular tooth вдоль scan axis и ограниченную неотрицательную random добавку. MissingPoints запускает короткие серии с probability=0.01, длиной 1–3 в target region; сохраняет segment endpoints и хотя бы одну eligible point между сериями. Параметры и точные правила — в спецификации.
 
 Output и manifest полностью готовятся во временных файлах на том же filesystem. Manifest публикуется первым, output последним; обработанные failures очищают temporary files и откатывают опубликованный manifest при ошибке output rename. Crash между двумя rename может оставить manifest без output: общей crash-atomic транзакции и recovery subsystem нет.
 
@@ -103,8 +108,26 @@ build\windows-release\synthetic-cloud-generator.exe --geometry tests\fixtures\sy
 
 Большой XYZ, manifest и measurements оставлены в `build\clean-performance` для локальных проверок; они не коммитятся. Обычные unit/integration tests проверяют geometry/config и характерные intervals, но не создают гигабайтный dataset.
 
-## Следующий этап
+## Artifact outputs и streaming smoke
 
-Не реализованы shifted/continuation shifts, lineOffset, pass regions, overlap/double scan, MissingPoints, Outside Grid Cloud, Jagged Boundary, Extra Table Fragment и mixed artifacts. Наличие любого такого поля pass и непустой `defects` явно отклоняются как `unsupported in current generator implementation`; пустой `defects` допустим. Чистый полный multi-pass не реализует отдельную механику overlap или локального repeat/double scan.
+Для ручной проверки создан `build\artifact-clouds`: complex_part с shifted_passes, overlapping_passes, double_scan, missing_points, outside_grid_cloud, jagged_boundary, extra_table_fragment и mixed_artifacts. Все восемь outputs и manifests проверены. Пример фактически выполненного запуска:
+
+```bat
+build\windows-release\synthetic-cloud-generator.exe --geometry tests\fixtures\synthetic\geometry\complex_part.json --scan tests\fixtures\synthetic\scans\mixed_artifacts.json --output build\artifact-clouds\08_complex_mixed_artifacts.xyz
+```
+
+Streaming smoke generator 0.4.0, Release, 2026-10-09: complex_part, три passes из mixed_artifacts, четыре defects (OutsideGridCloud, JaggedBoundary, MissingPoints, ExtraTableFragment), pointStep 0.02 мм, lineStep 0.1 мм, maxLineLength 30 мм. Build-only config и результаты сохранены в `build\artifact-performance`, в Git не входят.
+
+- 7 535 828 points, 167 157 135 bytes; генерация с запуском процесса и публикацией manifest — 4.68 с.
+- Наблюдаемый peak working set 11 702 272 bytes (11.16 MiB); sampled peak private memory 6 602 752 bytes (6.30 MiB), Process.PeakWorkingSet64/PrivateMemorySize64 с опросом 25 мс.
+- Малый case с теми же artifacts и шагами 0.07/1 мм: 218 743 points, 4 852 727 bytes, 0.23 с, peak working set 11 218 944 bytes (10.70 MiB). Рост output примерно в 34 раза не вызвал пропорционального роста RAM.
+- Независимый потоковый подсчёт ASCII/LF records и SHA-256 inputs/output совпали с manifest; время этой проверки не входит во время генерации.
+- Большой output SHA-256: `26be4663f1ec3a21faaa6d7ecdccc9950632b2d61a501f214236152e19ec0dd3`.
+
+Это локальный smoke measurement, не универсальная гарантия скорости. Новый гигабайтный benchmark не проводился.
+
+## Ограничения
 
 Не реализованы cancellation, DXF и GUI. Используется штатный Qt JSON parser без отдельной проверки duplicate keys; входные файлы должны иметь уникальные keys. Synthetic datasets не подтверждают методы CADContour2D на representative real scans.
+
+Jagged Boundary — простая модель displacement вдоль scan axis, без scanner physics; при lineStep, кратном toothStep, возможна одна фаза зубца. CADContour2D не обязан автоматически классифицировать synthetic artifacts как ошибки сканирования: без контекста детали решение остаётся за пользователем. XYZ не содержит defect labels.

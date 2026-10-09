@@ -185,7 +185,7 @@ cmake --build --preset windows-debug --target all_qmllint
 
 Без development tools в каждой конфигурации CTest запускает один smoke test, проверяющий OpenCV, Eigen и spdlog через GoogleTest. `all_qmllint` — штатный Qt target для статической проверки QML.
 
-Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его Release configure/build, 67 generator tests и существующий dependency smoke проверены: 68/68 PASS; QML lint также прошёл. Команды и ограничения текущего этапа — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
+Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его Release configure/build, 90 generator tests и существующий dependency smoke проверены: 91/91 PASS; QML lint также прошёл. Команды и ограничения текущего этапа — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
 
 ### Run
 
@@ -212,7 +212,7 @@ start /wait "" build\windows-debug\CADContour2D.exe
 
 ## Project Status
 
-**Базовый каркас приложения и базовая вертикаль вспомогательного synthetic generator созданы и проверены. Функциональная реализация production application ещё не начата.**
+**Базовый каркас приложения и вспомогательный synthetic generator с чистыми и artifact scenarios созданы и проверены. Функциональная реализация production application ещё не начата.**
 
 На текущем этапе:
 
@@ -220,7 +220,8 @@ start /wait "" build\windows-debug\CADContour2D.exe
 - определена архитектура приложения;
 - определены алгоритмические контракты и открытые исследовательские решения;
 - согласован набор итоговых примитивов LINE/ARC/CIRCLE; созданы synthetic JSON fixtures и базовый generator: validation, horizontal/vertical analytic scan, sampling/maxLineLength, isolated contacts и streaming XYZ/ASC с manifest;
-- проверены все 8 geometry × 4 чистых scenarios, включая Horizontal+Vertical без deduplication; прежние 24 outputs сохранили SHA-256, determinism прошёл; чистый streaming case создал 41.98 млн points / 1.030 GB при наблюдаемом peak working set 11.4 MiB; regions/shifts и synthetic defects пока явно отклоняются;
+- проверены все 8 geometry × 4 чистых scenarios, включая Horizontal+Vertical без deduplication; все 32 outputs сохранили SHA-256 baseline 0.3.0; реализованы regions/offsets/continuation shifts, overlap/double scan, MissingPoints, OutsideGridCloud, JaggedBoundary, ExtraTableFragment и mixed artifacts; повторные artifact runs детерминированы;
+- чистый streaming case создал 41.98 млн points / 1.030 GB при наблюдаемом peak working set 11.4 MiB; artifacted multi-pass smoke — 7.54 млн points / 167 MB, 4.68 с и peak working set 11.16 MiB;
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - фактически проверены configure, clean build, dependency smoke test, QML lint и запуск обеих конфигураций.
 

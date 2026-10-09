@@ -542,4 +542,20 @@ std::vector<Interval> materialIntervals(const PartGeometry &geometry,
     return unite(std::move(result));
 }
 
+std::vector<Interval> contourBoundaryIntervals(const Contour &contour, Direction direction, double coordinate)
+{
+    return slice(contour, direction, coordinate).boundary;
+}
+
+void validateOutsideRegion(const PartGeometry &geometry, Bounds region)
+{
+    const Point a = region.min, b = region.max;
+    const Contour box = std::vector<Segment>{Line{a, {b.x, a.y}}, Line{{b.x, a.y}, b},
+                                           Line{b, {a.x, b.y}}, Line{{a.x, b.y}, a}};
+    validateContour(box, "defect.region");
+    disjoint(geometry.outer, box, "defect.region / outerContour");
+    if (strictlyInside(geometry.outer, a) || strictlyInside(box, representative(geometry.outer)))
+        throw Error("defect.region: must be strictly outside outerContour");
+}
+
 } // namespace synthetic

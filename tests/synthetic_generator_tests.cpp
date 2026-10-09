@@ -81,6 +81,333 @@ const std::vector<std::string> geometryNames{
     "rectangle", "circle", "triangle", "rectangle_one_circle", "rectangle_multiple_circles",
     "rectangle_cutout", "line_arc_part", "complex_part"};
 
+std::vector<Point> cloud(const PartGeometry &g, const ScanScenario &s)
+{
+    std::vector<Point> points;
+    generate(g, s, [&](Point p) { points.push_back(p); });
+    return points;
+}
+
+void equalClouds(const std::vector<Point> &a, const std::vector<Point> &b)
+{
+    ASSERT_EQ(a.size(), b.size());
+    for (std::size_t i = 0; i < a.size(); ++i) {
+        ASSERT_DOUBLE_EQ(a[i].x, b[i].x) << i;
+        ASSERT_DOUBLE_EQ(a[i].y, b[i].y) << i;
+    }
+}
+
+bool hasPoint(const std::vector<Point> &points, double x, double y)
+{
+    return std::any_of(points.begin(), points.end(), [=](Point p) {
+        return std::abs(p.x - x) < 1e-10 && std::abs(p.y - y) < 1e-10;
+    });
+}
+
+TEST(SyntheticArtifacts, RegionClipsCoverageWithoutMovingGridOrigin)
+{
+    PartGeometry g{rectangle(0, 0, 10, 10), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1; s.lineStep = 2; s.maxLineLength = 4;
+    s.passes = {{Direction::Horizontal, Bounds{{2.5, 2.2}, {7.5, 7.8}}, 0.5, {}, {}}};
+    const auto points = cloud(g, s);
+    ASSERT_EQ(points.size(), 18);
+    for (double y : {2.5, 4.5, 6.5}) {
+        EXPECT_TRUE(hasPoint(points, 2.5, y)); EXPECT_TRUE(hasPoint(points, 7.5, y));
+    }
+    for (Point p : points) {
+        EXPECT_GE(p.x, 2.5); EXPECT_LE(p.x, 7.5);
+        EXPECT_TRUE(p.y == 2.5 || p.y == 4.5 || p.y == 6.5);
+    }
+    s.passes[0].region = Bounds{{11, 11}, {12, 12}};
+    EXPECT_TRUE(cloud(g, s).empty());
+    s.passes[0].region = Bounds{{10, 0}, {11, 10}}; s.passes[0].lineOffset = 0;
+    const auto contacts = cloud(g, s);
+    ASSERT_EQ(contacts.size(), 6);
+    for (Point p : contacts) EXPECT_DOUBLE_EQ(p.x, 10);
+}
+
+TEST(SyntheticArtifacts, ShiftsContinuationAndSeamsBothDirections)
+{
+    PartGeometry g{rectangle(0, 0, 10, 10), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1; s.lineStep = 10; s.maxLineLength = 4;
+    for (auto d : {Direction::Horizontal, Direction::Vertical}) {
+        s.passes = {{d, std::nullopt, 0, {0.25, 0.5}, {-0.1, 0.2}}};
+        const auto p = cloud(g, s);
+        ASSERT_EQ(p.size(), 26);
+        const auto check = [&](std::size_t i, double u, double v) {
+            EXPECT_NEAR(d == Direction::Horizontal ? p[i].x : p[i].y, u, 1e-12);
+            EXPECT_NEAR(d == Direction::Horizontal ? p[i].y : p[i].x, v, 1e-12);
+        };
+        check(0, 0.25, 0.5); check(4, 4.25, 0.5); check(5, 4.15, 0.7);
+        check(9, 8.15, 0.7); check(10, 8.05, 0.9); check(12, 10.05, 0.9);
+        check(13, 0.25, 10.5);
+        s.passes[0].continuation = {};
+        const auto joined = cloud(g, s);
+        EXPECT_EQ(joined.size(), 22);
+    }
+}
+
+TEST(SyntheticArtifacts, ContinuationIndexResetsForEachMaterialInterval)
+{
+    PartGeometry g{rectangle(0, 0, 10, 3), {Circle{{5, 1.5}, 1}}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1; s.maxLineLength = 2;
+    s.passes = {{Direction::Horizontal, std::nullopt, 0.5, {0.25, 0}, {-0.1, 0.2}}};
+    const auto points = cloud(g, s);
+    EXPECT_TRUE(hasPoint(points, 0.25, 1.5)); EXPECT_TRUE(hasPoint(points, 6.25, 1.5));
+    EXPECT_TRUE(hasPoint(points, 1.25, 1.5)); EXPECT_TRUE(hasPoint(points, 7.25, 1.5));
+}
+
+TEST(SyntheticArtifacts, OverlapAndDoubleScanPreserveEveryMeasurement)
+{
+    const auto g = part("rectangle");
+    auto s = scan("overlapping_passes");
+    const auto actual = cloud(g, s);
+    std::vector<Point> expected;
+    for (std::size_t i = 0; i < s.passes.size(); ++i)
+        generatePass(g, s, i, [&](Point p) { expected.push_back(p); });
+    equalClouds(actual, expected);
+    EXPECT_EQ(actual.size(), 104071);
+    EXPECT_TRUE(hasPoint(actual, 44.9, 0.5)); EXPECT_TRUE(hasPoint(actual, 99.9, 59.5));
+    s = scan("clean_horizontal"); s.passes = {{s.direction, {}, 0, {}, {}}, {s.direction, {}, 0, {}, {}}};
+    const auto twice = cloud(g, s);
+    EXPECT_EQ(twice.size(), 2 * 87230);
+    EXPECT_EQ(std::count_if(twice.begin(), twice.end(), [](Point p) { return p.x == 0 && p.y == 0; }), 2);
+    s = scan("double_scan");
+    const auto repeated = cloud(g, s);
+    ASSERT_EQ(repeated.size(), 121590);
+    for (std::size_t i = 87230; i < repeated.size(); ++i) {
+        EXPECT_GE(repeated[i].x, 20.2); EXPECT_LE(repeated[i].x, 80.2);
+        EXPECT_GE(repeated[i].y, 10.45 - 1e-12); EXPECT_LE(repeated[i].y, 49.45 + 1e-12);
+    }
+    EXPECT_TRUE(hasPoint(repeated, 20.2, 10.45)); EXPECT_TRUE(hasPoint(repeated, 80.2, 49.45));
+}
+
+TEST(SyntheticArtifacts, MissingRunsAreLocalShortAndKeepEndpointsAndLines)
+{
+    PartGeometry g{rectangle(0, 0, 20, 3), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1; s.maxLineLength = 5;
+    const auto clean = cloud(g, s);
+    s.defects = {MissingPoints{Bounds{{2, 1}, {18, 2}}, 0.35, 1, 3}};
+    const auto actual = cloud(g, s);
+    EXPECT_LT(actual.size(), clean.size());
+    for (int y = 0; y <= 3; ++y) {
+        int run = 0;
+        for (int x = 0; x <= 20; ++x) {
+            if (hasPoint(actual, x, y)) run = 0;
+            else {
+                EXPECT_GE(x, 2); EXPECT_LE(x, 18); EXPECT_GE(y, 1); EXPECT_LE(y, 2);
+                EXPECT_LE(++run, 3);
+            }
+            if (x % 5 == 0) EXPECT_TRUE(hasPoint(actual, x, y));
+        }
+    }
+    equalClouds(actual, cloud(g, s));
+    ++s.seed;
+    const auto other = cloud(g, s);
+    bool differs = actual.size() != other.size();
+    if (!differs) for (std::size_t i = 0; i < actual.size(); ++i)
+        differs = differs || actual[i].x != other[i].x || actual[i].y != other[i].y;
+    EXPECT_TRUE(differs);
+    std::get<MissingPoints>(s.defects[0]).probability = 0;
+    equalClouds(clean, cloud(g, s));
+    std::get<MissingPoints>(s.defects[0]).probability = 1;
+    const auto dense = cloud(g, s);
+    for (int y = 0; y <= 3; ++y) for (int x : {0, 5, 10, 15, 20}) EXPECT_TRUE(hasPoint(dense, x, y));
+}
+
+TEST(SyntheticArtifacts, RandomStreamsAreIndependentOfOtherDefectTypes)
+{
+    PartGeometry g{rectangle(0, 0, 20, 3), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1;
+    s.defects = {MissingPoints{std::nullopt, 0.3, 1, 3}};
+    const auto expected = cloud(g, s);
+    const auto seed = randomStreamSeed(s, 0, 0);
+    s.defects.insert(s.defects.begin(), OutsideGridCloud{Bounds{{30, 0}, {31, 1}}, 1, 1});
+    EXPECT_EQ(seed, randomStreamSeed(s, 0, 1));
+    auto actual = cloud(g, s); ASSERT_EQ(actual.size(), expected.size() + 4); actual.resize(expected.size());
+    equalClouds(expected, actual);
+    EXPECT_NE(seed, randomStreamSeed(s, 1, 1));
+}
+
+TEST(SyntheticArtifacts, MissingRegionUsesMeasuredCoordinatesAndDisabledDefectPreservesSampling)
+{
+    PartGeometry g{rectangle(0, 0, 10, 2), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1;
+    s.passes = {{Direction::Horizontal, std::nullopt, 0, {20, 5}, {}}};
+    s.defects = {MissingPoints{Bounds{{22, 6}, {28, 6.5}}, 1, 1, 1}};
+    const auto p = cloud(g, s);
+    EXPECT_FALSE(hasPoint(p, 22, 6)); EXPECT_TRUE(hasPoint(p, 23, 6));
+    EXPECT_TRUE(hasPoint(p, 22, 5)); EXPECT_TRUE(hasPoint(p, 22, 7));
+    for (const auto &name : geometryNames) for (const std::string scenario : {"clean_horizontal", "short_segments_horizontal"}) {
+        auto clean = scan(scenario);
+        const auto geometry = part(name);
+        const auto expected = cloud(geometry, clean);
+        clean.defects = {MissingPoints{std::nullopt, 0, 1, 3}};
+        equalClouds(expected, cloud(geometry, clean));
+    }
+}
+
+TEST(SyntheticArtifacts, StandaloneGridHasExactIndependentCoordinates)
+{
+    auto s = scan("outside_grid_cloud");
+    std::vector<Point> points;
+    generateStandalone(s, 0, [&](Point p) { points.push_back(p); });
+    ASSERT_EQ(points.size(), 441);
+    for (int j = 0; j <= 20; ++j) for (int i = 0; i <= 20; ++i) {
+        EXPECT_DOUBLE_EQ(points[j * 21 + i].x, 155 + i * 0.5);
+        EXPECT_DOUBLE_EQ(points[j * 21 + i].y, 15 + j * 0.5);
+    }
+    const auto g = part("complex_part");
+    auto clean = s; clean.defects.clear();
+    const auto prefix = cloud(g, clean), actual = cloud(g, s);
+    ASSERT_EQ(actual.size(), prefix.size() + points.size());
+    equalClouds(prefix, {actual.begin(), actual.begin() + prefix.size()});
+    equalClouds(points, {actual.begin() + prefix.size(), actual.end()});
+}
+
+TEST(SyntheticArtifacts, TableFragmentUsesScanParametersWithoutPartClipping)
+{
+    auto s = scan("extra_table_fragment");
+    for (auto d : {Direction::Horizontal, Direction::Vertical}) {
+        s.direction = d;
+        std::vector<Point> p;
+        generateStandalone(s, 0, [&](Point point) { p.push_back(point); });
+        const std::size_t perLine = d == Direction::Horizontal ? 430 : 859;
+        ASSERT_EQ(p.size(), perLine * (d == Direction::Horizontal ? 61 : 31));
+        EXPECT_DOUBLE_EQ(p.front().x, 155); EXPECT_DOUBLE_EQ(p.front().y, 5);
+        EXPECT_DOUBLE_EQ(p.back().x, 185); EXPECT_DOUBLE_EQ(p.back().y, 65);
+        for (std::size_t i = 1; i < p.size(); ++i) if (i % perLine != 0) {
+            const auto delta = d == Direction::Horizontal ? p[i].x - p[i - 1].x : p[i].y - p[i - 1].y;
+            EXPECT_GT(delta, 0); EXPECT_LE(delta, s.pointStep + 1e-12);
+        }
+    }
+}
+
+TEST(SyntheticArtifacts, JaggedOuterLineIsLocalAndSupportsBothDirections)
+{
+    PartGeometry g{rectangle(0, 0, 10, 10), {}};
+    auto s = scan("clean_horizontal"); s.pointStep = 1; s.maxLineLength = 4;
+    for (auto d : {Direction::Horizontal, Direction::Vertical}) {
+        s.direction = d;
+        const Bounds region = d == Direction::Horizontal ? Bounds{{-1, 1}, {1, 3}} : Bounds{{1, -1}, {3, 1}};
+        s.defects = {JaggedBoundary{region, false, 0, 1, 2, 0}};
+        const auto p = cloud(g, s);
+        EXPECT_TRUE(hasPoint(p, d == Direction::Horizontal ? -1 : 2, d == Direction::Horizontal ? 2 : -1));
+        for (int v : {0, 1, 3, 4, 10}) EXPECT_TRUE(hasPoint(p, d == Direction::Horizontal ? 0 : v,
+                                                                           d == Direction::Horizontal ? v : 0));
+        // Continuation seams stay at their ideal locations and occur only once.
+        EXPECT_EQ(std::count_if(p.begin(), p.end(), [d](Point point) {
+            return d == Direction::Horizontal ? point.x == 4 && point.y == 2 : point.y == 4 && point.x == 2;
+        }), 1);
+        const auto first = p; ++s.seed; equalClouds(first, cloud(g, s));
+        s.passes = {{d, Bounds{{2, 2}, {8, 8}}, 0, {}, {}}};
+        const auto clipped = cloud(g, s);
+        for (Point point : clipped) { EXPECT_GE(point.x, 2); EXPECT_GE(point.y, 2); }
+        s.passes.clear();
+    }
+}
+
+TEST(SyntheticArtifacts, JaggedCircleArcAndInnerBoundaries)
+{
+    auto s = scan("clean_horizontal");
+    s.defects = {JaggedBoundary{Bounds{{-1, -1}, {101, 101}}, false, 0, 1, 2, 0}};
+    for (auto d : {Direction::Horizontal, Direction::Vertical}) {
+        s.direction = d;
+        const auto p = cloud(part("circle"), s);
+        EXPECT_TRUE(hasPoint(p, d == Direction::Horizontal ? -1 : 50, d == Direction::Horizontal ? 50 : -1));
+        EXPECT_TRUE(hasPoint(p, d == Direction::Horizontal ? 101 : 50, d == Direction::Horizontal ? 50 : 101));
+    }
+    s.direction = Direction::Horizontal;
+    s.defects = {JaggedBoundary{Bounds{{79, -1}, {101, 41}}, false, 0, 1, 2, 0}};
+    EXPECT_TRUE(hasPoint(cloud(part("line_arc_part"), s), 101, 20));
+    for (const auto &[name, boundary] : std::vector<std::pair<std::string, double>>{
+             {"rectangle_one_circle", 40}, {"rectangle_cutout", 35}}) {
+        s.defects = {JaggedBoundary{Bounds{{boundary - 1, 29}, {boundary + 1, 31}}, true, 0, 0.6, 2, 0}};
+        const auto p = cloud(part(name), s);
+        EXPECT_TRUE(hasPoint(p, boundary + 0.6, 30)); EXPECT_FALSE(hasPoint(p, boundary, 30));
+    }
+    s.direction = Direction::Vertical;
+    s.defects = {JaggedBoundary{Bounds{{49, 19}, {51, 21}}, true, 0, 0.6, 2, 0}};
+    EXPECT_TRUE(hasPoint(cloud(part("rectangle_one_circle"), s), 50, 20.6));
+}
+
+TEST(SyntheticArtifacts, JaggedRandomAmplitudeShortIntervalAndContacts)
+{
+    auto s = scan("jagged_boundary");
+    const auto g = part("rectangle");
+    const auto first = cloud(g, s); equalClouds(first, cloud(g, s));
+    double previousRow = -1;
+    for (Point p : first) {
+        const bool endpoint = p.y != previousRow;
+        previousRow = p.y;
+        if (p.x >= 0) continue;
+        EXPECT_GE(p.y, 15); EXPECT_LE(p.y, 35); EXPECT_GE(p.x, -0.75);
+        const double phase = (p.y - 15) / 2;
+        const double regular = 0.6 * (1 - std::abs(2 * (phase - std::floor(phase)) - 1));
+        EXPECT_LE(-p.x, regular + 0.15 + 1e-12);
+        if (endpoint) EXPECT_GE(-p.x, regular - 1e-12);
+    }
+    ++s.seed;
+    const auto second = cloud(g, s);
+    EXPECT_DOUBLE_EQ(first.front().x, second.front().x); // Outside the selected region.
+    bool different = first.size() != second.size();
+    for (std::size_t i = 0; i < std::min(first.size(), second.size()); ++i)
+        different = different || first[i].x != second[i].x || first[i].y != second[i].y;
+    EXPECT_TRUE(different);
+    s = scan("clean_horizontal");
+    s.defects = {JaggedBoundary{Bounds{{49, 59}, {51, 61}}, false, 0, 0.01, 2, 0}};
+    const auto triangle = part("triangle");
+    const auto p = cloud(triangle, s);
+    const auto lastRow = std::count_if(p.begin(), p.end(), [](Point point) { return point.y == 60; });
+    EXPECT_EQ(lastRow, 2);
+    intervals(triangle, Direction::Horizontal, 60, {{49.991668055324115, 50.008331944675885}});
+    PartGeometry circle{Circle{{0, 0}, 1}, {}};
+    s.lineStep = 1; s.defects = {JaggedBoundary{Bounds{{-2, -2}, {2, 2}}, false, 0, 0.1, 2, 0}};
+    const auto contact = cloud(circle, s);
+    EXPECT_EQ(std::count_if(contact.begin(), contact.end(), [](Point point) { return point.y == -1; }), 1);
+    EXPECT_EQ(std::count_if(contact.begin(), contact.end(), [](Point point) { return point.y == 1; }), 1);
+}
+
+TEST(SyntheticArtifacts, ParametersAndOutsidePlacementAreValidated)
+{
+    const auto g = part("rectangle_one_circle");
+    for (Bounds b : {Bounds{{0, 0}, {1, 1}}, Bounds{{100, 0}, {110, 10}}, Bounds{{90, 0}, {110, 10}},
+                     Bounds{{-1, -1}, {101, 61}}, Bounds{{49, 29}, {51, 31}}})
+        EXPECT_THROW(validateOutsideRegion(g, b), Error);
+    EXPECT_NO_THROW(validateOutsideRegion(g, {{101, 0}, {110, 10}}));
+    auto root = QJsonDocument::fromJson(bytes(fixture("scans", "missing_points"))).object();
+    for (const auto &bad : {QJsonObject{{"probability", -0.1}}, QJsonObject{{"probability", 1.1}},
+                           QJsonObject{{"minRunLength", 0}}, QJsonObject{{"maxRunLength", 4}},
+                           QJsonObject{{"minRunLength", 3}, {"maxRunLength", 2}},
+                           QJsonObject{{"region", QJsonObject{{"min", QJsonArray{2, 2}}, {"max", QJsonArray{1, 1}}}}},
+                           QJsonObject{{"preserveEndpoints", false}}}) {
+        auto defect = root["defects"].toArray()[0].toObject();
+        for (auto it = bad.begin(); it != bad.end(); ++it) defect[it.key()] = it.value();
+        auto invalid = root; invalid["defects"] = QJsonArray{defect};
+        EXPECT_THROW(parseScan(QJsonDocument(invalid).toJson()), Error);
+    }
+    auto s = scan("jagged_boundary");
+    auto &j = std::get<JaggedBoundary>(s.defects[0]); j.inner = true; j.innerIndex = 1;
+    EXPECT_THROW(validateScenario(g, s), Error); j.innerIndex = 0; j.randomAmplitude = -1;
+    EXPECT_THROW(validateScenario(g, s), Error);
+}
+
+TEST(SyntheticArtifacts, CleanScenariosIgnoreSeedAndMixedUsesOrdinaryComposition)
+{
+    PartGeometry small{rectangle(0, 0, 5, 5), {}};
+    for (const std::string name : {"clean_horizontal", "clean_vertical", "short_segments_horizontal", "clean_horizontal_vertical"}) {
+        auto s = scan(name); const auto first = cloud(small, s); ++s.seed; equalClouds(first, cloud(small, s));
+    }
+    const auto g = part("complex_part");
+    const auto s = scan("mixed_artifacts");
+    std::vector<Point> composed;
+    for (std::size_t i = 0; i < scanPasses(s).size(); ++i)
+        generatePass(g, s, i, [&](Point p) { composed.push_back(p); });
+    for (std::size_t i = 0; i < s.defects.size(); ++i)
+        generateStandalone(s, i, [&](Point p) { composed.push_back(p); });
+    equalClouds(cloud(g, s), composed);
+}
+
 class GeometryFixture : public testing::TestWithParam<std::string> {};
 TEST_P(GeometryFixture, ReadsAndValidates)
 {
@@ -138,18 +465,11 @@ TEST(SyntheticJson, InvalidArcRadiusAndMissingFields)
                                "{\"type\":\"CIRCLE\",\"center\":[0,0],\"radius\":0},\"innerContours\":[]}"), Error);
 }
 
-TEST(SyntheticJson, AllAdvancedFixturesAreExplicitlyRejected)
+TEST(SyntheticJson, AllArtifactFixturesParse)
 {
     for (const std::string name : {"shifted_passes", "overlapping_passes", "double_scan", "outside_grid_cloud",
-                                   "jagged_boundary", "extra_table_fragment", "mixed_artifacts"}) {
-        try {
-            scan(name);
-            FAIL() << name;
-        } catch (const Error &error) {
-            EXPECT_NE(std::string(error.what()).find("unsupported in current generator implementation"),
-                      std::string::npos) << name << ": " << error.what();
-        }
-    }
+                                   "jagged_boundary", "extra_table_fragment", "mixed_artifacts", "missing_points"})
+        EXPECT_NO_THROW(validateScenario(part("complex_part"), scan(name))) << name;
 }
 
 TEST(SyntheticJson, CleanPassDirectionsInheritanceAndValidation)
@@ -170,13 +490,12 @@ TEST(SyntheticJson, CleanPassDirectionsInheritanceAndValidation)
         EXPECT_THROW(parseScan(QJsonDocument(s).toJson()), Error);
     }
     for (const char *feature : {"region", "lineOffset", "longitudinalShift", "transverseShift", "continuationShift"}) {
-        s["passes"] = QJsonArray{QJsonObject{{feature, 0}}};
+        s["passes"] = QJsonArray{QJsonObject{{feature, "invalid"}}};
         try {
             parseScan(QJsonDocument(s).toJson());
             FAIL() << feature;
         } catch (const Error &e) {
             EXPECT_NE(std::string(e.what()).find(std::string("scan.passes[0].") + feature), std::string::npos);
-            EXPECT_NE(std::string(e.what()).find("unsupported in current generator implementation"), std::string::npos);
         }
     }
 }
@@ -461,6 +780,7 @@ void checkDataset(const QString &output, const std::string &geometry, const std:
         EXPECT_GT(pass["pointCount"].toInteger(), 0);
         passCount += pass["pointCount"].toInteger();
     }
+    for (const auto d : m["defects"].toArray()) passCount += d.toObject()["standalonePointCount"].toInteger();
     EXPECT_EQ(passCount, m["pointCount"].toInteger());
     EXPECT_EQ(m["outputFormat"].toString(), QFileInfo(output).suffix());
     EXPECT_FALSE(content.contains('\r'));
@@ -492,9 +812,22 @@ void checkDataset(const QString &output, const std::string &geometry, const std:
     EXPECT_DOUBLE_EQ(box["max"].toArray()[0].toDouble(), b.max.x);
     EXPECT_DOUBLE_EQ(box["max"].toArray()[1].toDouble(), b.max.y);
     EXPECT_EQ(box["min"].toArray()[2].toInt(), 0); EXPECT_EQ(box["max"].toArray()[2].toInt(), 0);
-    if (geometry == "rectangle")
+    if (geometry == "rectangle" && (scenario.starts_with("clean_") || scenario == "short_segments_horizontal"))
         EXPECT_EQ(count, scenario == "clean_horizontal" ? 87230 : scenario == "clean_vertical" ? 86759
                          : scenario == "clean_horizontal_vertical" ? 87230 + 86759 : 87413);
+    if (scenario.starts_with("clean_") || scenario == "short_segments_horizontal") {
+        const auto baseline = QJsonDocument::fromJson(bytes(QStringLiteral(SYNTHETIC_FIXTURES) + "/clean-output-hashes.json")).object()["outputs"].toArray();
+        bool found = false;
+        for (const auto value : baseline) {
+            const auto entry = value.toObject();
+            if (entry["geometry"].toString().toStdString() == geometry && entry["scan"].toString().toStdString() == scenario) {
+                EXPECT_EQ(sha256(content), entry["sha256"].toString().toLatin1());
+                EXPECT_EQ(count, entry["pointCount"].toInteger());
+                found = true;
+            }
+        }
+        EXPECT_TRUE(found);
+    }
 }
 
 class DatasetFixture : public testing::TestWithParam<std::tuple<std::string, std::string>> {};
@@ -514,6 +847,57 @@ INSTANTIATE_TEST_SUITE_P(BasicMatrix, DatasetFixture,
                                          testing::Values("clean_horizontal", "clean_vertical", "short_segments_horizontal",
                                                          "clean_horizontal_vertical")),
                         [](const auto &info) { return std::get<0>(info.param) + "_" + std::get<1>(info.param); });
+
+class ArtifactDataset : public testing::TestWithParam<std::string> {};
+TEST_P(ArtifactDataset, CliCoordinatesManifestAndByteDeterminism)
+{
+    QTemporaryDir directory; ASSERT_TRUE(directory.isValid());
+    const auto name = GetParam();
+    const auto output = directory.filePath("artifact.xyz");
+    const auto result = run(args("complex_part", name, output));
+    ASSERT_EQ(result.exitCode, 0) << result.error.toStdString();
+    checkDataset(output, "complex_part", name);
+    const auto content = bytes(output), manifest = bytes(output + ".manifest.json");
+    const auto m = QJsonDocument::fromJson(manifest).object();
+    const auto s = scan(name);
+    const auto passes = scanPasses(s);
+    for (std::size_t i = 0; i < passes.size(); ++i) {
+        const auto p = m["passes"].toArray()[static_cast<qsizetype>(i)].toObject();
+        EXPECT_DOUBLE_EQ(p["lineOffset"].toDouble(), passes[i].lineOffset);
+        EXPECT_DOUBLE_EQ(p["longitudinalShift"].toDouble(), passes[i].shift.longitudinal);
+        EXPECT_DOUBLE_EQ(p["transverseShift"].toDouble(), passes[i].shift.transverse);
+        EXPECT_DOUBLE_EQ(p["continuationShift"].toObject()["longitudinal"].toDouble(), passes[i].continuation.longitudinal);
+        if (passes[i].region) {
+            const auto r = p["region"].toObject();
+            EXPECT_DOUBLE_EQ(r["min"].toArray()[0].toDouble(), passes[i].region->min.x);
+            EXPECT_DOUBLE_EQ(r["max"].toArray()[1].toDouble(), passes[i].region->max.y);
+        } else EXPECT_TRUE(p["region"].isNull());
+    }
+    const auto input = QJsonDocument::fromJson(bytes(fixture("scans", name))).object();
+    ASSERT_EQ(m["defects"].toArray().size(), s.defects.size());
+    for (qsizetype i = 0; i < m["defects"].toArray().size(); ++i) {
+        const auto d = m["defects"].toArray()[i].toObject();
+        EXPECT_EQ(d["type"].toString(), input["defects"].toArray()[i].toObject()["type"].toString());
+        if (d["type"] == "MissingPoints" || d["type"] == "JaggedBoundary") {
+            ASSERT_EQ(d["randomStreams"].toArray().size(), passes.size());
+            EXPECT_EQ(d["randomStreams"].toArray()[0].toObject()["seedHex"].toString().size(), 16);
+        }
+        if (d["type"] == "OutsideGridCloud") EXPECT_EQ(d["standalonePointCount"].toInteger(), 441);
+        if (d["type"] == "ExtraTableFragment") EXPECT_EQ(d["standalonePointCount"].toInteger(), 26230);
+        if (d["type"] == "MissingPoints") {
+            EXPECT_DOUBLE_EQ(d["probability"].toDouble(), 0.01);
+            EXPECT_EQ(d["minRunLength"].toInt(), 1); EXPECT_EQ(d["maxRunLength"].toInt(), 3);
+        }
+    }
+    ASSERT_TRUE(QFile::remove(output)); ASSERT_TRUE(QFile::remove(output + ".manifest.json"));
+    const auto repeated = run(args("complex_part", name, output));
+    ASSERT_EQ(repeated.exitCode, 0) << repeated.error.toStdString();
+    EXPECT_EQ(content, bytes(output)); EXPECT_EQ(manifest, bytes(output + ".manifest.json"));
+}
+INSTANTIATE_TEST_SUITE_P(ArtifactMatrix, ArtifactDataset,
+                        testing::Values("shifted_passes", "overlapping_passes", "double_scan", "missing_points",
+                                        "outside_grid_cloud", "jagged_boundary", "extra_table_fragment", "mixed_artifacts"),
+                        [](const auto &info) { return info.param; });
 
 TEST(SyntheticIntegration, IndependentRunsAreByteIdentical)
 {
@@ -578,9 +962,9 @@ TEST(SyntheticIntegration, CliErrorsAndExistingTargetsRemainUntouched)
     ASSERT_TRUE(QFile::remove(output));
     EXPECT_NE(run(args("rectangle", "clean_horizontal", output)).exitCode, 0);
     EXPECT_EQ(manifest, bytes(output + ".manifest.json"));
-    result = run(args("rectangle", "double_scan", directory.filePath("advanced.xyz")));
-    EXPECT_NE(result.exitCode, 0); EXPECT_TRUE(result.out.isEmpty()); EXPECT_TRUE(result.error.contains("unsupported"));
-    EXPECT_FALSE(QFile::exists(directory.filePath("advanced.xyz")));
+    result = run(args("rectangle", "double_scan", directory.filePath("advanced.bin")));
+    EXPECT_NE(result.exitCode, 0); EXPECT_TRUE(result.out.isEmpty()); EXPECT_TRUE(result.error.contains("extension"));
+    EXPECT_FALSE(QFile::exists(directory.filePath("advanced.bin")));
     EXPECT_NE(run(args("rectangle", "clean_horizontal", directory.filePath("missing/part.xyz"))).exitCode, 0);
     auto missing = args("rectangle", "clean_horizontal", directory.filePath("missing.xyz")); missing[1] = "absent.json";
     EXPECT_NE(run(missing).exitCode, 0);
@@ -597,6 +981,33 @@ TEST(SyntheticIntegration, PrecisionCollapseFailsAndRemovesTemporaryFiles)
     const auto result = run(a);
     EXPECT_NE(result.exitCode, 0); EXPECT_TRUE(result.error.contains("precision collapses")) << result.error.toStdString();
     EXPECT_EQ(QDir(directory.path()).entryList(QDir::Files), QStringList{"tiny.json"});
+}
+
+TEST(SyntheticIntegration, EmptyPassAndArtifactFailurePublishConsistentResults)
+{
+    QTemporaryDir directory; ASSERT_TRUE(directory.isValid());
+    auto root = QJsonDocument::fromJson(bytes(fixture("scans", "clean_horizontal"))).object();
+    root["passes"] = QJsonArray{QJsonObject{{"region", QJsonObject{{"min", QJsonArray{200, 200}}, {"max", QJsonArray{210, 210}}}}}};
+    const auto config = directory.filePath("scan.json"), output = directory.filePath("empty.xyz");
+    const auto save = [&] {
+        QFile file(config); EXPECT_TRUE(file.open(QIODevice::WriteOnly));
+        const auto data = QJsonDocument(root).toJson(); EXPECT_EQ(file.write(data), data.size());
+    };
+    save();
+    auto a = args("rectangle", "clean_horizontal", output); a[3] = config;
+    ASSERT_EQ(run(a).exitCode, 0);
+    EXPECT_TRUE(bytes(output).isEmpty());
+    const auto m = QJsonDocument::fromJson(bytes(output + ".manifest.json")).object();
+    EXPECT_EQ(m["pointCount"].toInteger(), 0); EXPECT_TRUE(m["boundingBox"].isNull());
+    EXPECT_EQ(m["outputSha256"].toString().toLatin1(), sha256({}));
+    root["maxLineLength"] = 20;
+    root["passes"] = QJsonArray{QJsonObject{{"longitudinalShift", 1e308},
+                                          {"continuationShift", QJsonObject{{"longitudinal", 1e308}, {"transverse", 0}}}}};
+    save(); a[5] = directory.filePath("overflow.xyz");
+    const auto failure = run(a);
+    EXPECT_NE(failure.exitCode, 0); EXPECT_TRUE(failure.out.isEmpty());
+    EXPECT_FALSE(QFile::exists(a[5])); EXPECT_FALSE(QFile::exists(a[5] + ".manifest.json"));
+    EXPECT_EQ(QDir(directory.path()).entryList(QDir::Files).size(), 3);
 }
 
 } // namespace

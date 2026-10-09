@@ -1,0 +1,17 @@
+{
+  "formatVersion": 1,
+  "direction": "Horizontal",
+  "pointStep": 0.07,
+  "lineStep": 1.0,
+  "maxLineLength": 200,
+  "seed": 1012,
+  "defects": [
+    {
+      "type": "MissingPoints",
+      "region": { "min": [20, 10], "max": [100, 70] },
+      "probability": 0.01,
+      "minRunLength": 1,
+      "maxRunLength": 3
+    }
+  ]
+}
