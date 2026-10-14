@@ -774,6 +774,12 @@ failure
 
 GUI должен оставаться отзывчивым.
 
+Application layer допускает только один физически выполняющийся worker. Повторный запуск до подтверждённого завершения возвращает Busy; очереди и автоматического повторного запуска нет. Запуск принятой операции получает неповторяемый `OperationId`, отдельный от `OperationStamp` проекта/входов; переполнение отклоняется до изменения состояния.
+
+Progress передаётся через ограниченный mailbox последнего значения: фаза, выполненное количество и необязательный total. GUI читает его периодически; неизвестная продолжительность не превращается в фиктивный процент. Состояние операции и уведомления о нём отделены от project state и Undo. Они не сбрасывают draft, ошибку ввода, курсор или выделение поля параметра; поле синхронизируется при изменении соответствующего параметра/проекта либо явном Apply с канонизацией no-op.
+
+Cancellation кооперативна и не использует принудительное завершение потока. Запрос отмены немедленно и необратимо отзывает право публикации; проверка worker на checkpoint определяет лишь скорость остановки. Изменение relevant inputs, смена/закрытие проекта и reset также отзывают это право. No-op и отклонённая команда не инвалидируют входы. Worker success, cancellation, failure и application discard различаются; commit и полное завершение потока — разные события.
+
 К длительным операциям относятся как минимум:
 
 - импорт;
@@ -789,7 +795,7 @@ GUI должен оставаться отзывчивым.
 
 Worker не должен постепенно изменять основной `ProjectState` во время вычисления.
 
-Предпочтительная схема:
+Схема публикации через единственный production gate application layer:
 
 ```text
 Project input / snapshot
@@ -798,11 +804,15 @@ background computation
         ↓
 temporary result
         ↓
-successful completion
+Ready: structured outcome / temporary product
         ↓
-result applicability check
+initial applicability check
         ↓
-commit to ProjectState
+prepare typed candidate + fallible finalize / validation
+        ↓
+final applicability check
+        ↓
+noexcept atomic commit → Accept
 ```
 
 При:
@@ -817,7 +827,11 @@ commit to ProjectState
 
 Snapshot включает идентичность целевой версии и применимое состояние её Rough-входов, когда операция относится к Rough Stage. Переключение версии не позволяет старому worker записать результат в другую версию или заменить более новые правки. Совместимость сохранённой карты (§23) не является разрешением публикации задержанного результата.
 
-Snapshot сам по себе не обеспечивает этот инвариант. Revision/version, generation IDs, locking, cancellation и invalidation остаются реализационным выбором.
+Snapshot сам по себе не обеспечивает этот инвариант. Gate сверяет OperationId, исходный ProjectIdentity/InputRevision, отсутствие отзыва публикации и открытое состояние приложения непосредственно перед commit. При появлении версий/Rough-входов их идентичность и ревизия включаются в тот же контракт; это не критерий совместимости сохранённых версий.
+
+Fallible preparation не изменяет текущий результат, предыдущий корректный результат и историю. После final check commit не выполняет allocations, dialogs, обработку событий или throwing history pushes; согласованные владельцы меняются атомарно не более одного раза. Будущий adapter реальной операции должен подготовить также её dataset/history изменения и проверить их атомарность; проверочный product задачи 02 не доказывает корректность ещё не реализованных cache/PNG writers и не становится domain dataset.
+
+Worker после Ready ожидает единственное решение Accept/Discard по predicate condition variable. Все ветви gate дают решение. Borrowed product удерживается lease до конца preparation, в том числе при reentrant shutdown; worker освобождает discarded product и временные ресурсы вне mutex. Accept передаёт владение product application layer. Shutdown заранее выставляет Discard, если решения ещё нет, и уведомляет worker до любого ожидания; уже выполненный Accept не отменяется.
 
 Это правило особенно важно для длительных операций на HDD или сетевых данных.
 
@@ -839,7 +853,13 @@ Background worker не должен произвольно изменять QML 
 - завершённый result;
 - structured error.
 
-Конкретный механизм Qt threading определяется реализацией.
+Текущая реализация использует `QThread::create()` и один worker. Worker первым действием подтверждает вход в wrapper; `start()` без возвращаемого результата, отсутствие signals и истечение тайм-аута не являются доказательством launch failure. Неподтверждённый запуск остаётся Starting/Busy до подтверждённого входа либо join завершённого потока без входа.
+
+На Windows освобождение execution context и QThread, terminal notification и новый запуск требуют одновременно полного завершения системного потока и успешного Qt join. Независимый real thread HANDLE получается через DuplicateHandle в worker и закрывается RAII-владельцем. Только `WAIT_OBJECT_0` от WaitForSingleObject подтверждает завершение; TIMEOUT/FAILED удерживают ресурсы. При отказе DuplicateHandle вычисление не начинается и возвращается structured failure с системным кодом. Worker не выходит из handshake без независимого handle; application layer может получить его через OpenThread для этого ещё живого потока. Отказ получения/ожидания удерживает Busy и диагностируется; аварийный destructor также не освобождает неподтверждённые ресурсы и может ждать, пока системное наблюдение недоступно. Это не повторный запуск операции.
+
+Guard добавлен после воспроизведённого расхождения установленного Qt 6.12.0 с обещанием `wait()` на Windows: `wait(0)` возвращает true при заблокированном C++ TLS destructor. Основание и отдельные Debug/Release reproducer/regression tests — [thread-completion-check.md](thread-completion-check.md).
+
+Штатное закрытие проходит Open → Closing → Ready. Кнопка закрытия, системное закрытие окна и application Quit используют одну процедуру: запрет новых команд, отзыв публикации, cooperative cancel, Discard + notify. GUI продолжает обрабатывать события до native completion/join, затем закрывает окно и завершает event loop. Повторное закрытие идемпотентно. Destructor fallback выполняет тот же Discard/notify и join до уничтожения project/history/adapter/context, без `processEvents()` и без зависимости от queued callbacks; неожиданный выход из event loop может блокировать destructor до безопасного завершения.
 
 ---
 

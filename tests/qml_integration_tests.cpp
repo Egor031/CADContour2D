@@ -1,4 +1,6 @@
 #include "ui/project_view_model.h"
+#include "operation_test_support.h"
+#include "ui/application_shutdown.h"
 
 #include <QCoreApplication>
 #include <QQmlApplicationEngine>
@@ -148,6 +150,213 @@ TEST_F(ProductionQml, ResizedLayoutKeepsControlsInsideWindow)
             EXPECT_GT(item->height(), 0) << name;
         }
     }
+}
+
+TEST_F(ProductionQml, ProgressSuccessAndUnrelatedStatePreserveDraftSelectionAndError)
+{
+    using namespace cadcontour::test;
+    for (const auto &input : {QStringLiteral("1e-"), QStringLiteral("1,2.3")}) {
+        ControlledWork work;
+        draft(input);
+        if (input == QStringLiteral("1,2.3"))
+            click("applyButton");
+        const auto error = viewModel.errorMessage();
+        auto *field = control("cellInput");
+        field->setProperty("cursorPosition", 2);
+        ASSERT_TRUE(QMetaObject::invokeMethod(field, "select", Qt::DirectConnection,
+                                            Q_ARG(int, 1), Q_ARG(int, 3)));
+        const auto cursor = field->property("cursorPosition");
+        const auto selectionStart = field->property("selectionStart");
+        const auto selectionEnd = field->property("selectionEnd");
+        OperationTestAccess::start(controller, work.function());
+        work.entered.wait();
+        OperationTestAccess::poll(controller);
+        EXPECT_TRUE(control("operationProgress")->property("indeterminate").toBool());
+        EXPECT_TRUE(enabled("stopOperationButton"));
+        EXPECT_TRUE(enabled("applyButton"));
+        EXPECT_TRUE(enabled("newProjectButton"));
+        QObject::connect(&controller, &ProjectController::stateChanged, &engine, [&] {
+            EXPECT_EQ(text("cellInput"), input);
+            EXPECT_EQ(viewModel.errorMessage(), error);
+        }, Qt::SingleShotConnection);
+        work.complete.set();
+        ASSERT_TRUE(finish(controller));
+        EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+        EXPECT_EQ(text("cellInput"), input);
+        EXPECT_EQ(field->property("cursorPosition"), cursor);
+        EXPECT_EQ(field->property("selectionStart"), selectionStart);
+        EXPECT_EQ(field->property("selectionEnd"), selectionEnd);
+        EXPECT_EQ(viewModel.errorMessage(), error);
+        EXPECT_FALSE(enabled("stopOperationButton"));
+    }
+}
+
+TEST_F(ProductionQml, CancellationAndFailurePreserveInvalidInput)
+{
+    using namespace cadcontour::test;
+    draft(QStringLiteral("1,2.3"));
+    click("applyButton");
+    const auto error = text("errorLabel");
+    {
+        ControlledWork work;
+        OperationTestAccess::start(controller, work.function());
+        work.entered.wait();
+        click("stopOperationButton");
+        EXPECT_EQ(controller.operation().status, OperationStatus::Cancelling);
+        EXPECT_FALSE(enabled("stopOperationButton"));
+        work.complete.set();
+        ASSERT_TRUE(finish(controller));
+        EXPECT_EQ(controller.operation().status, OperationStatus::Cancelled);
+        EXPECT_EQ(text("cellInput"), QStringLiteral("1,2.3"));
+        EXPECT_EQ(text("errorLabel"), error);
+    }
+    OperationTestAccess::start(controller, [](const auto &, const auto &) -> WorkerOutcome {
+        throw std::runtime_error("QML failure scenario");
+    });
+    ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
+    EXPECT_EQ(text("cellInput"), QStringLiteral("1,2.3"));
+    EXPECT_EQ(text("errorLabel"), error);
+    EXPECT_TRUE(text("operationLabel").contains(QStringLiteral("Ошибка")));
+}
+
+TEST_F(ProductionQml, KnownProgressEditingAndNewProjectDuringWork)
+{
+    using namespace cadcontour::test;
+    Event reported, complete;
+    OperationTestAccess::start(controller, [&](const auto &input, const WorkerControl &control) {
+        control.report({OperationPhase::Computing, 25, 100});
+        reported.set(); complete.wait();
+        return success(input);
+    });
+    reported.wait();
+    OperationTestAccess::poll(controller);
+    EXPECT_FALSE(control("operationProgress")->property("indeterminate").toBool());
+    EXPECT_DOUBLE_EQ(control("operationProgress")->property("value").toDouble(), 0.25);
+    EXPECT_TRUE(text("operationPhase").contains(QStringLiteral("25.0 %")));
+    draft(QStringLiteral("0,5"));
+    ASSERT_TRUE(QMetaObject::invokeMethod(control("cellInput"), "accepted", Qt::DirectConnection));
+    EXPECT_DOUBLE_EQ(controller.project()->cell(), 0.5);
+    EXPECT_EQ(text("cellInput"), QStringLiteral("0.5"));
+    EXPECT_TRUE(controller.operation().publicationRevoked);
+    click("undoButton");
+    click("redoButton");
+    const auto identity = controller.project()->runtimeIdentity();
+    click("newProjectButton");
+    EXPECT_GT(controller.project()->runtimeIdentity(), identity);
+    EXPECT_EQ(text("cellInput"), QStringLiteral("1"));
+    EXPECT_TRUE(text("operationLabel").contains(QStringLiteral("предыдущего проекта")));
+    for (const auto &size : {QSize{400, 380}, QSize{1000, 700}}) {
+        window->resize(size);
+        QCoreApplication::processEvents();
+        EXPECT_GT(control("operationProgress")->property("width").toDouble(), 0);
+        EXPECT_GT(control("cellInput")->property("width").toDouble(), 0);
+    }
+    complete.set();
+    ASSERT_TRUE(finish(controller));
+    EXPECT_FALSE(viewModel.operationVisible());
+}
+
+TEST_F(ProductionQml, NewProjectRefreshesAcceptedAndTerminalOperationPresentation)
+{
+    using namespace cadcontour::test;
+    Event cleanup, releaseCleanup;
+    OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
+        [&](PublicationDecision) { cleanup.set(); releaseCleanup.wait(); });
+    OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
+    EXPECT_TRUE(spinUntil([&] {
+        OperationTestAccess::poll(controller);
+        return controller.operation().decision == PublicationDecision::Accept;
+    }));
+    cleanup.wait();
+    click("newProjectButton");
+    EXPECT_TRUE(text("operationLabel").contains(QStringLiteral("предыдущего проекта")));
+    releaseCleanup.set();
+    ASSERT_TRUE(finish(controller));
+    EXPECT_FALSE(viewModel.operationVisible());
+    OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
+    ASSERT_TRUE(finish(controller));
+    EXPECT_TRUE(viewModel.operationVisible());
+    EXPECT_TRUE(control("operationLabel")->parent()->property("visible").toBool());
+    click("newProjectButton");
+    EXPECT_FALSE(viewModel.operationVisible());
+    EXPECT_FALSE(control("operationLabel")->parent()->property("visible").toBool());
+}
+
+TEST_F(ProductionQml, ButtonAndWindowCloseKeepEventLoopUntilWorkerIsReleased)
+{
+    using namespace cadcontour::test;
+    ControlledWork work;
+    OperationTestAccess::start(controller, work.function());
+    work.entered.wait();
+    click("closeButton");
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
+    EXPECT_TRUE(window->isVisible());
+    EXPECT_FALSE(enabled("applyButton"));
+    EXPECT_FALSE(enabled("newProjectButton"));
+    window->close(); // repeated system-window route is idempotent
+    EXPECT_TRUE(window->isVisible());
+    bool guiEvent = false;
+    QTimer::singleShot(0, [&] { guiEvent = true; });
+    ASSERT_TRUE(spinUntil([&] { return guiEvent; }));
+    EXPECT_TRUE(window->isVisible());
+    work.complete.set();
+    ASSERT_TRUE(finish(controller));
+    ASSERT_TRUE(spinUntil([&] { return !window->isVisible(); }));
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
+    EXPECT_EQ(OperationTestAccess::generation(controller), 0);
+}
+
+TEST_F(ProductionQml, SystemWindowCloseStartsShutdownWithoutButton)
+{
+    using namespace cadcontour::test;
+    ControlledWork work;
+    OperationTestAccess::start(controller, work.function());
+    work.entered.wait();
+    window->close();
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
+    EXPECT_TRUE(window->isVisible());
+    work.complete.set();
+    ASSERT_TRUE(finish(controller));
+    ASSERT_TRUE(spinUntil([&] { return !window->isVisible(); }));
+}
+
+TEST_F(ProductionQml, PostedQuitUsesProductionShutdownCoordinator)
+{
+    using namespace cadcontour::test;
+    ControlledWork work;
+    auto *app = qobject_cast<QGuiApplication *>(QCoreApplication::instance());
+    ASSERT_NE(app, nullptr);
+    ApplicationShutdown coordinator(*app, controller, *window);
+    OperationTestAccess::start(controller, work.function());
+    work.entered.wait();
+    QEvent quit(QEvent::Quit);
+    QCoreApplication::sendEvent(app, &quit);
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
+    EXPECT_TRUE(window->isVisible());
+    work.complete.set();
+    ASSERT_TRUE(finish(controller));
+    ASSERT_TRUE(spinUntil([&] { return !window->isVisible(); }));
+}
+
+TEST_F(ProductionQml, EngineAndViewModelCanDisappearBeforeControllerDrain)
+{
+    using namespace cadcontour::test;
+    ControlledWork work;
+    OperationTestAccess::start(controller, work.function());
+    work.entered.wait();
+    // The worker has no engine or view-model references; destroy a separate real presentation.
+    {
+        ProjectViewModel temporaryViewModel(controller);
+        QQmlApplicationEngine temporaryEngine;
+        QQmlEngine::setObjectOwnership(&temporaryViewModel, QQmlEngine::CppOwnership);
+        temporaryEngine.setInitialProperties({{QStringLiteral("project"), QVariant::fromValue(&temporaryViewModel)}});
+        temporaryEngine.loadFromModule("CADContour2D", "Main");
+        ASSERT_EQ(temporaryEngine.rootObjects().size(), 1);
+    }
+    work.complete.set();
+    ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
 }
 
 TEST(QmlRegistration, ViewModelCannotBeCreatedByQml)

@@ -1,5 +1,6 @@
 #include "application/project_controller.h"
 #include "ui/project_view_model.h"
+#include "ui/application_shutdown.h"
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -24,6 +25,12 @@ int main(int argc, char *argv[])
         &engine, &QQmlApplicationEngine::objectCreationFailed, &app,
         [] { QCoreApplication::exit(EXIT_FAILURE); }, Qt::QueuedConnection);
     engine.loadFromModule("CADContour2D", "Main");
+    if (engine.rootObjects().isEmpty())
+        return EXIT_FAILURE;
+    auto *window = qobject_cast<QWindow *>(engine.rootObjects().front());
+    if (!window)
+        return EXIT_FAILURE;
+    cadcontour::ApplicationShutdown shutdown(app, controller, *window);
 
     return app.exec();
 }

@@ -11,6 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
+find_package(spdlog CONFIG REQUIRED)
 qt_standard_project_setup(REQUIRES 6.12)
 
 add_library(cadcontour_core STATIC
@@ -23,9 +24,15 @@ target_compile_options(cadcontour_core PRIVATE /W4 /permissive- /fp:precise)
 
 add_library(cadcontour_application STATIC
     src/application/project_controller.h src/application/project_controller.cpp
+    src/application/operation_types.h src/application/operation_types.cpp
+    src/application/operation_runner.h src/application/operation_runner.cpp
+    src/application/native_thread_completion.h src/application/native_thread_completion.cpp
+    src/application/operation_diagnostics.h src/application/operation_diagnostics.cpp
 )
 target_link_libraries(cadcontour_application PUBLIC cadcontour_core Qt6::Core Qt6::Gui)
-target_compile_options(cadcontour_application PRIVATE /W4 /permissive- /fp:precise)
+target_link_libraries(cadcontour_application PRIVATE spdlog::spdlog_header_only)
+target_compile_definitions(cadcontour_application PRIVATE SPDLOG_WCHAR_FILENAMES)
+target_compile_options(cadcontour_application PRIVATE /W4 /permissive- /fp:precise /utf-8)
 
 set_source_files_properties(qml/Main.qml PROPERTIES QT_RESOURCE_ALIAS Main.qml)
 qt_add_qml_module(cadcontour_ui STATIC
@@ -34,6 +41,7 @@ qt_add_qml_module(cadcontour_ui STATIC
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/CADContour2D"
     QML_FILES qml/Main.qml
     SOURCES src/ui/project_view_model.h src/ui/project_view_model.cpp
+            src/ui/application_shutdown.h src/ui/application_shutdown.cpp
 )
 target_include_directories(cadcontour_ui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/ui")
 target_link_libraries(cadcontour_ui PUBLIC cadcontour_application Qt6::Qml

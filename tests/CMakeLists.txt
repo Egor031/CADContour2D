@@ -10,25 +10,45 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
-gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production)
 
 add_executable(project_tests project_tests.cpp coordinate_tests.cpp)
 set_target_properties(project_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(project_tests PRIVATE cadcontour_application GTest::gtest_main)
 target_compile_options(project_tests PRIVATE /W4 /permissive- /fp:precise)
-gtest_discover_tests(project_tests DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(project_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production)
+
+add_executable(operation_tests operation_test_main.cpp operation_tests.cpp)
+set_target_properties(operation_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(operation_tests PRIVATE cadcontour_application GTest::gtest)
+target_compile_options(operation_tests PRIVATE /W4 /permissive- /utf-8)
+gtest_discover_tests(operation_tests DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 30 LABELS production)
 
 add_executable(view_model_tests view_model_tests.cpp)
 set_target_properties(view_model_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(view_model_tests PRIVATE cadcontour_ui cadcontour_uiplugin GTest::gtest_main)
 target_compile_options(view_model_tests PRIVATE /W4 /permissive- /utf-8)
-gtest_discover_tests(view_model_tests DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(view_model_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production)
 
 qt_add_executable(qml_integration_tests qml_test_main.cpp qml_integration_tests.cpp)
 target_link_libraries(qml_integration_tests PRIVATE
     cadcontour_ui cadcontour_uiplugin Qt6::Quick GTest::gtest)
 target_compile_options(qml_integration_tests PRIVATE /W4 /permissive- /utf-8)
-gtest_discover_tests(qml_integration_tests DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(qml_integration_tests DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 30 LABELS production)
+
+set_source_files_properties(ProbeWindow.qml PROPERTIES QT_RESOURCE_ALIAS ProbeWindow.qml)
+qt_add_qml_module(cadcontour_verification STATIC
+    URI CADContour2D.Verification VERSION 1.0
+    OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/CADContour2D/Verification"
+    QML_FILES ProbeWindow.qml
+    SOURCES operation_probe.h operation_probe.cpp
+    IMPORTS CADContour2D
+)
+target_link_libraries(cadcontour_verification PUBLIC cadcontour_ui cadcontour_uiplugin Qt6::Quick)
+target_compile_options(cadcontour_verification PRIVATE /W4 /permissive- /utf-8)
+qt_add_executable(operation_probe operation_probe_main.cpp)
+target_link_libraries(operation_probe PRIVATE cadcontour_verification cadcontour_verificationplugin)
+target_compile_options(operation_probe PRIVATE /W4 /permissive- /utf-8)
 
 if(CADCONTOUR2D_BUILD_TOOLS)
     add_executable(synthetic_generator_tests synthetic_generator_tests.cpp)

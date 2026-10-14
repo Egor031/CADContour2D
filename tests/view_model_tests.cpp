@@ -160,3 +160,22 @@ TEST(ProjectViewModel, CounterFailuresProduceReadableErrorsWithoutInputReset)
     EXPECT_EQ(resets, 0);
     EXPECT_DOUBLE_EQ(controller.project()->cell(), 0.5);
 }
+
+TEST(ProjectViewModel, UnrelatedStateAndNoOpUndoDoNotResetInputError)
+{
+    ProjectController controller;
+    controller.newProject();
+    ProjectViewModel viewModel(controller);
+    int syncs = 0;
+    QObject::connect(&viewModel, &ProjectViewModel::cellInputSyncRequested, [&] { ++syncs; });
+    viewModel.applyCell(QStringLiteral("1e-"));
+    const auto error = viewModel.errorMessage();
+    viewModel.undo();
+    viewModel.redo();
+    emit controller.stateChanged(); // a dataset notification with the same cell/project key
+    EXPECT_EQ(syncs, 0);
+    EXPECT_EQ(viewModel.errorMessage(), error);
+    viewModel.newProject(); // same cell, different identity still synchronizes
+    EXPECT_EQ(syncs, 1);
+    EXPECT_TRUE(viewModel.errorMessage().isEmpty());
+}

@@ -117,6 +117,14 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 ### 02. Безопасное выполнение фоновых операций
 
+**Статус: TESTS PASSED / AWAITING MANUAL ACCEPTANCE.** Реализация и доступные автоматические проверки выполнены; визуальная пользовательская приёмка и независимое ревью ещё не завершены. Команды и ручной сценарий — [README.md](../README.md#проверочный-запуск-и-ручная-приёмка--задача-02).
+
+Реализованы один `QThread::create()` worker, immutable snapshot, отдельный OperationId, bounded latest progress, cooperative cancellation/invalidation, structured failures, единый production publication gate с финальной applicability check и атомарным commit, Ready → Accept/Discard handshake с product lease, GUI shutdown Open → Closing → Ready и destructor fallback без event-loop delivery. Проверочный typed sink принадлежит controller и не заменяет ProjectState datasets; отдельный development executable использует production runner/controller/QML. Operation notifications не сбрасывают draft/error/cursor/selection.
+
+Debug/Release configure/build и QML lint успешны; production CTest — 128/128 в каждой конфигурации, native Windows QML — 13/13, семь автоматических демонстрационных сценариев — exit 0 в обеих конфигурациях. Проверены Busy до физического завершения, snapshot/thread affinity, single publication, no-op/rejected inputs, stale/cancel/reset, worker/candidate exceptions, late notifications, resource cleanup, reentrant shutdown и destructor drain. Generator regression и тяжёлые datasets не запускались.
+
+Пользователь согласовал локальный Windows-guard после воспроизведения преждевременного true от Qt 6.12.0 `wait(0)` во время C++ TLS cleanup. Реальный независимый HANDLE, WAIT_TIMEOUT/FAILED retention, DuplicateHandle failure/fallback, RAII close и destructor native wait проверены в Debug/Release; отдельный reproducer сохранён — [thread-completion-check.md](thread-completion-check.md). Постоянная недоступность системного подтверждения может удерживать Closing/destructor ради сохранности ресурсов.
+
 - **Цель:** установить общий контракт выполнения до подключения большого I/O.
 - **Содержание:** snapshot/immutable inputs, progress, cancellation, structured completion, проверка принадлежности проекту и применимому состоянию входов; учитывать целевую версию при подключении Rough Stage. Безопасность публикации по ревизиям не подменяет проверку совместимости сохранённых результатов. Централизованная диагностика. GUI показывает ход операции и доступные действия.
 - **Сохранность ввода:** обновления состояния фоновых операций не должны сбрасывать незавершённый пользовательский ввод параметров. Синхронизация поля с C++-состоянием должна выполняться при соответствующем изменении параметра или проекта, а не при любом стороннем уведомлении.
@@ -125,7 +133,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 - **Результат:** операция не блокирует интерфейс и не может опубликовать устаревший результат.
 - **Проверка:** управляемые тестовые workers: задержанное завершение после смены проекта, изменения входов, отмены и reset; failure и освобождение временных ресурсов. При интеграции с 06–10 добавить переключение версии и изменение её Rough-состояния во время операции.
 - **Критерий завершения:** ни один из этих сценариев не перезаписывает новое состояние; частичный результат не публикуется.
-- **Открытые решения:** конкретный Qt threading mechanism и applicability mechanism. Выбрать простое достаточное решение, без универсального task framework.
+- **Выбранный механизм:** устойчивые контракты зафиксированы в [architecture.md, §§24–26](architecture.md#24-длительные-операции). При интеграции реальных операций повторно проверить атомарность cache/PNG/history adapters, version/Rough applicability и I/O cancellation checkpoints; foundation tests не доказывают ещё не реализованные writers.
 
 Основание: [architecture.md, §§24–26](architecture.md#24-длительные-операции).
 

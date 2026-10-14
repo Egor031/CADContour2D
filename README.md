@@ -158,7 +158,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 `vcpkg.json` использует manifest mode и фиксированный `builtin-baseline` из установленного vcpkg registry snapshot. Это закрепляет версии port recipes без отдельных произвольных overrides. Presets подключают toolchain через `VCPKG_ROOT`, используют triplet `x64-windows` и размещают установленные пакеты внутри соответствующего build directory.
 
-Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. Эти библиотеки используются только в отдельном headless dependency smoke test; production executable зависит от Qt.
+Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. OpenCV/Eigen пока проверяются отдельным headless dependency smoke; production application использует Qt и spdlog для ограниченного rotating operation log. Новые сторонние зависимости не добавлены.
 
 ### Configure / Build / Tests
 
@@ -167,10 +167,9 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 ```bat
 chcp 65001 >nul
 set "PATH=%QT_ROOT%\bin;%PATH%"
-cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=OFF
-cmake --build --preset windows-release
-ctest --preset windows-release
-cmake --build --preset windows-release --target all_qmllint
+cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-release --target CADContour2D operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
+ctest --preset windows-release -L production --output-on-failure
 ```
 
 UTF-8 code page нужна в проверенной русскоязычной среде MSVC для корректного распознавания `/showIncludes` в CMake/Ninja. Она меняется только в текущей консоли. Qt `bin` в локальном `PATH` нужен также production tests, использующим Qt runtime.
@@ -178,15 +177,14 @@ UTF-8 code page нужна в проверенной русскоязычной 
 Debug также фактически проверен:
 
 ```bat
-cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=OFF
-cmake --build --preset windows-debug
-ctest --preset windows-debug
-cmake --build --preset windows-debug --target all_qmllint
+cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-debug --target CADContour2D operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
+ctest --preset windows-debug -L production --output-on-failure
 ```
 
-Без development tools CTest запускает 72 теста: 32 domain/application/coordinate, 34 view model, 5 production QML integration и один dependency smoke. Release: 72/72 PASS; Debug: 67 headless/smoke и затем 5/5 QML PASS. Итоговая полная регрессия с tools ниже также проверяет все production tests в обеих конфигурациях. Они включаются при `BUILD_TESTING` независимо от генератора. `all_qmllint` прошёл в Debug и Release.
+Задача 02: **128/128 PASS в Debug и Release** — 32 domain/application/coordinate, 47 operation, 35 view model, 13 production QML integration и один dependency smoke. Production tests и отдельный `operation_probe` включаются при `BUILD_TESTING` независимо от генератора. Фильтр `-L production` исключает его полную регрессию. `all_qmllint` прошёл для production и verification QML в обеих конфигурациях.
 
-QML integration tests загружают тот же статический модуль `CADContour2D` и `Main.qml`, что приложение. Проверяются bindings, Apply/Enter/Undo/Redo/New/Close handlers, ошибочный draft, required injection и resize 400×380 / 1000×700. По умолчанию они используют offscreen + software + Basic: Windows NativeStyle в offscreen выдаёт диагностику размеров TextField. Проверка QML warnings остаётся строгой. Дополнительно проверено выполнение с настоящей Windows-платформой и её штатным стилем:
+QML integration tests загружают тот же статический модуль `CADContour2D` и `Main.qml`, что приложение. Проверяются bindings, Apply/Enter/Undo/Redo/New/Close, draft/error/cursor/selection во время progress и публикации, смена проекта до/после Accept, cancel/failure, shutdown и resize 400×380 / 1000×700. По умолчанию используется offscreen + software + Basic; проверка QML warnings остаётся строгой. Дополнительно выполнен запуск с настоящей Windows-платформой и штатным стилем:
 
 ```bat
 set "QT_QPA_PLATFORM=windows"
@@ -195,13 +193,9 @@ build\windows-release\qml_integration_tests.exe
 set "QT_QPA_PLATFORM="
 ```
 
-Результат: 5/5 PASS в каждой конфигурации. Такая проверка создаёт и закрывает настоящие тестовые окна, но не заменяет визуальную пользовательскую приёмку.
+Результат: **13/13 PASS в каждой конфигурации**. Проверка создаёт и закрывает настоящие тестовые окна; визуальная пользовательская приёмка задачи 02 остаётся открытой.
 
-Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его Debug/Release configure/build, 95 generator tests и существующий dependency smoke проверены: 96/96 PASS в каждой конфигурации; QML lint также прошёл. Команды и ограничения — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
-
-После задачи 01 повторно выполнены `cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON` и аналогичный Release configure, build, CTest и `all_qmllint`: **167/167 PASS в каждой конфигурации** (71 production + 95 generator + smoke). Гигабайтные облака при этой регрессии не создавались.
-
-После независимого ревью усилены координатные тесты. Повторно выполнены `cmake --build --preset windows-debug --target project_tests` и `ctest --preset windows-debug -R "^Coordinates\."`, затем аналогичные команды для `windows-release`: **8/8 PASS в каждой конфигурации**. Временная ошибка восстановления X на 1 мм вызвала ожидаемое падение обоих усиленных тестов в Debug и Release; после её удаления и повторной сборки снова получено 8/8 PASS. Production-код не изменялся.
+Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его ранее проверенная регрессия: 95 generator tests и dependency smoke, 96/96 PASS в каждой конфигурации. В задаче 02 полная generator regression не повторялась, тяжёлые datasets не создавались. Команды и ограничения — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
 
 ### Run
 
@@ -230,20 +224,52 @@ start /wait "" build\windows-debug\CADContour2D.exe
 4. «Новый проект»: `1`, новая identity, ревизия `0`, пустая история. Карта всё время отсутствует.
 5. Уменьшить и увеличить окно, проверить доступность элементов и читаемость ошибок; закрыть окно. Сообщить о несовпадении значений, кнопок, сохранности ввода, clipping или проблемах закрытия.
 
+### Проверочный запуск и ручная приёмка — задача 02
+
+В той же CMD-среде с Qt bin в PATH:
+
+```bat
+build\windows-debug\operation_probe.exe --auto known
+build\windows-release\operation_probe.exe --auto known
+```
+
+Для обеих конфигураций фактически выполнены все семь `--auto` сценариев: `known`, `unknown`, `failure`, `cancel`, `replace`, `close`, `quit`. Все завершились с кодом 0 и Ready shutdown; success получил Accept, остальные — Discard. `operation_probe` использует production Main.qml/controller/runner/shutdown; проверочные кнопки отсутствуют в обычном `CADContour2D.exe`. Он не импортирует облако и не создаёт domain datasets.
+
+Ручной запуск без `--auto`:
+
+```bat
+build\windows-release\operation_probe.exe
+```
+
+1. «Проверить фоновую операцию»: окно остаётся отзывчивым, после начальной подготовки появляются количество и процент, затем завершение. Во время progress ввести незавершённый draft без Apply, выделить часть текста: уведомления и завершение сохраняют текст/выделение.
+2. До запуска ввести `1,2.3`, нажать «Применить», затем запустить обычный сценарий и «Проверить ошибку»: ошибка параметра и draft сохраняются; ошибка операции выводится отдельно.
+3. «Неизвестный объём»: счётчик без фиктивного процента и неопределённый progress; во время работы изменить размер окна до 400×380 и обратно, проверить чтение/доступность элементов через scroll.
+4. Запустить и нажать «Остановить операцию»: cooperative остановка, результат не применён; после завершения доступен новый запуск.
+5. Во время операции применить `0,5`, проверить Undo/Redo: параметр меняется, прежняя операция не публикует результат по старым входам.
+6. Во время операции нажать «Новый проект»: новая identity, `cell = 1`, пустая история; прежний worker завершается без записи в новый проект. После завершённой операции New также скрывает её старый статус.
+7. В двух отдельных запусках закрыть активную операцию кнопкой «Закрыть» и системным крестиком: окно обрабатывает события до безопасного завершения и затем закрывается. Повторное закрытие не создаёт ошибку.
+
+В этом сеансе accessibility подтвердил настоящее проверочное окно, но screen capture завершился `FrameArrived timed out`, а coordinate input был недоступен. Поэтому визуальная ручная приёмка не объявлена выполненной. Сообщить о потере draft/error/selection, неверном progress, clipping/недоступных кнопках, зависании или преждевременном закрытии окна.
+
 ### Known Diagnostics
 
 - Qt сообщает об отсутствующем `Qt6TaskTree` для необязательного `Qt6QmlAssetDownloaderPrivate`, а также `WrapVulkanHeaders`. Текущий QML-модуль их не использует; сборка, lint и runtime прошли.
 - При сборке OpenCV его CMake detection не распознаёт `MSVC_VERSION=1951` и сообщает `Cannot set OpenCV_RUNTIME`. vcpkg собрал x64 библиотеки с `/MD` и `/MDd`; link и dependency smoke test прошли в Release и Debug. Также есть предупреждения стороннего OpenCV о старых CMake policies и metadata `OPENCV_BUILD_INFO_STR`.
 - Встроенный загрузчик vcpkg получил SSL error 35 для Eigen и fmt. Официальные архивы загружены системным curl в download cache и проверены по SHA-512 из port recipes; проверка TLS и хэшей не отключалась. Это ограничение загрузки в текущем сетевом окружении, не ошибка компиляции.
+- В задаче 02 MSVC сообщает C4702 внутри стороннего `fmt/base.h` при сборке header-only spdlog; compile/link, smoke и runtime прошли в Debug/Release.
+- Расхождение Qt 6.12.0 `wait(0)` с полным завершением C++ TLS воспроизведено и покрыто независимым Windows-guard. Подробности и повторяемая проверка — [thread-completion-check.md](docs/thread-completion-check.md).
 
 ## Project Status
 
-**Задача 01 завершена; статус ACCEPTED. Synthetic Point Cloud Generator сохраняет готовность по текущему контракту clean/artifact scenarios.**
+**Задача 01: ACCEPTED. Задача 02: TESTS PASSED / AWAITING MANUAL ACCEPTANCE; независимое ревью задачи 02 ещё не выполнено. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 На текущем этапе:
 
 - сформированы функциональные требования;
 - реализованы `cadcontour_core` (GUI-независимый `ProjectState`, structured command results, operation stamp и model/view mapping), `cadcontour_application` (единственный владелец состояния, команды и Qt Undo) и переиспользуемый `cadcontour_ui` (QObject view model и production QML);
+- реализована основа фоновых операций: `QThread::create()`, один worker, immutable snapshot, OperationId/Stamp, bounded progress mailbox, cooperative cancel/invalidation, structured outcome, production publication gate и Ready → Accept/Discard handshake;
+- освобождение worker и shutdown защищены independent native HANDLE + Qt join; Closing сохраняет GUI event loop до Ready, destructor fallback не требует GUI callbacks;
+- operation notifications сохраняют draft/error/cursor/selection; отдельный `operation_probe` использует production controller/runner/QML и изолированный verification sink без фиктивного ProjectState dataset;
 - `cell` — конечный положительный `double` в мм, по умолчанию `1`; identity и ревизии защищены от переполнения, уведомления публикуются после согласованного изменения состояния и истории, повторный вход отклоняется;
 - наличие/совместимость результатов отделены от ревизий операций. Фиктивных datasets или глобального единственного Density Map slot нет; хранилище версий и raster mapping в задаче 01 не реализованы;
 - определена архитектура приложения;
@@ -254,7 +280,7 @@ start /wait "" build\windows-debug\CADContour2D.exe
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - для исходного каркаса ранее проверены configure и clean build; в задаче 01 повторно выполнены configure/build, production tests, regression, dependency smoke, QML lint и запуск обеих конфигураций.
 
-Автоматические проверки Debug/Release и ручная приёмка задачи 01 успешны. Независимое ревью завершено с вердиктом **PASS WITH COMMENTS**, блокирующих замечаний нет. Замечание к численному тесту устранено; риск сброса незавершённого ввода при будущих фоновых уведомлениях зафиксирован в задаче 02 [плана реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). Задача 02 не начата.
+Автоматические проверки задачи 02 успешны; её визуальная приёмка и отдельное независимое ревью остаются до ACCEPTED. Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). Атомарность реальных cache/PNG/history publication adapters, version/Rough snapshots и I/O checkpoints проверяется при интеграции соответствующих задач.
 
 Import, cache, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 
