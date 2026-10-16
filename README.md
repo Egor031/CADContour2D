@@ -182,7 +182,9 @@ cmake --build --preset windows-debug --target CADContour2D operation_tests proje
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
-Задача 02: **128/128 PASS в Debug и Release** — 32 domain/application/coordinate, 47 operation, 35 view model, 13 production QML integration и один dependency smoke. Production tests и отдельный `operation_probe` включаются при `BUILD_TESTING` независимо от генератора. Фильтр `-L production` исключает его полную регрессию. `all_qmllint` прошёл для production и verification QML в обеих конфигурациях.
+Задача 02 после исправления R1: **132/132 PASS в Debug и Release** — 32 domain/application/coordinate, 51 operation, 35 view model, 13 production QML integration и один dependency smoke. Production tests и отдельный `operation_probe` включаются при `BUILD_TESTING` независимо от генератора. Фильтр `-L production` исключает его полную регрессию. `all_qmllint` прошёл для production и verification QML в обеих конфигурациях.
+
+R1 regression на исходном коде воспроизвёл преждевременный Ready при удерживаемом втором worker в Debug и Release. Terminal completion теперь использует command guard, сохраняющий защиту внешней команды, и устанавливает terminal/shutdown state до уведомлений. Запуск из terminal notification отклоняется как `ReentrantCommand`; после возврата новый запуск работает, если приложение остаётся Open. Добавлены четыре тестовых случая: повторный вход с shutdown и без него, согласованность terminal notification при Closing и сохранение внешнего guard. Существующий pending Ready regression сохранён и проходит.
 
 QML integration tests загружают тот же статический модуль `CADContour2D` и `Main.qml`, что приложение. Проверяются bindings, Apply/Enter/Undo/Redo/New/Close, draft/error/cursor/selection во время progress и публикации, смена проекта до/после Accept, cancel/failure, shutdown и resize 400×380 / 1000×700. По умолчанию используется offscreen + software + Basic; проверка QML warnings остаётся строгой. Дополнительно выполнен запуск с настоящей Windows-платформой и штатным стилем:
 
@@ -249,7 +251,7 @@ build\windows-release\operation_probe.exe
 6. Во время операции нажать «Новый проект»: новая identity, `cell = 1`, пустая история; прежний worker завершается без записи в новый проект. После завершённой операции New также скрывает её старый статус.
 7. В двух отдельных запусках закрыть активную операцию кнопкой «Закрыть» и системным крестиком: окно обрабатывает события до безопасного завершения и затем закрывается. Повторное закрытие не создаёт ошибку.
 
-В этом сеансе accessibility подтвердил настоящее проверочное окно, но screen capture завершился `FrameArrived timed out`, а coordinate input был недоступен. Поэтому визуальная ручная приёмка не объявлена выполненной. Сообщить о потере draft/error/selection, неверном progress, clipping/недоступных кнопках, зависании или преждевременном закрытии окна.
+При проверке исправления R1 выполнен короткий GUI smoke настоящего Release `operation_probe`: скриншоты и accessibility подтвердили обычное завершение и повторный запуск; окно закрыто с кодом 0. По журналу worker успел завершиться до ручного системного закрытия, поэтому закрытие при активной операции подтверждено автоматическими native QML tests и сценариями `--auto close` / `--auto quit`. Native QML tests и все семь `--auto` сценариев повторно прошли в Debug/Release. Полная визуальная приёмка в рамках R1 не повторялась. Сообщить о потере draft/error/selection, неверном progress, clipping/недоступных кнопках, зависании или преждевременном закрытии окна.
 
 ### Known Diagnostics
 
@@ -261,7 +263,7 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**Задача 01: ACCEPTED. Задача 02: TESTS PASSED / AWAITING MANUAL ACCEPTANCE; независимое ревью задачи 02 ещё не выполнено. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задача 01: ACCEPTED. Задача 02: R1 FIXED / AWAITING FINAL REVIEW AND ACCEPTANCE; блокирующее замечание независимого ревью исправлено и покрыто regression tests. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 На текущем этапе:
 
@@ -280,7 +282,7 @@ build\windows-release\operation_probe.exe
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - для исходного каркаса ранее проверены configure и clean build; в задаче 01 повторно выполнены configure/build, production tests, regression, dependency smoke, QML lint и запуск обеих конфигураций.
 
-Автоматические проверки задачи 02 успешны; её визуальная приёмка и отдельное независимое ревью остаются до ACCEPTED. Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). Атомарность реальных cache/PNG/history publication adapters, version/Rough snapshots и I/O checkpoints проверяется при интеграции соответствующих задач.
+Автоматические проверки исправления R1 успешны; окончательная независимая оценка и решение пользователя о приёмке задачи 02 остаются открытыми. Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). Атомарность реальных cache/PNG/history publication adapters, version/Rough snapshots и I/O checkpoints проверяется при интеграции соответствующих задач.
 
 Import, cache, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 

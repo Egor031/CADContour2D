@@ -37,10 +37,12 @@ private:
 
 class ProjectController::CommandScope {
 public:
-    explicit CommandScope(ProjectController &controller) : controller_(controller) { controller_.executing_ = true; }
-    ~CommandScope() { controller_.finishCommand(); }
+    explicit CommandScope(ProjectController &controller)
+        : controller_(controller), wasExecuting_(std::exchange(controller.executing_, true)) {}
+    ~CommandScope() { if (!wasExecuting_) controller_.finishCommand(); }
 private:
     ProjectController &controller_;
+    bool wasExecuting_;
 };
 
 ProjectController::ProjectController(QObject *parent) : QObject(parent), runner_(this)
@@ -298,6 +300,8 @@ void ProjectController::finishOperation(OperationId id, WorkerStatus status, Ope
 {
     if (id != operation_.id || !operation_.active)
         return;
+    assert(!runner_.busy()); // Physical release or preparation failure precedes terminal completion.
+    CommandScope guard(*this);
     operation_.workerStatus = status;
     if (status == WorkerStatus::Failed && !operation_.failure)
         operation_.failure = failure;
@@ -310,12 +314,13 @@ void ProjectController::finishOperation(OperationId id, WorkerStatus status, Ope
         : operation_.cancellationRequested || status == WorkerStatus::Cancelled ? OperationStatus::Cancelled
         : OperationStatus::Discarded;
     finalize_ = {};
+    const bool shutdownReady = shutdown_ == ShutdownState::Closing;
+    if (shutdownReady)
+        shutdown_ = ShutdownState::Ready;
     operationDiagnostic("released", operation_, operationClock_.elapsed());
     emit operationChanged();
-    if (shutdown_ == ShutdownState::Closing) {
-        shutdown_ = ShutdownState::Ready;
+    if (shutdownReady)
         emit shutdownChanged();
-    }
 }
 
 CommandResult ProjectController::cancelOperation()

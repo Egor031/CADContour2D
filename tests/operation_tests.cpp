@@ -353,6 +353,149 @@ TEST(Operations, ReadyDuringReentryIsProcessedAfterCommand)
     EXPECT_EQ(OperationTestAccess::generation(controller), 0);
 }
 
+class TerminalReentry : public testing::TestWithParam<bool> {};
+TEST_P(TerminalReentry, RejectsRestartUntilNotificationReturns)
+{
+    ProjectController controller;
+    // These barriers are released before controller drain, including on assertion failure.
+    ControlledWork first, second;
+    controller.newProject();
+    auto &runner = OperationTestAccess::runner(controller);
+    int publications = 0, releases = 0, operationNotifications = 0, shutdownNotifications = 0;
+    bool prematureReady = false, terminalObserved = false;
+    QObject::connect(&controller, &ProjectController::stateChanged, [&] { ++publications; });
+    QObject::connect(&runner, &OperationRunner::released, [&] { ++releases; });
+    QObject::connect(&controller, &ProjectController::shutdownChanged, [&] {
+        ++shutdownNotifications;
+        prematureReady |= controller.shutdownState() == ShutdownState::Ready
+            && (runner.busy() || controller.operation().active);
+    });
+    ASSERT_EQ(OperationTestAccess::start(controller, first.function()).outcome, CommandOutcome::Applied);
+    first.entered.wait();
+    const auto firstId = controller.operation().id;
+    std::optional<CommandResult> restart;
+    QObject::connect(&controller, &ProjectController::operationChanged, [&] {
+        ++operationNotifications;
+        prematureReady |= controller.shutdownState() == ShutdownState::Ready
+            && (runner.busy() || controller.operation().active);
+        if (terminalObserved || controller.operation().id != firstId || controller.operation().active)
+            return;
+        terminalObserved = true;
+        EXPECT_FALSE(runner.busy());
+        EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+        EXPECT_EQ(controller.operation().decision, PublicationDecision::Accept);
+        EXPECT_EQ(OperationTestAccess::generation(controller), 1);
+        restart = OperationTestAccess::start(controller, second.function(99));
+        if (restart->outcome == CommandOutcome::Applied)
+            second.entered.wait(); // Original R1: a real second worker is held through old completion.
+        if (GetParam()) {
+            EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::Applied);
+            EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::NoChange);
+        }
+    });
+    first.complete.set();
+    ASSERT_TRUE(spinUntil([&] { OperationTestAccess::poll(controller); return terminalObserved; }));
+    ASSERT_TRUE(restart.has_value());
+    EXPECT_EQ(restart->outcome, CommandOutcome::Rejected);
+    EXPECT_TRUE(restart->failure.has_value());
+    if (restart->failure)
+        EXPECT_EQ(restart->failure->detail, ErrorDetail::ReentrantCommand);
+    EXPECT_EQ(controller.operation().id, firstId);
+    EXPECT_FALSE(second.entered.isSet());
+    EXPECT_FALSE(controller.operation().active);
+    EXPECT_FALSE(runner.busy());
+    EXPECT_FALSE(prematureReady);
+    EXPECT_EQ(controller.shutdownState(), GetParam() ? ShutdownState::Ready : ShutdownState::Open);
+    EXPECT_EQ(shutdownNotifications, GetParam() ? 1 : 0);
+    EXPECT_EQ(publications, 1);
+    EXPECT_EQ(releases, 1);
+    EXPECT_EQ(OperationTestAccess::generation(controller), 1);
+    second.complete.set();
+    ASSERT_TRUE(finish(controller));
+    const auto settledNotifications = operationNotifications;
+    for (int i = 0; i < 20; ++i) OperationTestAccess::poll(controller);
+    EXPECT_EQ(operationNotifications, settledNotifications);
+    EXPECT_EQ(releases, 1);
+    if (!GetParam()) {
+        ASSERT_EQ(OperationTestAccess::start(controller, second.function(99)).outcome, CommandOutcome::Applied);
+        second.entered.wait();
+        EXPECT_EQ(controller.operation().id, firstId + 1);
+        ASSERT_TRUE(finish(controller));
+        EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+        EXPECT_EQ(OperationTestAccess::value(controller), 99);
+        EXPECT_EQ(OperationTestAccess::previousValue(controller), 42);
+        EXPECT_EQ(OperationTestAccess::generation(controller), 2);
+        EXPECT_EQ(publications, 2);
+        EXPECT_EQ(releases, 2);
+        EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::Applied);
+    }
+    EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::NoChange);
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
+    EXPECT_FALSE(runner.busy());
+    EXPECT_FALSE(prematureReady);
+    EXPECT_EQ(shutdownNotifications, 1);
+}
+INSTANTIATE_TEST_SUITE_P(ShutdownDuringNotification, TerminalReentry, testing::Bool());
+
+TEST(Operations, TerminalNotificationSeesSettledShutdown)
+{
+    ProjectController controller;
+    ControlledWork work;
+    controller.newProject();
+    auto &runner = OperationTestAccess::runner(controller);
+    ASSERT_EQ(OperationTestAccess::start(controller, work.function()).outcome, CommandOutcome::Applied);
+    work.entered.wait();
+    ASSERT_EQ(controller.requestShutdown().outcome, CommandOutcome::Applied);
+    ASSERT_EQ(controller.shutdownState(), ShutdownState::Closing);
+    int terminalNotifications = 0, shutdownNotifications = 0;
+    QObject::connect(&controller, &ProjectController::operationChanged, [&] {
+        if (controller.operation().active)
+            return;
+        ++terminalNotifications;
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
+        EXPECT_FALSE(runner.busy());
+        EXPECT_EQ(controller.operation().decision, PublicationDecision::Discard);
+        EXPECT_EQ(controller.operation().status, OperationStatus::Cancelled);
+        EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::NoChange);
+    });
+    QObject::connect(&controller, &ProjectController::shutdownChanged, [&] {
+        ++shutdownNotifications;
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
+        EXPECT_FALSE(controller.operation().active);
+        EXPECT_FALSE(runner.busy());
+    });
+    work.complete.set();
+    ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(terminalNotifications, 1);
+    EXPECT_EQ(shutdownNotifications, 1);
+    EXPECT_EQ(OperationTestAccess::generation(controller), 0);
+}
+
+TEST(Operations, ReleaseDuringCommandPreservesOuterGuard)
+{
+    ProjectController controller;
+    controller.newProject();
+    auto &runner = OperationTestAccess::runner(controller);
+    OperationRunnerTestAccess::configure(runner, {}, true);
+    ASSERT_EQ(OperationTestAccess::start(controller, [](const auto &input, const auto &) {
+        return success(input);
+    }).outcome, CommandOutcome::Applied);
+    int notifications = 0;
+    QObject::connect(&controller, &ProjectController::stateChanged, [&] {
+        OperationTestAccess::poll(controller); // Physical release while setCell owns CommandScope.
+        EXPECT_FALSE(controller.operation().active);
+        const auto result = controller.setCell(3);
+        ASSERT_TRUE(result.failure.has_value());
+        EXPECT_EQ(result.failure->detail, ErrorDetail::ReentrantCommand);
+    });
+    QObject::connect(&controller, &ProjectController::operationChanged, [&] { ++notifications; });
+    EXPECT_EQ(controller.setCell(2).outcome, CommandOutcome::Applied);
+    EXPECT_DOUBLE_EQ(controller.project()->cell(), 2);
+    EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
+    EXPECT_FALSE(runner.busy());
+    EXPECT_EQ(notifications, 2); // Terminal completion, then deferred invalidation notification.
+}
+
 TEST(Operations, WrongThreadAndIdentityExhaustionRejectBeforeMutation)
 {
     ProjectController controller;
