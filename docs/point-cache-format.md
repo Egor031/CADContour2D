@@ -2,15 +2,16 @@
 
 ## Статус и область
 
-Внутренний предварительный формат **v1**, реализация 1/5 задачи 03. Не заморожен:
+Внутренний предварительный формат **v1**, реализация 2/5 задачи 03. Не заморожен:
 writer, spatial index, reader и производительность ещё должны быть проверены.
 Обоснованные изменения layout до завершения задачи 03 требуют согласованного
 обновления этого документа, codec и тестов. Опубликованных версий и миграций пока нет.
 
 `cadcontour_cache` зависит только от `cadcontour_core` и Qt Core. Здесь реализованы
 типы, codec отдельных элементов, проверяемый layout, точный файловый I/O и протокол
-публикации файла. Это не готовый Persistent Point Cache. Небольшие файлы файловых
-тестов имеют собственную тестовую сигнатуру и не являются datasets.
+публикации файла, streaming ingest и external sort. Это не готовый Persistent Point
+Cache. Небольшие файлы файловых тестов имеют собственную тестовую сигнатуру и не
+являются datasets.
 
 Канонические обязательства: [architecture.md, §§10, 12–14](architecture.md#12-persistent-point-cache),
 [algorithms.md, §3](algorithms.md#3-общие-численные-правила).
@@ -59,7 +60,7 @@ Dataset сохраняет ID при перемещении файла; новы
 
 `RecordId` — `uint64_t`, весь диапазон допустим. Полная идентичность записи —
 `{CacheId, RecordId}`. Повторные измерения одинаковых X/Y остаются отдельными
-записями. Назначение и уникальность ID проверит будущий ingest/writer; codec не
+записями. Ingest назначает уникальные последовательные ID; codec не
 назначает ID и не ищет дубликаты. Пространственная сортировка может менять порядок,
 но должна сохранять ID и биты X/Y каждой записи.
 
@@ -102,7 +103,7 @@ Offsets относительно начала файла (начала data subb
 
 BBox конечный и упорядоченный: minX ≤ maxX, minY ≤ maxY; вырожденные размеры
 допустимы. Для пустого dataset count = 0, BBox состоит из четырёх **+0**, flag Z = 0.
-Для непустого dataset будущий writer вычислит точный BBox; текущий codec проверяет
+Для непустого dataset ingest вычисляет точный BBox; codec проверяет
 допустимость полей, но не их соответствие всему набору точек.
 
 `CacheMetadata` содержит ID, count, bounds и Z flag; version/encoding и остальные
@@ -131,8 +132,9 @@ BBox конечный и упорядоченный: minX ≤ maxX, minY ≤ max
 
 Для пустого dataset kind/count/height = 0, root = `UINT64_MAX` (noPage).
 Для непустого: kind = 1, pageCount > 0, root < pageCount, 1 ≤ height ≤ pageCount.
-Поля описывают будущую BBox hierarchy, но метод построения, пространственный
-порядок и практическая эффективность ещё не реализованы и не подтверждены.
+Поля описывают будущую BBox hierarchy. Morton-порядок реализован в sorter ниже;
+метод построения hierarchy и практическая эффективность spatial access ещё
+не реализованы и не подтверждены.
 
 ## Point/index page
 
@@ -241,8 +243,8 @@ SHA-256 выявляет случайное повреждение; это не 
 нулевой deviceCode означает отсутствие такого кода. Нативный код не угадывается.
 `Result<T>` хранит либо значение, либо ошибку; low-level код не показывает dialogs.
 `ResourceLimits` — входные бюджеты caller (memory, temporary disk, open files), а не
-глобальный RAM-limit; конкретный streaming потребитель и проверка бюджетов появятся
-в следующем задании. Нули не означают unlimited; потребитель должен их валидировать.
+глобальный RAM-limit. Streaming sorter проверяет их до выделения рабочих массивов
+и создания поколений; нули не означают unlimited.
 
 Протокол `StagedFile`:
 
@@ -278,9 +280,105 @@ scavenger workflow здесь нет. Каталог назначения дол
 обещает долговечность при внезапном отключении питания: fsync/directory sync и такая
 гарантия в текущий контракт не входят.
 
+## Streaming ingest и external sort (2/5)
+
+`PointStreamSort::create(limits, temporaryParent, cancel, context)` создаёт одну
+headless операцию без потоков. `append(span<const Measurement>)` принимает X/Y/Z
+как конечные `double`, сохраняет исходные X/Y и назначает ID от нуля в порядке
+приёма. Z хранится только как `hasNonZeroZ` (`-0` считается нулём). Count проверяется
+перед batch; предельный representable count — `UINT64_MAX`. Пустые batches — no-op
+с проверкой cancellation. Пустой dataset даёт четыре +0 и Z=false. BBox выбирает
+-0 для минимума и +0 для максимума, если соответствующие знаки встречались во входе;
+это не изменяет биты записей.
+
+Сортировка использует `(Morton128, RecordId)`. Для ключа нули канонизируются в +0;
+у negative binary64 инвертируются все биты, у nonnegative переключается sign bit.
+Из монотонных unsigned слов чередуются биты от старших к младшим: X перед Y.
+Ключ состоит из `high/low uint64_t`, сравниваемых лексикографически; `__int128`,
+нормализация BBox и grid quantization не используются. Только scratch-запись
+содержит ключ; выходной `PointRecord` остаётся 24-байтовым по codec v1.
+
+### Бюджеты и поколения
+
+В RAM нет directory всего набора. На диске не более двух файлов `a.runs/b.runs`
+в уникальном `QTemporaryDir`. Каждый run начинается с 32-байтового private header:
+magic, count, payload length и FNV-1a-64 всего payload (по 8 little-endian байт).
+Payload — последовательность 40-байтовых записей: high, low, ID, X, Y. Headers
+образуют дисковую directory; следующий header находится checked skip по length.
+Это scratch framing, без persistent versioning и без изменения layout v1.
+Ingest не создаёт пустых runs; reader/merge допускают count=length=0 с checksum
+пустого payload и пропускают их без вызова sink.
+Checksum выявляет случайные повреждения, не предназначен для враждебного ввода.
+Проверяются точные размеры файлов, диапазоны, finite coordinates, ID range,
+соответствие ключей координатам, строгий порядок внутри runs и checksum.
+
+План памяти резервирует `R = 65536 + 16 * absoluteParentPathLength` байт для control
+objects, копий путей, allocator/Qt overhead и ограниченного стека. Остаток `A` задаёт
+размер блока `b` (1..1024) и fan-in `F` (2..64). Применимость проверяется по фактическим
+`sizeof`, включая выравнивание:
+
+- ingest/sort/write: `40*b + sizeof(Entry)*runCapacity`, где
+  `runCapacity = floor((A - 40*b) / sizeof(Entry))`, `sizeof(Entry)=40`;
+- intermediate/final merge: `40*b + sizeof(PointRecord)*b +
+  F*(sizeof(Entry)*b + sizeof(Cursor) + sizeof(size_t))`.
+
+`std::sort` установленного MSVC выполняет in-place introsort без второго массива;
+его стек входит в reserve. Перед merge массив ingest уничтожается. Массивы имеют
+точные capacities; входной batch, память sink, общие runtime allocations и файловый
+кэш ОС в рабочий бюджет операции не входят. Это план контролируемой рабочей памяти,
+а не ограничитель process RSS. Слишком малый бюджет отвергается до allocation;
+`bad_alloc` преобразуется в `ResourceExhausted`.
+
+Все inputs поколения читаются через один unbuffered `QFile`, с отдельными bounded
+буферами runs и min-heap индексов. Поэтому один открытый файл достаточен для ingest
+и final merge; intermediate merge требует два. `maxOpenFiles=1` допустим, но при
+необходимости промежуточного поколения операция завершится `ResourceExhausted`.
+QFile уничтожается перед удалением; закрытые QTemporaryFile с удерживаемым native
+handle не используются. Directory не удерживает постоянного открытого handle.
+
+Disk budget — сумма логических длин принадлежащих операции файлов (без filesystem
+metadata/allocation granularity). Перед каждым run и merge проверяются размеры,
+qint64 и одновременное существование source+destination. Реальный write/flush failure
+остаётся ошибкой независимо от прогноза. Новое поколение полностью перечитывается
+и проверяется до удаления старого. Во время final merge дополнительный полный файл
+не создаётся. Случай одной run использует тот же последовательный buffered reader.
+Размеры буферов и cap fan-in — инженерные настройки; HDD/seeks performance ещё не
+подтверждены большими прогонами.
+
+### Выдача, состояния и cleanup
+
+`finish(sink)` однократно передаёт ограниченные `span<const PointRecord>` в глобальном
+порядке, затем возвращает `Result<CacheMetadata>`. Span действителен только до
+возврата callback; sink может передавать записи в будущий Point Page builder,
+накапливающий до `format::pointCapacity` для `encodePointPage()`. Sink должен
+подготавливать результат временно: после выданного префикса возможны I/O failure,
+отмена или отказ sink. Только успешный `finish` разрешает дальнейшую публикацию.
+Пустой dataset не вызывает sink. Callback возвращает существующий `Status`;
+его ошибка сохраняется, исключение переводится в `ConsumerFailed`.
+
+Состояния: Accepting → Consuming → Succeeded либо Failed/Cancelled. Ошибка batch
+может оставить принятый префикс внутри операции, но терминально запрещает его
+продолжение/потребление и немедленно освобождает временные данные. После failure
+повторные вызовы возвращают первую ошибку, после success — `InvalidState`.
+Повторный вход из callback отклоняется без изменения выполняемой операции.
+Metadata доступны как результат только при успехе; входной префикс не становится dataset.
+
+Cancellation callback должен быть `noexcept`, его context живёт до завершения
+операции. Checkpoints стоят между batches и блоками ingest, до/после локальной
+сортировки, при run I/O, refill/output, verification и между поколениями, а также
+перед терминальным успехом. Жёсткая latency не гарантируется. Sorter не создаёт
+потоков и не интегрирован с OperationRunner.
+
+При любом завершении уничтожаются буферы и файловые объекты, затем удаляется только
+уникальный каталог операции. Отказ явного удаления на пути успеха — `CleanupFailed`.
+После основного failure ошибка cleanup его не заменяет; destructor повторяет RAII
+cleanup без возможности вернуть вторую ошибку. При запрете удаления ОС каталог может
+остаться; crash recovery/scavenger не реализованы. Parent должен быть доверенным,
+защита от подмены scratch-файлов сторонним процессом вне контракта.
+
 ## Что ещё не реализовано
 
-Нет ASC/XYZ parser, streaming writer, назначения RecordId, Morton keys/external sort,
+Нет ASC/XYZ parser, финального streaming cache writer,
 упаковки потока страниц, index builder/tree traversal, CacheReader/spatial queries,
 полной dataset validation, PendingCache, application/OperationRunner integration,
 project serialization, Density Map и Reduced Point Cloud. Данный формат не означает

@@ -143,10 +143,14 @@ Debug/Release configure/build и QML lint успешны; после испра�
 
 ### 03. Persistent Point Cache и пространственный доступ
 
-**Статус: IN PROGRESS, реализация 1/5.** Создан headless `cadcontour_cache`: типы,
-codec, checksums, checked arithmetic/layout, file I/O и протокол публикации файлов.
+**Статус: IN PROGRESS, реализация 2/5.** Создан headless `cadcontour_cache`: типы,
+codec, checksums, checked arithmetic/layout, file I/O, протокол публикации файлов,
+streaming ingest с назначением ID/metadata и bounded Morton128 external sort.
 Предварительный v1 описан в [point-cache-format.md](point-cache-format.md).
-Streaming ingest/sort, writer, index, reader/spatial queries и полноценный PendingCache
+Отсортированные PointRecord выдаются однократно в callback без финального scratch-файла;
+memory/disk/file budgets, multi-generation merge, cancellation и failure cleanup
+покрыты headless tests. Рабочие контракты — в том же документе формата.
+Writer, index, reader/spatial queries и полноценный PendingCache
 ещё не реализованы; задача 03 целиком не завершена и не принята.
 
 - **Цель:** получить постоянное хранилище, пригодное для больших облаков и локальной выборки.

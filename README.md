@@ -139,7 +139,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
-| [point-cache-format.md](docs/point-cache-format.md) | Предварительный binary layout v1, codec, checksums и файловый протокол задачи 03 (1/5) |
+| [point-cache-format.md](docs/point-cache-format.md) | Предварительный binary layout v1, codec, file I/O и bounded streaming sort задачи 03 (2/5) |
 | [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
 | [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
 
@@ -224,6 +224,45 @@ ownership/cleanup, существующий target, Unicode и пробелы. F
 через небольшой test seam; фактическое заполнение диска не выполнялось. Необходимые
 для следующих этапов большие cache/spatial performance проверки ещё не проводились.
 GUI не изменён; новые тесты используют только Qt Core без GUI application.
+
+### Point Cache streaming ingest и external sort — задача 03, реализация 2/5
+
+`PointStreamSort` принимает batches X/Y/Z, назначает стабильные RecordId, вычисляет
+metadata и выдаёт исходные binary64 X/Y в порядке `(Morton128, RecordId)` через
+одноразовый callback. Реализованы bounded runs, multi-generation K-way merge,
+memory/disk/file budgets, cancellation, structured failures и cleanup. Финальный
+полный scratch-файл не требуется. Контракты и ресурсные формулы — в
+[point-cache-format.md](docs/point-cache-format.md#streaming-ingest-и-external-sort-25).
+Нормативный binary layout v1 не изменён.
+
+В указанной выше CMD-среде выполнены:
+
+```bat
+cmake --build --preset windows-debug --target cadcontour_cache cache_tests project_tests operation_tests view_model_tests qml_integration_tests dependency_smoke --parallel 4
+ctest --preset windows-debug -R ^Cache --output-on-failure
+ctest --preset windows-debug -L production --output-on-failure
+
+cmake --build --preset windows-release --target cadcontour_cache cache_tests project_tests operation_tests view_model_tests qml_integration_tests dependency_smoke --parallel 4
+ctest --preset windows-release -R ^Cache --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+**78/78 cache tests и 210/210 production tests PASS в каждой конфигурации**
+(43 прежних cache + 35 новых). Изменённый C++ и тесты собраны с `/W4` без
+предупреждений. Проверены независимые Morton golden words и числовой oracle порядка,
+точные ID/биты координат, разные batches и буферы, несколько поколений при fan-in=2,
+ограниченные массивы и отсутствие роста directory в RAM. Windows handle counts и
+фактические размеры/число scratch-файлов проверены отдельно от плановых счётчиков.
+Есть инъекции I/O и `bad_alloc`, реальный open failure, усечение при чтении,
+повреждение runs, cancellation по фазам/между поколениями, отказ sink, reentry и
+терминальные вызовы. Native handle без share-delete проверяет отказ cleanup,
+сохранение первичной ошибки и повторное удаление деструктором.
+
+Реальное исчерпание RAM/заполнение диска не выполнялись. Гигабайтные прогоны,
+HDD/seeks performance и сравнение индексов относятся к следующим заданиям.
+Полная Synthetic Point Cloud Generator regression повторно не запускалась;
+подсистема не затронута. Финальный cache writer, Point Pages и BBox index ещё
+не реализованы; вся задача 03 остаётся IN PROGRESS.
 
 ### Run
 
@@ -312,7 +351,7 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (1/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, публикация через `QTemporaryFile::rename()` с явным cleanup-владением. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Это файловый фундамент, без полноценного cache dataset и без интеграции с application state.
+Для задачи 03 (2/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, публикация через `QTemporaryFile::rename()` с явным cleanup-владением, streaming ingest и bounded Morton128 external sort. Отсортированный поток готов для будущего Point Page builder. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Полноценного cache dataset и интеграции с application state пока нет.
 
 Import, streaming cache writer, spatial index/reader, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
 

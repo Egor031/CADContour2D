@@ -40,10 +40,11 @@ bool validBounds(BoundingBox bounds) noexcept;
 enum class ErrorCode {
     InvalidInput, UnsupportedFormat, CorruptCache, IncompleteCache,
     OpenFailed, ReadFailed, WriteFailed, SeekFailed, FlushFailed,
-    PublishFailed, ResourceExhausted
+    PublishFailed, ResourceExhausted, Cancelled, InvalidState, ConsumerFailed, CleanupFailed
 };
-enum class Phase { Codec, Layout, FileIO, Publication };
-enum class Operation { Encode, Decode, Calculate, Open, Read, Write, Seek, Size, Flush, Publish };
+enum class Phase { Codec, Layout, FileIO, Publication, Ingest, RunSort, RunWrite, Merge, Output, Cleanup };
+enum class Operation { Encode, Decode, Calculate, Open, Read, Write, Seek, Size, Flush, Publish,
+                       Append, Sort, Consume, Remove };
 
 struct Error {
     ErrorCode code;
@@ -73,8 +74,7 @@ private:
 using Status = Result<std::monostate>;
 inline Status success() { return std::monostate{}; }
 
-// Caller-selected limits, not a universal RAM policy. Future ingest validates its
-// concrete buffer/fan-in requirements against these budgets before allocating.
+// Caller-selected working budgets, not a universal RAM policy. Zero is not unlimited.
 struct ResourceLimits {
     std::uint64_t memoryBytes = 0;
     std::uint64_t temporaryDiskBytes = 0;

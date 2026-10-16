@@ -27,6 +27,7 @@ add_library(cadcontour_cache STATIC
     src/cache/binary_codec.h src/cache/binary_codec.cpp
     src/cache/point_cache_format.h src/cache/point_cache_format.cpp
     src/cache/cache_file.h src/cache/cache_file.cpp
+    src/cache/point_stream_sort.h src/cache/point_stream_sort.cpp
 )
 set_target_properties(cadcontour_cache PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_cache PUBLIC cadcontour_core Qt6::Core)
