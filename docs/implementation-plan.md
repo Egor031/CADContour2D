@@ -1,6 +1,6 @@
 ## 1. Отправная точка плана
 
-Ниже сохранён исторический снимок на момент составления плана. После реализации задачи 01 текущее состояние и фактически выполненные проверки приведены в [README.md](../README.md#project-status).
+Ниже сохранён исторический снимок на момент составления плана. Текущее состояние после принятия задач 01–02 и фактически выполненные проверки приведены в [README.md](../README.md#project-status).
 
 **На момент составления плана основная программа находилась на стадии проверенного каркаса; реализация её рабочего workflow ещё не была начата.** Это соответствовало тогдашнему Project Status в [README.md](../README.md) и исходникам.
 
@@ -117,15 +117,15 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 ### 02. Безопасное выполнение фоновых операций
 
-**Статус: R1 FIXED / AWAITING FINAL REVIEW AND ACCEPTANCE.** Блокирующее замечание R1/P1 независимого ревью исправлено; автоматические проверки повторно выполнены. Окончательная независимая оценка и решение пользователя о приёмке остаются открытыми. Команды и ручной сценарий — [README.md](../README.md#проверочный-запуск-и-ручная-приёмка--задача-02).
+**Статус: ACCEPTED.** Все предусмотренные работы этапа завершены; пользователь принял задачу после автоматических проверок, визуальной приёмки и заключительного независимого ревью. Команды и ручной сценарий — [README.md](../README.md#проверочный-запуск-и-ручная-приёмка--задача-02).
 
-Реализованы один `QThread::create()` worker, immutable snapshot, отдельный OperationId, bounded latest progress, cooperative cancellation/invalidation, structured failures, единый production publication gate с финальной applicability check и атомарным commit, Ready → Accept/Discard handshake с product lease, GUI shutdown Open → Closing → Ready и destructor fallback без event-loop delivery. Проверочный typed sink принадлежит controller и не заменяет ProjectState datasets; отдельный development executable использует production runner/controller/QML. Operation notifications не сбрасывают draft/error/cursor/selection.
+Реализованы один `QThread::create()` worker без очереди, immutable snapshot, OperationId/OperationStamp, bounded progress mailbox, cooperative cancellation и необратимый отзыв публикации, structured outcomes/errors, единый production publication gate с финальной applicability check и атомарным commit, Ready → Accept/Discard handshake с product lease, GUI shutdown Open → Closing → Ready и destructor fallback без event-loop delivery. Проверочный `VerificationProduct` и typed sink controller не заменяют ProjectState datasets; отдельный development executable использует production runner/controller/QML. Operation notifications не сбрасывают draft/error/cursor/selection.
 
-Debug/Release configure/build и QML lint успешны; после исправления R1 build/lint и production CTest повторены — 132/132 в каждой конфигурации, в том числе 51 operation test. Native Windows QML — 13/13, семь автоматических демонстрационных сценариев — exit 0 в обеих конфигурациях. Проверены Busy до физического завершения, snapshot/thread affinity, single publication, no-op/rejected inputs, stale/cancel/reset, worker/candidate exceptions, late notifications, resource cleanup, reentrant shutdown и destructor drain. Generator regression и тяжёлые datasets не запускались.
+Debug/Release configure/build и QML lint успешны; после исправления R1 build/lint и production CTest повторены — **132/132 PASS** в каждой конфигурации, включая **51/51 operation tests**. Native Windows QML — **13/13 PASS**, `operation_probe --auto` — **7/7 PASS** в обеих конфигурациях. Проверены Busy до физического завершения, snapshot/thread affinity, single publication, no-op/rejected inputs, stale/cancel/reset, worker/candidate exceptions, late notifications, resource cleanup, reentrant shutdown и destructor drain. Generator regression и тяжёлые datasets не запускались.
 
-R1 воспроизведён постоянным тестом на исходной реализации в Debug и Release: observer terminal notification запускал второй worker, а старый completion преждевременно устанавливал Ready. Исправление использует существующий command guard с сохранением внешнего владельца и завершает terminal/shutdown transition до уведомлений. Повторный запуск внутри terminal notification отклоняется как ReentrantCommand; после полного перехода в Open он принимается. Четыре новых тестовых случая проверяют этот порядок с shutdown и без него, согласованность наблюдаемого shutdown и вложенную обработку release. Pending Ready regression сохранён.
+Независимое ревью выявило R1/P1: повторный вход из terminal notification позволял старому completion преждевременно установить shutdown Ready. Дефект исправлен и покрыт четырьмя новыми регрессионными случаями. Заключительное независимое ревью повторило собственный воспроизводитель R1, проверило pending completion и соседние shutdown/reentrancy scenarios в Debug/Release: **PASS, новых замечаний P0–P3 нет**. Устойчивый контракт terminal transition закреплён в [architecture.md, §26](architecture.md#26-потоки).
 
-Короткий GUI smoke Release `operation_probe` подтвердил обычное завершение и повторный запуск по скриншотам и accessibility; окно закрыто с exit 0. Worker успел завершиться до ручного закрытия; закрытие активной операции подтверждено native QML tests и `--auto close` / `--auto quit` в обеих конфигурациях. Полная визуальная приёмка при исправлении R1 не повторялась.
+Визуальная приёмка — **VERIFIED**: первоначальный независимый ревьюер осмотрел основное приложение и `operation_probe`, сценарии A–H и размеры 400×380, 680×600, 1000×700. После исправления R1 выполнен ограниченный GUI smoke Release `operation_probe`; полный визуальный осмотр A–H не повторялся. Закрытие активной операции после R1 подтверждено native QML tests и `--auto close` / `--auto quit` в обеих конфигурациях.
 
 Пользователь согласовал локальный Windows-guard после воспроизведения преждевременного true от Qt 6.12.0 `wait(0)` во время C++ TLS cleanup. Реальный независимый HANDLE, WAIT_TIMEOUT/FAILED retention, DuplicateHandle failure/fallback, RAII close и destructor native wait проверены в Debug/Release; отдельный reproducer сохранён — [thread-completion-check.md](thread-completion-check.md). Постоянная недоступность системного подтверждения может удерживать Closing/destructor ради сохранности ресурсов.
 
@@ -137,7 +137,7 @@ R1 воспроизведён постоянным тестом на исход�
 - **Результат:** операция не блокирует интерфейс и не может опубликовать устаревший результат.
 - **Проверка:** управляемые тестовые workers: задержанное завершение после смены проекта, изменения входов, отмены и reset; failure и освобождение временных ресурсов. При интеграции с 06–10 добавить переключение версии и изменение её Rough-состояния во время операции.
 - **Критерий завершения:** ни один из этих сценариев не перезаписывает новое состояние; частичный результат не публикуется.
-- **Выбранный механизм:** устойчивые контракты зафиксированы в [architecture.md, §§24–26](architecture.md#24-длительные-операции). При интеграции реальных операций повторно проверить атомарность cache/PNG/history adapters, version/Rough applicability и I/O cancellation checkpoints; foundation tests не доказывают ещё не реализованные writers.
+- **Выбранный механизм:** устойчивые контракты зафиксированы в [architecture.md, §§24–26](architecture.md#24-длительные-операции). При интеграции реальных операций повторно проверить cancellation checkpoints длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения результатов; foundation tests не доказывают ещё не реализованные writers. Эти проверки относятся к будущим этапам и не блокируют принятие задачи 02.
 
 Основание: [architecture.md, §§24–26](architecture.md#24-длительные-операции).
 
@@ -447,10 +447,10 @@ Performance-нормативы пока отсутствуют. Для их оп
 
 ## 8. Первый рекомендуемый шаг
 
-**Начать с задачи 01 — минимальной C++ модели проекта, команд и общей координатной основы.**
+**Исходный первый шаг плана — задача 01: минимальная C++ модель проекта, команды и общая координатная основа. Задачи 01–02 приняты (ACCEPTED).**
 
 Её объём следует ограничить единственным владельцем состояния, реальными параметрами, project/result identity, structured errors, проверяемыми coordinate conversions и тонкой связью с QML. Для версий Density Map здесь нужна лишь совместимая основа идентичности и ссылок, с разделением ревизий worker и совместимости результатов. Реализация многоверсионного хранилища, его persistence и переключения относится к 05–10. Не требуется заранее реализовывать полную CAD-модель или все будущие подсистемы.
 
 Она создаёт основу для следующей задачи — безопасных workers — и предотвращает распределение состояния между будущими GUI-панелями. Первый проверяемый результат: интерфейс отображает C++ state, parameter edit/Undo работают, а domain tests запускаются без GUI.
 
-При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статус последующей реализации задачи 01 указан выше.
+При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статусы последующей реализации задач 01–02 указаны выше.

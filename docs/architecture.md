@@ -861,6 +861,8 @@ Guard добавлен после воспроизведённого расхо�
 
 Штатное закрытие проходит Open → Closing → Ready. Кнопка закрытия, системное закрытие окна и application Quit используют одну процедуру: запрет новых команд, отзыв публикации, cooperative cancel, Discard + notify. GUI продолжает обрабатывать события до native completion/join, затем закрывает окно и завершает event loop. Повторное закрытие идемпотентно. Destructor fallback выполняет тот же Discard/notify и join до уничтожения project/history/adapter/context, без `processEvents()` и без зависимости от queued callbacks; неожиданный выход из event loop может блокировать destructor до безопасного завершения.
 
+Terminal completion согласует operation state и shutdown readiness до внешних уведомлений. Синхронные observers не могут нарушить незавершённый terminal transition: повторный запуск во время terminal notification отклоняется как `ReentrantCommand`. После полного завершения transition новый запуск допускается, если приложение остаётся Open; completion старой операции не меняет состояние нового запуска. Shutdown Ready требует подтверждённого физического завершения и освобождения worker.
+
 ---
 
 ## 27. Undo/Redo
