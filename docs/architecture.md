@@ -494,6 +494,11 @@ density pixel ↔ view
 
 Ручные операции пользователя не должны изменять его.
 
+Предварительный внутренний binary layout v1 и файловый протокол описаны в
+[point-cache-format.md](point-cache-format.md). В реализации 1/5 задачи 03 готовы
+codec и файловый фундамент; writer, spatial index/reader и полный dataset lifecycle
+ещё не реализованы. Формат не заморожен до их проверки.
+
 ---
 
 ## 13. Импорт

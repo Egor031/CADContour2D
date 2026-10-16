@@ -139,6 +139,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
+| [point-cache-format.md](docs/point-cache-format.md) | Предварительный binary layout v1, codec, checksums и файловый протокол задачи 03 (1/5) |
 | [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
 | [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
 
@@ -168,7 +169,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 chcp 65001 >nul
 set "PATH=%QT_ROOT%\bin;%PATH%"
 cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-release --target CADContour2D operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
+cmake --build --preset windows-release --target CADContour2D cadcontour_cache cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
 ctest --preset windows-release -L production --output-on-failure
 ```
 
@@ -178,7 +179,7 @@ Debug также фактически проверен:
 
 ```bat
 cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-debug --target CADContour2D operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
+cmake --build --preset windows-debug --target CADContour2D cadcontour_cache cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
@@ -198,6 +199,31 @@ set "QT_QPA_PLATFORM="
 Результат: **13/13 PASS в каждой конфигурации**. Проверка создаёт и закрывает настоящие тестовые окна. Выполненная визуальная приёмка описана ниже.
 
 Synthetic Point Cloud Generator включается через `-DCADCONTOUR2D_BUILD_TOOLS=ON`. Его ранее проверенная регрессия: 95 generator tests и dependency smoke, 96/96 PASS в каждой конфигурации. В задаче 02 полная generator regression не повторялась, тяжёлые datasets не создавались. Команды и ограничения — в [README инструмента](tools/synthetic_cloud_generator/README.md). Production application не зависит от generator.
+
+### Point Cache foundation — задача 03, реализация 1/5
+
+В той же CMD-среде фактически выполнены для обоих presets:
+
+```bat
+cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-debug --target cadcontour_cache cache_tests project_tests operation_tests view_model_tests qml_integration_tests dependency_smoke --parallel 4
+ctest --preset windows-debug -R ^Cache --output-on-failure
+ctest --preset windows-debug -L production --output-on-failure
+
+cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-release --target cadcontour_cache cache_tests project_tests operation_tests view_model_tests qml_integration_tests dependency_smoke --parallel 4
+ctest --preset windows-release -R ^Cache --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+**37/37 cache tests и 169/169 production tests PASS в каждой конфигурации**
+(37 новых + 132 прежних). Новый production-код и cache tests собраны с `/W4`
+без предупреждений. Проверены independent golden bytes/digests, binary64 edge cases,
+overflow, повреждения, short I/O, EOF/zero progress, ошибки seek/flush, rename и
+ownership/cleanup, существующий target, Unicode и пробелы. Flush failure вводится
+через небольшой test seam; фактическое заполнение диска не выполнялось. Необходимые
+для следующих этапов большие cache/spatial performance проверки ещё не проводились.
+GUI не изменён; новые тесты используют только Qt Core без GUI application.
 
 ### Run
 
@@ -286,5 +312,7 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Import, cache, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
+Для задачи 03 (1/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, публикация через `QTemporaryFile::rename()` с явным cleanup-владением. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Это файловый фундамент, без полноценного cache dataset и без интеграции с application state.
+
+Import, streaming cache writer, spatial index/reader, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
 

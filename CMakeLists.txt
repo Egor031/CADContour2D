@@ -22,6 +22,16 @@ set_target_properties(cadcontour_core PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_include_directories(cadcontour_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_compile_options(cadcontour_core PRIVATE /W4 /permissive- /fp:precise)
 
+add_library(cadcontour_cache STATIC
+    src/cache/cache_types.h src/cache/cache_types.cpp
+    src/cache/binary_codec.h src/cache/binary_codec.cpp
+    src/cache/point_cache_format.h src/cache/point_cache_format.cpp
+    src/cache/cache_file.h src/cache/cache_file.cpp
+)
+set_target_properties(cadcontour_cache PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(cadcontour_cache PUBLIC cadcontour_core Qt6::Core)
+target_compile_options(cadcontour_cache PRIVATE /W4 /permissive- /fp:precise /utf-8)
+
 add_library(cadcontour_application STATIC
     src/application/project_controller.h src/application/project_controller.cpp
     src/application/operation_types.h src/application/operation_types.cpp
