@@ -80,6 +80,7 @@ Error decodedError(const Error &error)
 bool validEntry(const IndexEntry &e)
 {
     return validBounds(e.bounds) && e.childPage != noPage && e.pointCount != 0
+        && (e.childKind != PageKind::Points || e.pointCount <= format::pointCapacity)
         && (e.childKind == PageKind::Points || e.childKind == PageKind::Index);
 }
 void initPage(MutableBytes b, PageHeader h, std::size_t entrySize)

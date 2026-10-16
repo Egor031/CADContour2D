@@ -164,13 +164,20 @@ Offsets относительно начала страницы. Page ID — ordi
 |---:|---:|---|
 | 0, 8, 16, 24 | по 8 | BBox minX, minY, maxX, maxY |
 | 32 | 8 | Child page ordinal в соответствующем разделе |
-| 40 | 8 | Число исходных записей в subtree, > 0 |
+| 40 | 8 | Число исходных записей в дочерней странице/поддереве, ограничения ниже |
 | 48 | 4 | Child kind: 1 = Points, 2 = Index |
 | 52 | 12 | Reserved, нули |
 
+Для Points-child `1 <= pointCount <= pointCapacity`: ссылка описывает одну Points-страницу.
+Для Index-child `pointCount > 0` — число исходных записей в поддереве; оно может превышать
+вместимость одной Points-страницы при соблюдении остальных ограничений формата.
+Эти локальные ограничения проверяются encoder, decoder и validation отдельной страницы.
+Неверный count на входе encoder — `InvalidInput`, в бинарном элементе — `CorruptCache`.
+
 Leaves level = 1 ссылаются на Points; level ≥ 2 — на Index. Будущий index validator
 проверит level дочерних страниц, section ranges, BBox coverage, subtree counts и
-отсутствие циклов. Это не обязанность codec одной entry/page.
+отсутствие циклов, включая равенство count фактическому числу записей дочерней страницы.
+Эта полная проверка согласованности не является обязанностью codec одной entry/page.
 
 ## Completion footer
 
@@ -219,7 +226,11 @@ SHA-256 выявляет случайное повреждение; это не 
 
 ## File I/O, публикация и владение
 
-`file::readExact/writeExact` работают по переданному span без буфера размера файла,
+`file::readExact/writeExact` требуют открытое устройство с нужным направлением доступа
+и выключенным текстовым режимом. Активный `QIODevice::Text`, в том числе включённый
+через `setTextModeEnabled(true)` после открытия, отклоняется как `InvalidInput` до
+передачи данных: содержимое файла, позиция устройства и read buffer не меняются.
+Операции работают по переданному span без буфера размера файла,
 повторяют short transfers и завершаются при нулевом прогрессе. Read различает
 отрицательный результат (ReadFailed), EOF до конца span (IncompleteCache) и нулевой
 прогресс без EOF (ReadFailed). Write ≤ 0 — WriteFailed. Seek проверяет qint64,

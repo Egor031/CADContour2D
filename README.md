@@ -216,8 +216,8 @@ ctest --preset windows-release -R ^Cache --output-on-failure
 ctest --preset windows-release -L production --output-on-failure
 ```
 
-**37/37 cache tests и 169/169 production tests PASS в каждой конфигурации**
-(37 новых + 132 прежних). Новый production-код и cache tests собраны с `/W4`
+**43/43 cache tests и 175/175 production tests PASS в каждой конфигурации**
+(37 исходных cache + 6 регрессий B1/B2 + 132 прежних). Новый production-код и cache tests собраны с `/W4`
 без предупреждений. Проверены independent golden bytes/digests, binary64 edge cases,
 overflow, повреждения, short I/O, EOF/zero progress, ошибки seek/flush, rename и
 ownership/cleanup, существующий target, Unicode и пробелы. Flush failure вводится

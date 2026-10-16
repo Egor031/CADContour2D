@@ -24,6 +24,9 @@ Status checkTransfer(QIODevice &device, std::size_t size, bool writing)
     if (!device.isOpen() || (writing ? !device.isWritable() : !device.isReadable()))
         return makeError(ErrorCode::InvalidInput, Phase::FileIO, writing ? Operation::Write : Operation::Read,
                          QStringLiteral("Device is not open in the required mode"), position(device));
+    if (device.isTextModeEnabled())
+        return makeError(ErrorCode::InvalidInput, Phase::FileIO, writing ? Operation::Write : Operation::Read,
+                         QStringLiteral("Binary transfer requires text mode to be disabled"), position(device));
     const auto start = position(device);
     const auto end = checked::add(start.value_or(0), size);
     if (!end || !checked::fileOffset(*end))

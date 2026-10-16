@@ -264,6 +264,64 @@ TEST(CacheFormat, IndexEntryValidation)
     EXPECT_FALSE(decodeIndexEntry(Bytes{b}.first(63)));
 }
 
+TEST(CacheFormat, IndexEntryEncoderChecksChildPointCount)
+{
+    const std::uint64_t counts[]{0, 1, format::pointCapacity, format::pointCapacity + 1, UINT64_MAX};
+    std::array<std::byte, format::indexEntrySize> bytes{};
+    std::array<std::byte, format::pageSize> page{};
+    for (auto kind : {PageKind::Points, PageKind::Index}) {
+        for (auto count : counts) {
+            SCOPED_TRACE(::testing::Message() << "kind=" << static_cast<unsigned>(kind) << " count=" << count);
+            const IndexEntry entry{{0, 0, 1, 1}, 0, count, kind};
+            const bool valid = count != 0 && (kind == PageKind::Index || count <= format::pointCapacity);
+            const auto encoded = encodeIndexEntry(bytes, entry);
+            EXPECT_EQ(static_cast<bool>(encoded), valid);
+            if (!encoded) EXPECT_EQ(encoded.error().code, ErrorCode::InvalidInput);
+            const auto encodedPage = encodeIndexPage(page, 0, kind == PageKind::Points ? 1 : 2, {&entry, 1});
+            EXPECT_EQ(static_cast<bool>(encodedPage), valid);
+            if (!encodedPage) EXPECT_EQ(encodedPage.error().code, ErrorCode::InvalidInput);
+        }
+    }
+}
+
+TEST(CacheFormat, IndexEntryDecoderChecksChildPointCount)
+{
+    const std::uint64_t counts[]{0, 1, format::pointCapacity, format::pointCapacity + 1, UINT64_MAX};
+    auto page = indexFixture();
+    const auto bytes = MutableBytes{page}.subspan(64, 64);
+    for (auto kind : {PageKind::Points, PageKind::Index}) {
+        for (auto count : counts) {
+            SCOPED_TRACE(::testing::Message() << "kind=" << static_cast<unsigned>(kind) << " count=" << count);
+            ASSERT_TRUE(binary::putU64(bytes, 40, count));
+            ASSERT_TRUE(binary::putU32(bytes, 48, static_cast<std::uint32_t>(kind)));
+            const bool valid = count != 0 && (kind == PageKind::Index || count <= format::pointCapacity);
+            const auto decoded = decodeIndexEntry(bytes);
+            EXPECT_EQ(static_cast<bool>(decoded), valid);
+            if (decoded) EXPECT_EQ(decoded.value().pointCount, count);
+            else EXPECT_EQ(decoded.error().code, ErrorCode::CorruptCache);
+        }
+    }
+}
+
+TEST(CacheFormat, ResealedIndexPageChecksChildPointCount)
+{
+    const std::uint64_t counts[]{0, 1, format::pointCapacity, format::pointCapacity + 1, UINT64_MAX};
+    auto bytes = indexFixture();
+    for (auto kind : {PageKind::Points, PageKind::Index}) {
+        for (auto count : counts) {
+            SCOPED_TRACE(::testing::Message() << "kind=" << static_cast<unsigned>(kind) << " count=" << count);
+            ASSERT_TRUE(binary::putU32(bytes, 32, kind == PageKind::Points ? 1 : 2));
+            ASSERT_TRUE(binary::putU64(bytes, 104, count));
+            ASSERT_TRUE(binary::putU32(bytes, 112, static_cast<std::uint32_t>(kind)));
+            ASSERT_TRUE(sealChecksum(bytes)); ASSERT_TRUE(verifyChecksum(bytes));
+            const bool valid = count != 0 && (kind == PageKind::Index || count <= format::pointCapacity);
+            const auto validated = validatePage(bytes);
+            EXPECT_EQ(static_cast<bool>(validated), valid);
+            if (!validated) EXPECT_EQ(validated.error().code, ErrorCode::CorruptCache);
+        }
+    }
+}
+
 TEST(CacheFormat, IndexCapacityAndInvalidPageBuffers)
 {
     std::array<std::byte, 65536> b{};

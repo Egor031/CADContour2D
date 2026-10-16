@@ -181,6 +181,79 @@ TEST(CacheFileIO, RealFileSizeFlushAndCleanup)
     EXPECT_FALSE(file::size(closed));
 }
 
+TEST(CacheFileIO, TextModeQFileWriteIsRejectedBeforeChangingFile)
+{
+    QTemporaryDir dir; ASSERT_TRUE(dir.isValid());
+    const auto path = dir.filePath(QStringLiteral("text-write.bin"));
+    const QByteArray original("original");
+    const std::array<std::byte, 3> bytes{std::byte{'A'}, std::byte{'\n'}, std::byte{'B'}};
+    for (bool textAtOpen : {true, false}) {
+        SCOPED_TRACE(textAtOpen ? "Text at open" : "Text enabled after open");
+        { QFile seed(path); ASSERT_TRUE(seed.open(QIODevice::WriteOnly));
+          ASSERT_EQ(seed.write(original), original.size()); }
+        QFile target(path);
+        auto mode = QIODevice::OpenMode{QIODevice::ReadWrite};
+        if (textAtOpen) mode |= QIODevice::Text;
+        ASSERT_TRUE(target.open(mode));
+        if (!textAtOpen) target.setTextModeEnabled(true);
+        ASSERT_TRUE(target.isTextModeEnabled());
+        const auto result = file::writeExact(target, bytes);
+        EXPECT_FALSE(result);
+        if (!result) {
+            EXPECT_EQ(result.error().code, ErrorCode::InvalidInput);
+            EXPECT_EQ(result.error().phase, Phase::FileIO);
+            EXPECT_EQ(result.error().operation, Operation::Write);
+            EXPECT_EQ(result.error().offset, 0);
+        }
+        EXPECT_EQ(target.pos(), 0);
+        ASSERT_TRUE(target.flush()); target.close();
+        EXPECT_EQ(readFile(path), original);
+    }
+}
+
+TEST(CacheFileIO, TextModeQFileReadIsRejectedBeforeChangingBuffer)
+{
+    QTemporaryDir dir; ASSERT_TRUE(dir.isValid());
+    const auto path = dir.filePath(QStringLiteral("text-read.bin"));
+    { QFile seed(path); ASSERT_TRUE(seed.open(QIODevice::WriteOnly)); ASSERT_EQ(seed.write("A\r\nB"), 4); }
+    for (bool textAtOpen : {true, false}) {
+        SCOPED_TRACE(textAtOpen ? "Text at open" : "Text enabled after open");
+        QFile source(path);
+        auto mode = QIODevice::OpenMode{QIODevice::ReadOnly};
+        if (textAtOpen) mode |= QIODevice::Text;
+        ASSERT_TRUE(source.open(mode));
+        if (!textAtOpen) source.setTextModeEnabled(true);
+        ASSERT_TRUE(source.isTextModeEnabled());
+        std::array<std::byte, 3> bytes{std::byte{0x55}, std::byte{0xaa}, std::byte{0xff}};
+        const auto original = bytes;
+        const auto result = file::readExact(source, bytes);
+        EXPECT_FALSE(result);
+        if (!result) {
+            EXPECT_EQ(result.error().code, ErrorCode::InvalidInput);
+            EXPECT_EQ(result.error().phase, Phase::FileIO);
+            EXPECT_EQ(result.error().operation, Operation::Read);
+            EXPECT_EQ(result.error().offset, 0);
+        }
+        EXPECT_EQ(source.pos(), 0);
+        EXPECT_EQ(bytes, original);
+    }
+}
+
+TEST(CacheFileIO, BinaryQFileTransfersPreserveNewlineBytes)
+{
+    QTemporaryDir dir; ASSERT_TRUE(dir.isValid());
+    const auto path = dir.filePath(QStringLiteral("binary-newlines.bin"));
+    const std::array<std::byte, 5> bytes{std::byte{'A'}, std::byte{'\r'}, std::byte{'\n'},
+                                         std::byte{'B'}, std::byte{'\n'}};
+    QFile target(path); ASSERT_TRUE(target.open(QIODevice::ReadWrite));
+    ASSERT_FALSE(target.isTextModeEnabled());
+    ASSERT_TRUE(file::writeExact(target, bytes)); ASSERT_TRUE(target.flush());
+    EXPECT_EQ(readFile(path), QByteArray("A\r\nB\n"));
+    ASSERT_TRUE(file::seek(target, 0));
+    std::array<std::byte, 5> read{};
+    ASSERT_TRUE(file::readExact(target, read)); EXPECT_EQ(read, bytes);
+}
+
 TEST(CachePublication, SuccessfulRenameGuardAndExplicitOwnershipTransfer)
 {
     QTemporaryDir dir; ASSERT_TRUE(dir.isValid());
