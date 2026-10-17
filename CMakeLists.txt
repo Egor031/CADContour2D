@@ -35,6 +35,14 @@ set_target_properties(cadcontour_cache PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_cache PUBLIC cadcontour_core Qt6::Core)
 target_compile_options(cadcontour_cache PRIVATE /W4 /permissive- /fp:precise /utf-8)
 
+add_library(cadcontour_io STATIC
+    src/io/asc_xyz_parser.h src/io/asc_xyz_parser.cpp
+    src/io/asc_xyz_importer.h src/io/asc_xyz_importer.cpp
+)
+set_target_properties(cadcontour_io PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(cadcontour_io PUBLIC cadcontour_cache)
+target_compile_options(cadcontour_io PRIVATE /W4 /permissive- /fp:precise /utf-8)
+
 add_library(cadcontour_application STATIC
     src/application/project_controller.h src/application/project_controller.cpp
     src/application/operation_types.h src/application/operation_types.cpp

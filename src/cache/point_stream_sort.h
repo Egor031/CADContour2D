@@ -12,7 +12,6 @@
 
 namespace cadcontour::cache {
 
-struct Measurement { double x = 0; double y = 0; double z = 0; };
 struct Morton128 {
     std::uint64_t high = 0;
     std::uint64_t low = 0;

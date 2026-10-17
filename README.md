@@ -176,7 +176,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 chcp 65001 >nul
 set "PATH=%QT_ROOT%\bin;%PATH%"
 cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-release --target CADContour2D cadcontour_cache cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
+cmake --build --preset windows-release --target CADContour2D asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
 ctest --preset windows-release -L production --output-on-failure
 ```
 
@@ -186,7 +186,7 @@ Debug также фактически проверен:
 
 ```bat
 cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-debug --target CADContour2D cadcontour_cache cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint
+cmake --build --preset windows-debug --target CADContour2D asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
@@ -472,7 +472,21 @@ build\windows-release\operation_probe.exe
 
 Задача 03 принята пользователем после независимого комплексного ревью: **PASS WITH COMMENTS**, без подтверждённых дефектов P0–P2. Единственное замечание R2/P3 относилось к устаревшему перечню Open decisions в [algorithms.md, §45](docs/algorithms.md#45-указатель-основных-open-decisions) и устранено. В ходе завершённого ревью ранее повторены Debug/Release production (**298/298**), cache integration (**1/1**) и benchmark regression (**7/7**) в каждой конфигурации; исходные результаты и команды — в разделах выше и [историческом отчёте](docs/cache-performance-report.md#исправление-r1p2-после-независимого-ревью). При оформлении принятия сборки, тесты и нагрузочные измерения не повторялись; ранее описанные ограничения производительности, ресурсов и сохранности данных сохраняются.
 
-Import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
+В 04.1 реализованы headless `cadcontour_io`: потоковый ASC/XYZ parser и
+`io::importAscXyz` → существующий CacheWriter → RAII `PendingCache`.
+Пустые строки разрешены, непустые требуют ровно три token; malformed/range/I/O
+failures и cancellation возвращают structured error. Прямое binary64 conversion
+проверяется независимыми рациональными golden pairs; единственный Z Continue/Cancel
+пока синхронный. Формат Point Cache v1 и application/GUI не менялись.
+Интерфейсы, проверки и ограничения — [отчёт 04.1](docs/asc-xyz-import-check.md).
 
-Задача 04 находится на стадии проектирования. В ней предстоит заменить текущую пользовательскую семантику `newProject()` сценарием выбора ASC/XYZ и безопасного создания/замены проекта после успешного импорта, с начальным `cell = 1 мм` и его ручным изменением. Save/Open и восстановление относятся к 05, явное построение и версии Density Map — к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
+Проверки 04.1 в Debug и Release: сборка и `all_qmllint` — PASS, production CTest —
+**337/337 PASS** (включая **39 новых** parser/importer и **166 cache** cases),
+отдельный `-L cache_integration` — **1/1 PASS**. Только новый набор запускается
+`ctest --preset windows-debug -R ^AscXyz --output-on-failure` или с
+`windows-release`. Вся задача 04 этим не объявляется принятой.
+
+GUI import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
+
+Часть 04.1 реализована; задача 04 в целом не принята. В следующих частях предстоит заменить текущую пользовательскую семантику `newProject()` сценарием выбора ASC/XYZ и безопасного создания/замены проекта после успешного импорта, с начальным `cell = 1 мм` и его ручным изменением. Save/Open и восстановление относятся к 05, явное построение и версии Density Map — к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
 

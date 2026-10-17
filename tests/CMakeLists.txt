@@ -10,6 +10,13 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(asc_xyz_tests asc_xyz_parser_tests.cpp asc_xyz_importer_tests.cpp)
+set_target_properties(asc_xyz_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(asc_xyz_tests PRIVATE cadcontour_io GTest::gtest_main)
+target_compile_options(asc_xyz_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+gtest_discover_tests(asc_xyz_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX AscXyz.
+    PROPERTIES LABELS production TIMEOUT 30)
+
 gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production)
 
 add_executable(cache_tests cache_codec_tests.cpp cache_format_tests.cpp cache_file_tests.cpp cache_stream_sort_tests.cpp

@@ -27,6 +27,8 @@ struct PointRecord {
     ModelPoint point;
 };
 
+struct Measurement { double x = 0; double y = 0; double z = 0; };
+
 struct BoundingBox {
     double minX = 0;
     double minY = 0;
@@ -40,12 +42,21 @@ bool validBounds(BoundingBox bounds) noexcept;
 enum class ErrorCode {
     InvalidInput, UnsupportedFormat, CorruptCache, IncompleteCache,
     OpenFailed, ReadFailed, WriteFailed, SeekFailed, FlushFailed,
-    PublishFailed, ResourceExhausted, Cancelled, InvalidState, ConsumerFailed, CleanupFailed
+    PublishFailed, ResourceExhausted, Cancelled, InvalidState, ConsumerFailed, CleanupFailed,
+    ParseError, NumericRange, InsufficientData, SourceChanged
 };
 enum class Phase { Codec, Layout, FileIO, Publication, Ingest, RunSort, RunWrite, Merge, Output, Cleanup,
-                   PointPages, IndexBuild, Sealing, CacheRead, Validation };
+                   PointPages, IndexBuild, Sealing, CacheRead, Validation, SourceRead, Parse };
 enum class Operation { Encode, Decode, Calculate, Open, Read, Write, Seek, Size, Flush, Publish,
                        Append, Sort, Consume, Remove };
+
+enum class Coordinate { X, Y, Z };
+struct SourceLocation {
+    std::uint64_t line = 1;
+    std::uint32_t column = 1; // one-based byte column, excluding the initial BOM
+    std::optional<Coordinate> coordinate;
+    QString token; // at most 64 source bytes, escaped for diagnostics
+};
 
 struct Error {
     ErrorCode code;
@@ -54,6 +65,7 @@ struct Error {
     std::optional<std::uint64_t> offset;
     int deviceCode = 0; // QFileDevice::FileError when available; not a native OS error code
     QString detail; // bounded to 256 UTF-16 code units by makeError()
+    std::optional<SourceLocation> source;
 };
 
 Error makeError(ErrorCode code, Phase phase, Operation operation, QString detail,

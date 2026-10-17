@@ -210,7 +210,31 @@ X Y Z
 
 ### Current approach
 
-Потоковый parser с небольшим буфером чтения.
+В 04.1 реализован headless parser `io::parseAscXyz(QIODevice&, sink, zHandler, cancel, context)`:
+последовательные read blocks 64 KiB, line buffer максимум 64 KiB и batches до 4096
+`Measurement`. Память не зависит от числа измерений; незавершённая строка одна.
+Пустые строки пропускаются, непустая строка требует ровно три token; некорректные
+записи, лишние поля и отсутствие измерений завершаются structured failure.
+
+Допустимая грамматика ASCII, независимо от локали:
+
+```text
+[+-]?(digits[.digits?]?|.digits)([eE][+-]?digits)?
+```
+
+После проверки грамматики token напрямую преобразуется через
+`std::from_chars(..., double&, std::chars_format::general)` с удалением только
+ведущего `+`. Проверяются код результата, полное потребление и конечность.
+Результат conversion при ошибке не используется. Signed zero и представимые
+subnormal сохраняются; overflow и ненулевое значение, округляющееся в ноль,
+отклоняются. Точный ноль с произвольно большим exponent допустим в пределах
+лимита строки. Используемый MSVC STL 14.51.36231 обрабатывает такой ноль до
+проверки диапазона exponent. Дополнительных преобразований координат нет.
+
+Разделители — SP/TAB/VT/FF; окончания — LF/CRLF, последняя строка может не иметь LF.
+Одиночный CR запрещён; единственный UTF-8 BOM допускается только в начале.
+NUL, UTF-16 и прочие неподдерживаемые байты отклоняются. Лимит содержимого строки
+64 KiB исключает line ending и начальный BOM.
 
 Для каждой корректной строки:
 
@@ -219,11 +243,20 @@ parse X
 parse Y
 parse Z
 validate
-update metadata
-write X/Y to cache
+request first nonzero Z decision, if needed
+append measurement to bounded batch
 ```
 
-Конкретная реализация parser определяется кодом и профилированием.
+Единственный синхронный headless Z-handler вызывается после полной проверки
+записи и до следующего read/sink call. Проверка `z != 0.0` не использует epsilon.
+Continue продолжает с текущей позиции, Cancel возвращает `Cancelled`.
+Без handler при ненулевом Z возвращается `InvalidInput`.
+
+`io::importAscXyz` передаёт batches существующему CacheWriter; count, bounds,
+RecordId, Morton128 sorting и cache metadata остаются ответственностью cache pipeline.
+Независимые golden pairs построены точной рациональной арифметикой с integer
+round-to-nearest/ties-to-even, включая midpoint и normal/subnormal boundary.
+Подробности реализации и проверок — [asc-xyz-import-check.md](asc-xyz-import-check.md).
 
 Использование дорогостоящего parsing-подхода с большим количеством временных строк или потоковых объектов на каждую точку следует избегать, если измерения подтверждают существенные затраты.
 

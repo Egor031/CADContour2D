@@ -553,6 +553,32 @@ binary cache writer
 
 `cell` не является входом импорта или свойством облака. После принятия проекта он доступен для ручного изменения в ProcessingParameters. Импорт не строит Density Map; её явное построение с выбранным `cell` относится к §15. Save/Open `.pc2dproj` и восстановление при проблемах с кэшем относятся к §§28–31, а не к созданию проекта через импорт.
 
+**Реализованная часть 04.1:** `cadcontour_io` (без GUI/application dependency)
+содержит streaming parser и синхронный headless `io::importAscXyz(sourcePath,
+finalCachePath, temporaryParent, ResourceLimits, zHandler, cancel, context)`.
+Parser принимает borrowed binary `QIODevice` и bounded sink, не создаёт Writer.
+Importer владеет `QFile`, связывает parser с `CacheWriter::create/append/finish`
+и возвращает `Result<ImportProduct>`: move-only `PendingCache` и `SourceSummary`
+(bytes/physical lines/measurements/первый ненулевой Z). Общие `Measurement`,
+`Result/Error` переиспользуются из cache; source errors дополняются ограниченным
+`SourceLocation` (строка, byte column, координата, fragment). Binary format v1 не меняется.
+
+Суммарный budget импортера включает фиксированный parser/source reserve,
+учёт source path и один source handle; остаток передаётся Writer по существующему
+протоколу. Источник читается unbuffered последовательными блоками. До/после чтений,
+между bounded parsing intervals/batches и перед/после finish проверяется cooperative
+cancel; Writer/Sorter получают тот же callback. QFile закрывается до finish.
+При успехе `PendingCache` остаётся cleanup owner в том же потоке; `releaseToOwner()`
+не вызывается. Failure/cancel уничтожает только собственные временные данные.
+
+QFile поддерживает Unicode/UNC paths; importer сверяет начальные и конечные size/mtime
+и число прочитанных байтов. Это обнаружение доступных признаков изменения/усечения,
+а не гарантия неизменности файла: in-place rewrite с сохранением size/mtime может
+не обнаружиться. Блокирующий OS read не прерывается cancellation callback.
+Z-handler пока синхронный, без GUI или межпоточного ожидания; точный progress
+внутренних cache phases, перенос владения и application publication остаются
+следующим частям 04. Подробности — [проверки 04.1](asc-xyz-import-check.md).
+
 ---
 
 ## 14. Пространственный доступ к cache
