@@ -38,6 +38,13 @@ WorkerOutcome WorkerOutcome::cancelled() noexcept
     result.status = WorkerStatus::Cancelled;
     return result;
 }
+WorkerOutcome WorkerOutcome::success(std::unique_ptr<WorkerImportProduct> product) noexcept
+{
+    WorkerOutcome result;
+    result.status = WorkerStatus::Succeeded;
+    result.imported = std::move(product);
+    return result;
+}
 WorkerOutcome WorkerOutcome::failed(OperationFailure failure) noexcept
 {
     WorkerOutcome result;

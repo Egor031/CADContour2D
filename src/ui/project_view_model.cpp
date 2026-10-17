@@ -97,6 +97,9 @@ void ProjectViewModel::handleResult(const CommandResult &result)
     }
     const auto &failure = *result.failure;
     switch (failure.category) {
+    case CommandError::ResourceUnavailable:
+        setErrorMessage(QStringLiteral("Недостаточно памяти для подготовки операции."));
+        break;
     case CommandError::InvalidValue:
         setErrorMessage(QStringLiteral("Размер ячейки должен быть конечным числом строго больше нуля."));
         break;
@@ -104,7 +107,9 @@ void ProjectViewModel::handleResult(const CommandResult &result)
         setErrorMessage(QStringLiteral("Нет открытого проекта. Создайте новый проект."));
         break;
     case CommandError::UnsafeState:
-        if (failure.detail == ErrorDetail::ShuttingDown)
+        if (failure.detail == ErrorDetail::ImportRequired)
+            setErrorMessage(QStringLiteral("Новый проект создаётся после импорта ASC/XYZ. Выбор файла пока недоступен."));
+        else if (failure.detail == ErrorDetail::ShuttingDown)
             setErrorMessage(QStringLiteral("Приложение завершает работу."));
         else if (failure.detail == ErrorDetail::WrongThread)
             setErrorMessage(QStringLiteral("Команда вызвана из недопустимого потока."));

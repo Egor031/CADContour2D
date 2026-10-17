@@ -28,7 +28,7 @@ struct OperationContext {
     bool waitingForDecision = false;
     bool cleanupWarning = false;
     PublicationDecision decision = PublicationDecision::Pending;
-    WorkerOutcome outcome;
+    ReadyOutcome outcome;
 };
 } // namespace detail
 
@@ -54,8 +54,10 @@ public:
     ReadyProductLease &operator=(ReadyProductLease &&) = delete;
     ~ReadyProductLease();
     explicit operator bool() const noexcept { return bool(context_); }
-    const WorkerOutcome &outcome() const noexcept { return context_->outcome; }
+    const ReadyOutcome &outcome() const noexcept { return context_->outcome; }
     std::unique_ptr<VerificationProduct> takeProduct() noexcept;
+    // The noexcept owner exchange and irrevocable Accept share the decision mutex.
+    bool accept(void *candidate, void (*commit)(void *) noexcept) noexcept;
 private:
     friend class OperationRunner;
     explicit ReadyProductLease(std::shared_ptr<detail::OperationContext> context)
@@ -90,6 +92,7 @@ private:
         std::function<std::unique_ptr<QThread>(std::function<void()>)> factory;
         std::function<void()> beforeDecisionWait;
         std::function<void(PublicationDecision)> afterDecision;
+        std::function<void(PublicationDecision)> beforeOwnershipFinalization;
         bool skipStart = false;
         bool failDuplicate = false;
         bool failOpen = false;

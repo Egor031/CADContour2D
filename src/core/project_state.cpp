@@ -12,6 +12,12 @@ ProjectState::ProjectState(std::uint64_t runtimeIdentity) : runtimeIdentity_(run
         throw std::invalid_argument("Project runtime identity must be nonzero");
 }
 
+ProjectState::ProjectState(std::uint64_t runtimeIdentity, ImportedDataset dataset)
+    : ProjectState(runtimeIdentity)
+{
+    dataset_.emplace(std::move(dataset));
+}
+
 bool ProjectState::isValidCell(double value) noexcept
 {
     return std::isfinite(value) && value > 0.0;

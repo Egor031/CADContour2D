@@ -24,7 +24,7 @@ TEST(Operations, WorkerSnapshotAndAtomicSinglePublication)
 {
     ControlledWork work;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     QThread *publisher = nullptr;
     int published = 0;
     QObject::connect(&controller, &ProjectController::stateChanged, [&] {
@@ -61,7 +61,7 @@ TEST(Operations, BusyThroughDecisionAndCleanupThenNewIdentity)
     Event cleanup, allowCleanup;
     ControlledWork work;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
         [&](PublicationDecision decision) { EXPECT_EQ(decision, PublicationDecision::Accept); cleanup.set(); allowCleanup.wait(); });
     OperationTestAccess::start(controller, work.function());
@@ -90,7 +90,7 @@ TEST_P(StaleInputs, NeverPublishesAfterRelevantChange)
 {
     ControlledWork work;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     const auto originalIdentity = controller.project()->runtimeIdentity();
     OperationTestAccess::start(controller, work.function());
@@ -100,7 +100,7 @@ TEST_P(StaleInputs, NeverPublishesAfterRelevantChange)
     case 1: controller.setCell(2); controller.setCell(0.5); break;
     case 2: controller.setCell(2); controller.undo(); break;
     case 3: controller.undo(); controller.redo(); break;
-    case 4: controller.newProject(); break;
+    case 4: ProjectControllerTestAccess::newProject(controller); break;
     case 5: controller.closeProject(); break;
     case 6: OperationTestAccess::invalidate(controller); break; // future reset seam
     }
@@ -121,7 +121,7 @@ TEST(Operations, NoOpAndRejectedCommandsPreserveApplicabilityAndRedo)
 {
     ControlledWork work;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.undo();
     const auto stamp = controller.project()->operationStamp();
@@ -152,7 +152,7 @@ TEST(Operations, CancellationBeforeWorkerEntryDuringWorkAndBeforeCommit)
         Event nativeEntered, allowEntry;
         ControlledWork work;
         ProjectController controller;
-        controller.newProject();
+        ProjectControllerTestAccess::newProject(controller);
         if (checkpoint == 0) {
             OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller),
                 [&](std::function<void()> entry) {
@@ -183,7 +183,7 @@ TEST(Operations, CancellationBeforeWorkerEntryDuringWorkAndBeforeCommit)
 TEST(Operations, CancellationDuringPreparationUsesFinalApplicabilityCheck)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); },
         [&](double &, std::uint64_t &value) { value = 999; controller.cancelOperation(); });
     ASSERT_TRUE(finish(controller));
@@ -195,7 +195,7 @@ class WorkerFailures : public testing::TestWithParam<int> {};
 TEST_P(WorkerFailures, StructuredFailureAndExceptionsKeepPreviousState)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.undo();
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input, 17); });
@@ -229,7 +229,7 @@ class PublicationFailures : public testing::TestWithParam<int> {};
 TEST_P(PublicationFailures, CandidateFailureCannotPartiallyChangeSink)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input, 17); });
     ASSERT_TRUE(finish(controller));
     const auto stamp = controller.project()->operationStamp();
@@ -259,7 +259,7 @@ TEST(Operations, ThreadPreparationAndNotStartedInjection)
 {
     for (bool skipStart : {false, true}) {
         ProjectController controller;
-        controller.newProject();
+        ProjectControllerTestAccess::newProject(controller);
         OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), skipStart
             ? std::function<std::unique_ptr<QThread>(std::function<void()>)>{}
             : [](std::function<void()>) -> std::unique_ptr<QThread> { throw std::runtime_error("factory failed"); }, skipStart);
@@ -275,7 +275,7 @@ TEST(Operations, UnconfirmedEntryKeepsResourcesAndBusySlot)
 {
     Event nativeEntered, allowEntry;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller),
         [&](std::function<void()> entry) { return std::unique_ptr<QThread>(QThread::create([&, entry = std::move(entry)] {
             nativeEntered.set(); allowEntry.wait(); entry();
@@ -295,7 +295,7 @@ TEST(Operations, UnconfirmedEntryKeepsResourcesAndBusySlot)
 TEST(Operations, FastCompletionBeforeAnyGuiDelivery)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     Event ready;
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, [&] { ready.set(); });
     OperationTestAccess::start(controller, [](const auto &, const auto &) { return WorkerOutcome::cancelled(); });
@@ -313,7 +313,7 @@ TEST(Operations, LatestProgressIsBoundedUnknownAndChangesPhase)
 {
     Event burstDone, complete;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     int notifications = 0;
     QObject::connect(&controller, &ProjectController::operationChanged, [&] { ++notifications; });
     OperationTestAccess::start(controller, [&](const auto &input, const WorkerControl &control) {
@@ -342,7 +342,7 @@ TEST(Operations, ReadyDuringReentryIsProcessedAfterCommand)
 {
     Event ready;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, [&] { ready.set(); });
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
     ready.wait();
@@ -359,7 +359,7 @@ TEST_P(TerminalReentry, RejectsRestartUntilNotificationReturns)
     ProjectController controller;
     // These barriers are released before controller drain, including on assertion failure.
     ControlledWork first, second;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     auto &runner = OperationTestAccess::runner(controller);
     int publications = 0, releases = 0, operationNotifications = 0, shutdownNotifications = 0;
     bool prematureReady = false, terminalObserved = false;
@@ -441,7 +441,7 @@ TEST(Operations, TerminalNotificationSeesSettledShutdown)
 {
     ProjectController controller;
     ControlledWork work;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     auto &runner = OperationTestAccess::runner(controller);
     ASSERT_EQ(OperationTestAccess::start(controller, work.function()).outcome, CommandOutcome::Applied);
     work.entered.wait();
@@ -474,7 +474,7 @@ TEST(Operations, TerminalNotificationSeesSettledShutdown)
 TEST(Operations, ReleaseDuringCommandPreservesOuterGuard)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     auto &runner = OperationTestAccess::runner(controller);
     OperationRunnerTestAccess::configure(runner, {}, true);
     ASSERT_EQ(OperationTestAccess::start(controller, [](const auto &input, const auto &) {
@@ -499,9 +499,9 @@ TEST(Operations, ReleaseDuringCommandPreservesOuterGuard)
 TEST(Operations, WrongThreadAndIdentityExhaustionRejectBeforeMutation)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     std::thread wrong([&] {
-        for (const auto &result : {controller.setCell(2), controller.newProject(), controller.closeProject(),
+        for (const auto &result : {controller.setCell(2), ProjectControllerTestAccess::newProject(controller), controller.closeProject(),
             controller.undo(), controller.redo(), controller.cancelOperation(), controller.requestShutdown(),
             OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); })})
             EXPECT_EQ(result.failure->detail, ErrorDetail::WrongThread);
@@ -522,7 +522,7 @@ TEST_P(ShutdownCheckpoints, DiscardBeforeWaitAndAfterWaitAndDuringWork)
     ControlledWork work;
     Event beforeWait, allowWait;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     if (GetParam() == 1)
         OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false,
             [&] { beforeWait.set(); allowWait.wait(); });
@@ -537,7 +537,7 @@ TEST_P(ShutdownCheckpoints, DiscardBeforeWaitAndAfterWaitAndDuringWork)
     EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::Applied);
     EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::NoChange);
     EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
-    EXPECT_EQ(controller.newProject().failure->detail, ErrorDetail::ShuttingDown);
+    EXPECT_EQ(ProjectControllerTestAccess::newProject(controller).failure->detail, ErrorDetail::ShuttingDown);
     work.complete.set(); allowWait.set();
     ASSERT_TRUE(finish(controller));
     EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
@@ -548,7 +548,7 @@ INSTANTIATE_TEST_SUITE_P(Checkpoints, ShutdownCheckpoints, testing::Range(0, 3))
 TEST(Operations, ShutdownDuringPreparationCannotFreeBorrowedProduct)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); },
         [&](double &cell, std::uint64_t &value) {
             controller.requestShutdown();
@@ -564,7 +564,7 @@ TEST(Operations, DestructorDrainsWithoutEventLoopCallbacks)
     for (bool alreadyWaiting : {false, true}) {
         ControlledWork work;
         auto controller = std::make_unique<ProjectController>();
-        controller->newProject();
+        ProjectControllerTestAccess::newProject(*controller);
         OperationTestAccess::start(*controller, work.function());
         work.entered.wait();
         auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(*controller));
@@ -596,7 +596,7 @@ TEST(Operations, ResourcesDiscardOnWorkerAndAcceptedOwnerRetainsProduct)
         QThread *destroyer = nullptr, *worker = nullptr;
         QString scratchPath;
         auto controller = std::make_unique<ProjectController>();
-        controller->newProject();
+        ProjectControllerTestAccess::newProject(*controller);
         OperationTestAccess::start(*controller, [&](const auto &input, const auto &) {
             worker = QThread::currentThread();
             QTemporaryFile scratch;
@@ -623,7 +623,7 @@ TEST(Operations, ResourcesDiscardOnWorkerAndAcceptedOwnerRetainsProduct)
 TEST(Operations, CleanupWarningKeepsAcceptedOutcomeAndSafeRelease)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
         [](PublicationDecision) { throw std::runtime_error("injected cleanup warning"); });
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
@@ -643,7 +643,7 @@ TEST(Operations, Qt612WaitZeroTlsDiscrepancyReproducer)
         ~ExitBarrier() { entered.set(); allow.wait(); }
     };
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller),
         [&](std::function<void()> entry) {
             auto thread = std::unique_ptr<QThread>(QThread::create(std::move(entry)));
@@ -677,7 +677,7 @@ TEST(Operations, NativeThreadCleanupKeepsSlotEvenAfterFinishedSignal)
         ~ExitBarrier() { entered.set(); allow.wait(); }
     };
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller),
         [&](std::function<void()> entry) {
             auto thread = std::unique_ptr<QThread>(QThread::create(std::move(entry)));
@@ -712,7 +712,7 @@ TEST(Operations, NativeThreadCleanupKeepsSlotEvenAfterFinishedSignal)
 TEST(Operations, NativeWaitFailureDoesNotReleaseResourcesOrPermitStart)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     auto &runner = OperationTestAccess::runner(controller);
     OperationRunnerTestAccess::configure(runner, {}, false, {}, {}, false, false, true);
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
@@ -735,7 +735,7 @@ TEST(Operations, NativeWaitFailureDoesNotReleaseResourcesOrPermitStart)
 TEST(Operations, DuplicateHandleFailureSkipsWorkAndRetainsUntilFallbackHandle)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     auto &runner = OperationTestAccess::runner(controller);
     OperationRunnerTestAccess::configure(runner, {}, false, {}, {}, true, true);
     bool invoked = false;
@@ -760,7 +760,7 @@ TEST(Operations, DuplicateHandleFailureSkipsWorkAndRetainsUntilFallbackHandle)
 TEST(Operations, DestructorFallbackRecoversDuplicateHandleFailureWithoutGuiDelivery)
 {
     auto controller = std::make_unique<ProjectController>();
-    controller->newProject();
+    ProjectControllerTestAccess::newProject(*controller);
     auto &runner = OperationTestAccess::runner(*controller);
     OperationRunnerTestAccess::configure(runner, {}, false, {}, {}, true, true);
     OperationTestAccess::start(*controller, [](const auto &input, const auto &) { return success(input); });
@@ -779,7 +779,7 @@ TEST(Operations, DestructorFallbackRecoversDuplicateHandleFailureWithoutGuiDeliv
 TEST(Operations, NativeHandleRemainsValidThroughJoinAndClosesWithRaiiOwner)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
     auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
     ASSERT_TRUE(finish(controller));
@@ -803,7 +803,7 @@ TEST(Operations, DestructorWaitsForNativeTlsEvenWhenQtWaitZeroReportsFinished)
         ~ExitBarrier() { entered.set(); allow.wait(); complete.store(true); }
     };
     auto controller = std::make_unique<ProjectController>();
-    controller->newProject();
+    ProjectControllerTestAccess::newProject(*controller);
     OperationTestAccess::start(*controller, [&](const auto &input, const auto &) {
         thread_local std::unique_ptr<ExitBarrier> exitBarrier;
         exitBarrier = std::make_unique<ExitBarrier>(nativeCleanup, allowCleanup, tlsComplete);
@@ -831,7 +831,7 @@ TEST(Operations, CooperativeCheckpointAndFailureAfterCancellationStayDistinct)
     for (bool failure : {false, true}) {
         ControlledWork work;
         ProjectController controller;
-        controller.newProject();
+        ProjectControllerTestAccess::newProject(controller);
         const auto controlled = work.function(42, true);
         OperationTestAccess::start(controller, [controlled, failure](const auto &input, const auto &control) {
             const auto cancelled = controlled(input, control);
@@ -853,7 +853,7 @@ TEST(Operations, DuplicateReadyWhilePendingAndLateNotificationsForOldId)
 {
     Event cleanup, releaseCleanup;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
         [&](PublicationDecision) { cleanup.set(); releaseCleanup.wait(); });
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); });
@@ -886,7 +886,7 @@ TEST(Operations, DuplicateReadyWhilePendingAndLateNotificationsForOldId)
 TEST(Operations, ProductReadyIsNotPublishedUntilGateActuallyRuns)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input, 17); });
     ASSERT_TRUE(finish(controller));
     OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input, 23); });
@@ -904,7 +904,7 @@ TEST(Operations, InvalidProgressNeverSuppliesPercentageAndDiagnosticDetailIsBoun
 {
     Event reported, complete;
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     OperationTestAccess::start(controller, [&](const auto &input, const WorkerControl &control) {
         control.report({OperationPhase::Computing, 9, 0});
         control.report({OperationPhase::Computing, 9, 4});
@@ -927,7 +927,7 @@ TEST(Operations, NoProjectEmptyWorkAndPreparationBadAllocRejectOrFailWithoutMuta
 {
     ProjectController controller;
     EXPECT_EQ(OperationTestAccess::start(controller, [](const auto &input, const auto &) { return success(input); }).failure->category, CommandError::NoProject);
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     EXPECT_EQ(OperationTestAccess::start(controller, {}).failure->category, CommandError::InvalidValue);
     EXPECT_EQ(controller.operation().id, 0);
     OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller),

@@ -1,13 +1,36 @@
 #include "operation_runner.h"
 
 #include <QScopedValueRollback>
+#include <QDir>
 
+#include <bit>
 #include <cassert>
 #include <exception>
 #include <new>
 #include <utility>
+#include <type_traits>
 
 namespace cadcontour {
+namespace {
+bool validImportTransport(const WorkerImportProduct &p)
+{
+    const auto &actual = p.data.cache.metadata();
+    const auto &m = p.ready.metadata;
+    const auto same = [](double a, double b) { return std::bit_cast<std::uint64_t>(a) == std::bit_cast<std::uint64_t>(b); };
+    return p.directory && p.directory->isValid() && p.directory->autoRemove()
+        && p.directory->path() == p.ready.storageDirectory
+        && p.data.cache.path() == QDir(p.ready.storageDirectory).filePath(p.ready.relativeCachePath)
+        && actual.id == m.id && actual.pointCount == m.pointCount && actual.hasNonZeroZ == m.hasNonZeroZ
+        && same(actual.bounds.minX, m.bounds.minX) && same(actual.bounds.minY, m.bounds.minY)
+        && same(actual.bounds.maxX, m.bounds.maxX) && same(actual.bounds.maxY, m.bounds.maxY)
+        && p.data.source.measurements == p.ready.source.measurements
+        && p.data.source.bytesRead == p.ready.source.bytesRead
+        && p.data.source.physicalLines == p.ready.source.physicalLines
+        && p.data.source.firstNonZeroZ.has_value() == p.ready.source.firstNonZeroZ.has_value();
+}
+static_assert(std::is_nothrow_copy_constructible_v<ImportReadyProduct>);
+static_assert(std::is_nothrow_copy_assignable_v<ImportReadyProduct>);
+} // namespace
 
 bool WorkerControl::cancelled() const noexcept
 {
@@ -39,6 +62,21 @@ std::unique_ptr<VerificationProduct> ReadyProductLease::takeProduct() noexcept
 {
     // Worker cannot touch outcome while leased. Owner-thread access only.
     return std::move(context_->outcome.product);
+}
+bool ReadyProductLease::accept(void *candidate, void (*commit)(void *) noexcept) noexcept
+{
+    if (!context_ || !commit)
+        return false;
+    {
+        std::lock_guard lock(context_->mutex);
+        if (context_->decision != PublicationDecision::Pending
+            || context_->cancellation.load(std::memory_order_acquire))
+            return false;
+        commit(candidate);
+        context_->decision = PublicationDecision::Accept;
+    }
+    context_->decisionChanged.notify_all();
+    return true;
 }
 
 OperationRunner::OperationRunner(QObject *parent) : QObject(parent)
@@ -107,7 +145,9 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         } else {
             outcome = control.cancelled() ? WorkerOutcome::cancelled() : work(snapshot, control);
         }
-        if (outcome.status == WorkerStatus::Succeeded && !outcome.product)
+        if (outcome.status == WorkerStatus::Succeeded && (bool(outcome.product) == bool(outcome.imported)))
+            outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
+        if (outcome.status == WorkerStatus::Succeeded && outcome.imported && !validImportTransport(*outcome.imported))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
     } catch (const std::bad_alloc &) {
         outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::OutOfMemory, phase));
@@ -118,7 +158,11 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
     }
     {
         std::lock_guard lock(context->mutex);
-        context->outcome = std::move(outcome);
+        context->outcome.status = outcome.status;
+        context->outcome.failure = outcome.failure;
+        context->outcome.product = std::move(outcome.product);
+        if (outcome.imported)
+            context->outcome.imported = outcome.imported->ready;
         context->ready = true;
         // A Discard already supplied by shutdown is deliberately preserved.
     }
@@ -142,6 +186,20 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         context->waitingForDecision = false;
         decision = context->decision;
     }
+    try {
+        if (hooks && hooks->beforeOwnershipFinalization)
+            hooks->beforeOwnershipFinalization(decision);
+    } catch (...) {
+        std::lock_guard lock(context->mutex);
+        context->cleanupWarning = true;
+    }
+    if (decision == PublicationDecision::Accept && outcome.imported) {
+        // Accept cannot be revoked by shutdown or destruction of the new project.
+        // Both guards are finalized here, on their creation thread, before cleanup.
+        outcome.imported->directory->setAutoRemove(false);
+        outcome.imported->data.cache.releaseToOwner();
+    }
+    outcome.imported.reset();
     // Product destruction and all scratch/capture cleanup run outside the mutex, on worker.
     context->outcome.product.reset();
     try {

@@ -1,3 +1,4 @@
+#include "project_test_access.h"
 #include "ui/project_view_model.h"
 #include "operation_test_support.h"
 #include "ui/application_shutdown.h"
@@ -26,7 +27,7 @@ protected:
 
     void SetUp() override
     {
-        controller.newProject();
+        ProjectControllerTestAccess::newProject(controller);
         QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
         QObject::connect(&engine, &QQmlEngine::warnings, [&] (const QList<QQmlError> &errors) {
             for (const auto &error : errors)
@@ -102,7 +103,7 @@ TEST_F(ProductionQml, CompleteUserScenarioAndRejectedDraft)
     EXPECT_TRUE(enabled("redoButton"));
     click("redoButton");
     EXPECT_EQ(text("cellInput"), QStringLiteral("0.5"));
-    click("newProjectButton");
+    ProjectControllerTestAccess::newProject(controller); // domain fixture transition; real import is tested separately
     EXPECT_EQ(text("cellInput"), QStringLiteral("1"));
     EXPECT_GT(controller.project()->runtimeIdentity(), identity);
     EXPECT_EQ(controller.project()->inputRevision(), 0);
@@ -125,7 +126,7 @@ TEST_F(ProductionQml, EnterHandlerAndControllerChangesSynchronizeInput)
     EXPECT_TRUE(text("cellInput").isEmpty());
     EXPECT_FALSE(enabled("cellInput"));
     EXPECT_FALSE(enabled("applyButton"));
-    click("newProjectButton");
+    ProjectControllerTestAccess::newProject(controller); // domain fixture transition; real import is tested separately
     EXPECT_TRUE(enabled("applyButton"));
     EXPECT_EQ(text("cellInput"), QStringLiteral("1"));
 }
@@ -174,7 +175,7 @@ TEST_F(ProductionQml, ProgressSuccessAndUnrelatedStatePreserveDraftSelectionAndE
         EXPECT_TRUE(control("operationProgress")->property("indeterminate").toBool());
         EXPECT_TRUE(enabled("stopOperationButton"));
         EXPECT_TRUE(enabled("applyButton"));
-        EXPECT_TRUE(enabled("newProjectButton"));
+        EXPECT_FALSE(enabled("newProjectButton"));
         QObject::connect(&controller, &ProjectController::stateChanged, &engine, [&] {
             EXPECT_EQ(text("cellInput"), input);
             EXPECT_EQ(viewModel.errorMessage(), error);
@@ -242,7 +243,7 @@ TEST_F(ProductionQml, KnownProgressEditingAndNewProjectDuringWork)
     click("undoButton");
     click("redoButton");
     const auto identity = controller.project()->runtimeIdentity();
-    click("newProjectButton");
+    ProjectControllerTestAccess::newProject(controller); // domain fixture transition; real import is tested separately
     EXPECT_GT(controller.project()->runtimeIdentity(), identity);
     EXPECT_EQ(text("cellInput"), QStringLiteral("1"));
     EXPECT_TRUE(text("operationLabel").contains(QStringLiteral("предыдущего проекта")));
@@ -269,7 +270,7 @@ TEST_F(ProductionQml, NewProjectRefreshesAcceptedAndTerminalOperationPresentatio
         return controller.operation().decision == PublicationDecision::Accept;
     }));
     cleanup.wait();
-    click("newProjectButton");
+    ProjectControllerTestAccess::newProject(controller); // domain fixture transition; real import is tested separately
     EXPECT_TRUE(text("operationLabel").contains(QStringLiteral("предыдущего проекта")));
     releaseCleanup.set();
     ASSERT_TRUE(finish(controller));
@@ -278,7 +279,7 @@ TEST_F(ProductionQml, NewProjectRefreshesAcceptedAndTerminalOperationPresentatio
     ASSERT_TRUE(finish(controller));
     EXPECT_TRUE(viewModel.operationVisible());
     EXPECT_TRUE(control("operationLabel")->parent()->property("visible").toBool());
-    click("newProjectButton");
+    ProjectControllerTestAccess::newProject(controller); // domain fixture transition; real import is tested separately
     EXPECT_FALSE(viewModel.operationVisible());
     EXPECT_FALSE(control("operationLabel")->parent()->property("visible").toBool());
 }
@@ -377,4 +378,26 @@ TEST(QmlRegistration, MainRequiresTypedInjection)
     std::unique_ptr<QObject> missing(component.createWithInitialProperties({}));
     EXPECT_EQ(missing, nullptr);
     EXPECT_TRUE(component.errorString().contains(QStringLiteral("Required property project")));
+}
+
+TEST(QmlIntegration, StartupHasNoProjectAndLegacyNewCommandCannotCreateOne)
+{
+    ProjectController controller;
+    ProjectViewModel viewModel(controller);
+    QQmlApplicationEngine engine;
+    QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
+    engine.setInitialProperties({{QStringLiteral("project"), QVariant::fromValue(&viewModel)}});
+    engine.loadFromModule("CADContour2D", "Main");
+    ASSERT_EQ(engine.rootObjects().size(), 1);
+    auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().front());
+    ASSERT_NE(window, nullptr);
+    auto *button = window->findChild<QObject *>(QStringLiteral("newProjectButton"));
+    ASSERT_NE(button, nullptr);
+    EXPECT_FALSE(button->property("enabled").toBool());
+    EXPECT_FALSE(viewModel.hasProject());
+    EXPECT_TRUE(viewModel.cellText().isEmpty());
+    viewModel.newProject();
+    EXPECT_EQ(controller.project(), nullptr);
+    EXPECT_FALSE(viewModel.errorMessage().isEmpty());
+    window->close();
 }

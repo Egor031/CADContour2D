@@ -407,7 +407,18 @@ Project
 
 Минимальная основа приложения использует `ProjectState` без зависимости от Qt и единственный `ProjectController`, живущий весь сеанс приложения. Controller владеет текущим состоянием и историей команд; `ProjectViewModel` — тонкий QObject-адаптер без копии параметров проекта. QML получает обязательную типизированную ссылку на этот адаптер, не может создать его самостоятельно и не владеет им. QML engine уничтожается раньше адаптера и controller.
 
-В принятой реализации задачи 01 `newProject()` создаёт пустой `ProjectState`; это фактическое поведение каркаса, а не целевая пользовательская модель. Семантику команды «Новый проект» и запуск без проекта предстоит согласовать с §13 в задаче 04, сохранив статус задачи 01 ACCEPTED.
+В 04.2 production запускается без проекта. `importAscXyz(ImportRequest)` создаёт
+новый сеанс после успешного принятия cache; замена требует явного
+`replacementConfirmed` именно для этого запроса. До FileDialog в 04.4 кнопка
+«Новый проект» отключена, legacy `newProject()` возвращает `ImportRequired`.
+Пустые domain fixtures доступны только через friend test access, включая dev probe.
+Принятие задачи 01 этим не пересматривается.
+
+`ProjectSession` объединяет `ProjectState`, storage reference и `QUndoStack`.
+Новая пара state/history готовится заранее, commit меняет единственный unique owner.
+История объявлена после state и уничтожается раньше него. `ImportedDataset` в core
+хранит CacheId, source summary, count/bounds/Z и пути; массив точек и файловые
+QObject guards в нём отсутствуют. Core не зависит от cache writer или Qt.
 
 Runtime identity нового экземпляра выдаётся монотонно в течение жизни controller и не используется как сохраняемый project ID или ID версии Density Map. Ревизия входов увеличивается при фактическом изменении, включая Undo/Redo; восстановление прежнего значения параметра не восстанавливает применимость прежнего operation stamp. Исчерпание счётчика проверяется до изменения состояния и истории. Замена или закрытие проекта сначала очищает историю, затем уничтожает прежнее состояние.
 
@@ -514,7 +525,8 @@ read-only handle; время жизни immutable dataset обеспечивае
 Полная validation дополнительно проверяет канонический порядок Morton128/RecordId
 с O(1) состояния. Большой round-trip, ресурсные profiles, HDD queries и crash
 lifecycle проверены: [cache-performance-report.md](cache-performance-report.md).
-Application dataset lifecycle относится к последующим задачам. Все пять частей
+Application dataset lifecycle реализован в 04.2 по §§9, 13, 25; Save/Open остаётся
+задаче 05. Все пять частей
 задачи 03 завершены; задача принята пользователем (**ACCEPTED**) после независимого
 ревью (**PASS WITH COMMENTS**). Итог — в [плане реализации](implementation-plan.md#03-persistent-point-cache-и-пространственный-доступ).
 
@@ -577,9 +589,11 @@ QFile поддерживает Unicode/UNC paths; importer сверяет нач
 и число прочитанных байтов. Это обнаружение доступных признаков изменения/усечения,
 а не гарантия неизменности файла: in-place rewrite с сохранением size/mtime может
 не обнаружиться. Блокирующий OS read не прерывается cancellation callback.
-Z-handler пока синхронный, без GUI или межпоточного ожидания; точный progress
-внутренних cache phases, перенос владения и application publication остаются
-следующим частям 04. Подробности — [проверки 04.1](asc-xyz-import-check.md).
+Z-handler самого importer остаётся синхронным. В 04.2 production application
+adapter передаёт пустой handler: ненулевой Z безопасно отклоняется как InvalidInput;
+Continue/Cancel доступны контролируемым headless tests. Настоящее подтверждение Z —
+04.3; FileDialog/GUI и точный progress внутренних фаз — дальнейшие части 04.
+Подробности — [04.1](asc-xyz-import-check.md) и [04.2](asc-xyz-application-check.md).
 
 ---
 
@@ -893,11 +907,32 @@ Snapshot включает идентичность целевой версии �
 
 Snapshot сам по себе не обеспечивает этот инвариант. Для операции над открытым проектом gate сверяет OperationId, исходный ProjectIdentity/InputRevision, отсутствие отзыва публикации и открытое состояние приложения непосредственно перед commit. При появлении версий/Rough-входов их идентичность и ревизия включаются в тот же контракт; это не критерий совместимости сохранённых версий.
 
-Импорт для создания или замены проекта (§13) использует тот же контракт атомарного принятия, но не требует заранее открытого проекта или фиктивного ProjectIdentity. Gate проверяет OperationId, применимость именно этого запроса создания/замены к исходному контексту приложения, отсутствие отзыва публикации и открытое состояние приложения. Задержанный результат не может заменить проект, открытый или созданный после запуска импорта. Подготовка нового состояния и передачи владения cache не меняет текущий проект и его историю; только успешный commit принимает новый проект. Adapter этого сценария предстоит реализовать и проверить в задаче 04; контракты Ready/Accept/Discard и физического завершения worker сохраняются.
+Импорт для создания или замены проекта (§13) использует тот же контракт атомарного принятия, но не требует заранее открытого проекта или фиктивного ProjectIdentity. Gate проверяет OperationId, применимость именно этого запроса создания/замены к исходному контексту приложения, отсутствие отзыва публикации и открытое состояние приложения. Задержанный результат не может заменить проект, открытый или созданный после запуска импорта. Подготовка нового состояния и передачи владения cache не меняет текущий проект и его историю; только успешный commit принимает новый проект.
+
+В 04.2 snapshot содержит optional исходный stamp (NoProject без фиктивной identity),
+application context epoch, вид операции и факт разрешения замены. Gate сверяет их
+вместе с OperationId/cancel/revocation/Open; epoch и необратимый отзыв исключают
+NoProject ABA. Import adapter сохраняет Ready/Accept/Discard и native join.
 
 Fallible preparation не изменяет текущий результат, предыдущий корректный результат и историю. После final check commit не выполняет allocations, dialogs, обработку событий или throwing history pushes; согласованные владельцы меняются атомарно не более одного раза. Будущий adapter реальной операции должен подготовить также её dataset/history изменения и проверить их атомарность; проверочный product задачи 02 не доказывает корректность cache/PNG publication adapters и не становится domain dataset.
 
-Worker после Ready ожидает единственное решение Accept/Discard по predicate condition variable. Все ветви gate дают решение. Borrowed product удерживается lease до конца preparation, в том числе при reentrant shutdown; worker освобождает discarded product и временные ресурсы вне mutex. Accept передаёт владение product application layer. Shutdown заранее выставляет Discard, если решения ещё нет, и уведомляет worker до любого ожидания; уже выполненный Accept не отменяется.
+Worker после Ready ожидает единственное решение Accept/Discard по predicate condition variable. Все ветви gate дают решение. Borrowed product удерживается lease до конца preparation, в том числе при reentrant shutdown; worker освобождает discarded product и временные ресурсы вне mutex. Для verification Accept передаёт product application layer. Shutdown заранее выставляет Discard, если решения ещё нет, и уведомляет worker до любого ожидания; уже выполненный Accept не отменяется.
+
+Для import через Ready передаётся только `ImportReadyProduct`: metadata и пути.
+Worker-only `WorkerOutcome` содержит `WorkerImportProduct`, но OperationContext
+хранит отдельный `ReadyOutcome`, структурно не содержащий PendingCache/QTemporaryDir.
+PendingCache остаётся локальным в execute до окончательного решения; исключительные
+пути и уничтожение QTemporaryFile выполняются в worker.
+
+Import candidate заранее получает domain metadata и storage retention reference.
+После final applicability check borrowed lease под mutex повторно проверяет
+Pending/cancellation, выполняет noexcept обмен сеансов и фиксирует Accept без
+callbacks между ними. Только затем уведомляются observers. Worker ожидает также
+освобождения lease, затем при Accept вызывает directory.setAutoRemove(false) и
+PendingCache.releaseToOwner() в своём потоке. Решение уже необратимо: Close/Shutdown
+и уничтожение сеанса не удаляют принятые файлы даже до этой финализации. При Discard
+guards удаляют cache и каталог. Busy/terminal/shutdown Ready по-прежнему требуют
+native completion и Qt join.
 
 Это правило особенно важно для длительных операций на HDD или сетевых данных.
 
@@ -984,6 +1019,17 @@ ProjectName/
 ```
 
 Точные имена файлов этим документом не фиксируются.
+
+Промежуточный storage 04.2: `AppLocalDataLocation/projects/project-<storage UUID>-<unique>/`
+с `datasets/<attempt UUID>.pc2dcache` и отдельным временным `scratch-*`.
+Root можно переопределить в C++ для изолированных tests. Каталог попытки создаётся
+эксклюзивно, Writer не перезаписывает существующие файлы. CacheId из metadata,
+storage UUID, OperationId и runtime identity независимы. Domain reference хранит
+storage directory и относительный dataset path. PersistentStorage означает
+обязанность сохранять принятые файлы; его деструктор ничего не удаляет. До задачи 05
+допускается накопление принятых caches; manifest/Save/Open/Recovery и автоматическая
+GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
+files; автоматического scavenger нет.
 
 Канонический перечень восстанавливаемого состояния определён в [requirements.md, §32](requirements.md#32-сохранение-проекта). Он включает выбранные параметры будущего построения (в том числе `cell`), все версии Density Map с их собственными параметрами и Rough-состояниями и активную версию, HoleGroup обоих этапов и ручные удаления точек reduced cloud независимо от способа хранения. При открытии восстанавливается сохранённый выбранный `cell`; начальное 1 мм относится к новому проекту через импорт. Связи версии с PNG, metadata, source cache и Rough-состоянием восстанавливаются согласованно; история Undo не сериализуется. Детальные layout и схемы определяются при реализации. Различаются версия persistent format (§30) и идентичность результата (§15).
 

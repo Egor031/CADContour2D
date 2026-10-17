@@ -15,8 +15,6 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationVersion(QStringLiteral("0.1.0"));
 
     cadcontour::ProjectController controller;
-    if (controller.newProject().outcome != cadcontour::CommandOutcome::Applied)
-        return EXIT_FAILURE;
     cadcontour::ProjectViewModel viewModel(controller);
     QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
     QQmlApplicationEngine engine;

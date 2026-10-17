@@ -8,6 +8,20 @@
 
 using namespace cadcontour;
 
+TEST(ProjectViewModel, LegacyNewCommandPreservesCurrentProjectAndHistory)
+{
+    ProjectController controller;
+    ProjectControllerTestAccess::newProject(controller);
+    controller.setCell(2);
+    controller.undo();
+    const auto stamp = controller.project()->operationStamp();
+    ProjectViewModel viewModel(controller);
+    viewModel.newProject();
+    EXPECT_TRUE(controller.project()->accepts(stamp));
+    EXPECT_TRUE(controller.canRedo());
+    EXPECT_FALSE(viewModel.errorMessage().isEmpty());
+}
+
 TEST(ProjectViewModel, ReflectsControllerWithoutIndependentParameters)
 {
     ProjectController controller;
@@ -16,7 +30,7 @@ TEST(ProjectViewModel, ReflectsControllerWithoutIndependentParameters)
     EXPECT_TRUE(viewModel.cellText().isEmpty());
     viewModel.applyCell(QStringLiteral("0,5"));
     EXPECT_FALSE(viewModel.errorMessage().isEmpty());
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     EXPECT_TRUE(viewModel.hasProject());
     EXPECT_EQ(viewModel.cellText(), QStringLiteral("1"));
     EXPECT_TRUE(viewModel.errorMessage().isEmpty());
@@ -30,7 +44,7 @@ TEST(ProjectViewModel, ReflectsControllerWithoutIndependentParameters)
     EXPECT_TRUE(viewModel.canRedo());
     viewModel.redo();
     EXPECT_DOUBLE_EQ(controller.project()->cell(), 2.5);
-    viewModel.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     EXPECT_NE(viewModel.runtimeIdentity(), identity);
     EXPECT_EQ(viewModel.cellText(), QStringLiteral("1"));
     EXPECT_FALSE(viewModel.canUndo());
@@ -50,7 +64,7 @@ class ValidCellText : public testing::TestWithParam<const char *> {};
 TEST_P(ValidCellText, SupportsDecimalSeparatorsTrimAndExponent)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     ProjectViewModel viewModel(controller);
     viewModel.applyCell(QString::fromLatin1(GetParam()));
     EXPECT_TRUE(viewModel.errorMessage().isEmpty());
@@ -65,7 +79,7 @@ class InvalidCellText : public testing::TestWithParam<const char *> {};
 TEST_P(InvalidCellText, PreservesRedoAndDoesNotSynchronizeDraft)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.undo();
     ProjectViewModel viewModel(controller);
@@ -92,7 +106,7 @@ INSTANTIATE_TEST_SUITE_P(MalformedOrOutOfRange, InvalidCellText, testing::Values
 TEST(ProjectViewModel, FormattingRoundTripsDoubleExtremes)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     ProjectViewModel viewModel(controller);
     for (double value : {std::numeric_limits<double>::denorm_min(),
                          std::numeric_limits<double>::min(), std::numeric_limits<double>::max(),
@@ -109,7 +123,7 @@ TEST(ProjectViewModel, FormattingRoundTripsDoubleExtremes)
 TEST(ProjectViewModel, NoOpCanonicalizesInputWithoutChangingHistory)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.undo();
     ProjectViewModel viewModel(controller);
@@ -127,7 +141,7 @@ TEST(ProjectViewModel, NoOpCanonicalizesInputWithoutChangingHistory)
 TEST(ProjectViewModel, NotificationsAreConsistentAndRejectNestedCommands)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     ProjectViewModel viewModel(controller);
     int notifications = 0;
     QObject::connect(&viewModel, &ProjectViewModel::stateChanged, [&] {
@@ -147,7 +161,7 @@ TEST(ProjectViewModel, NotificationsAreConsistentAndRejectNestedCommands)
 TEST(ProjectViewModel, CounterFailuresProduceReadableErrorsWithoutInputReset)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     ProjectControllerTestAccess::setRevision(controller, std::numeric_limits<std::uint64_t>::max());
     ProjectViewModel viewModel(controller);
@@ -164,7 +178,7 @@ TEST(ProjectViewModel, CounterFailuresProduceReadableErrorsWithoutInputReset)
 TEST(ProjectViewModel, UnrelatedStateAndNoOpUndoDoNotResetInputError)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     ProjectViewModel viewModel(controller);
     int syncs = 0;
     QObject::connect(&viewModel, &ProjectViewModel::cellInputSyncRequested, [&] { ++syncs; });
@@ -175,7 +189,7 @@ TEST(ProjectViewModel, UnrelatedStateAndNoOpUndoDoNotResetInputError)
     emit controller.stateChanged(); // a dataset notification with the same cell/project key
     EXPECT_EQ(syncs, 0);
     EXPECT_EQ(viewModel.errorMessage(), error);
-    viewModel.newProject(); // same cell, different identity still synchronizes
+    ProjectControllerTestAccess::newProject(controller); // same cell, different identity still synchronizes
     EXPECT_EQ(syncs, 1);
     EXPECT_TRUE(viewModel.errorMessage().isEmpty());
 }

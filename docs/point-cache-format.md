@@ -14,8 +14,9 @@ encoding, checksums, packed hierarchy и канонический порядок
 `cadcontour_cache` зависит только от `cadcontour_core` и Qt Core. Здесь реализованы
 типы, codec отдельных элементов, проверяемый layout, точный файловый I/O и протокол
 публикации файла, streaming ingest/external sort, CacheWriter, packed BBox hierarchy
-и PendingCache, CacheReader со spatial queries и полной validation. Интеграции
-с project state пока нет. Небольшие файлы базовых файловых тестов имеют собственную
+и PendingCache, CacheReader со spatial queries и полной validation. Интеграция
+с project state реализована в 04.2 — [ownership report](asc-xyz-application-check.md).
+Небольшие файлы базовых файловых тестов имеют собственную
 тестовую сигнатуру и не являются datasets.
 
 Канонические обязательства: [architecture.md, §§10, 12–14](architecture.md#12-persistent-point-cache),
@@ -662,6 +663,6 @@ sort, а также перед success; гарантированной latency �
 
 ## Что ещё не реализовано
 
-Нет ASC/XYZ parser, application/OperationRunner integration,
-project serialization, Density Map и Reduced Point Cloud. Эти компоненты выходят
-за область принятой задачи 03.
+Project serialization, Density Map и Reduced Point Cloud пока не реализованы.
+ASC/XYZ parser и application/OperationRunner integration выполнены в задаче 04,
+за пределами принятой задачи 03. Binary format v1 не менялся.

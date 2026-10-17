@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/coordinates.h"
+#include "core/cache_id.h"
 
 #include <QString>
 
@@ -14,13 +15,6 @@
 namespace cadcontour::cache {
 
 using RecordId = std::uint64_t;
-
-struct CacheId {
-    std::array<std::byte, 16> bytes{}; // UUID in RFC 4122 byte order, never native QUuid memory
-    static CacheId create();
-    bool isNull() const noexcept;
-    bool operator==(const CacheId &) const = default;
-};
 
 struct PointRecord {
     RecordId id = 0;

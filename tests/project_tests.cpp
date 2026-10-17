@@ -31,7 +31,7 @@ TEST_P(InvalidCell, PreservesDomainAndHistory)
     EXPECT_EQ(state.inputRevision(), 0);
 
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.undo();
     EXPECT_EQ(controller.setCell(GetParam()).outcome, CommandOutcome::Rejected);
@@ -113,7 +113,7 @@ TEST(ProjectController, NoProjectAndEmptyHistory)
         EXPECT_EQ(result.failure->category, CommandError::NoProject);
     }
     EXPECT_EQ(controller.closeProject().outcome, CommandOutcome::NoChange);
-    EXPECT_EQ(controller.newProject().outcome, CommandOutcome::Applied);
+    EXPECT_EQ(ProjectControllerTestAccess::newProject(controller).outcome, CommandOutcome::Applied);
     EXPECT_EQ(controller.undo().outcome, CommandOutcome::NoChange);
     EXPECT_EQ(controller.redo().outcome, CommandOutcome::NoChange);
 }
@@ -121,7 +121,7 @@ TEST(ProjectController, NoProjectAndEmptyHistory)
 TEST(ProjectController, PushUndoRedoAndBranching)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     const auto identity = controller.project()->runtimeIdentity();
     const auto stamp = controller.project()->operationStamp();
     EXPECT_EQ(controller.setCell(0.5).outcome, CommandOutcome::Applied);
@@ -155,11 +155,11 @@ TEST(ProjectController, PushUndoRedoAndBranching)
 TEST(ProjectController, ReplacementAndCloseClearHistoryBeforeStateDestruction)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     const auto first = controller.project()->operationStamp();
     controller.setCell(0.5);
     controller.undo();
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     EXPECT_GT(controller.project()->runtimeIdentity(), first.projectIdentity);
     EXPECT_EQ(controller.project()->inputRevision(), 0);
     EXPECT_DOUBLE_EQ(controller.project()->cell(), 1.0);
@@ -172,14 +172,14 @@ TEST(ProjectController, ReplacementAndCloseClearHistoryBeforeStateDestruction)
     EXPECT_EQ(controller.closeProject().outcome, CommandOutcome::Applied);
     EXPECT_EQ(controller.project(), nullptr);
     EXPECT_EQ(ProjectControllerTestAccess::count(controller), 0);
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     EXPECT_GT(controller.project()->runtimeIdentity(), second);
 }
 
 TEST(ProjectController, ExhaustedRevisionPreservesBothBranches)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.setCell(0.25);
     controller.undo();
@@ -204,7 +204,7 @@ TEST(ProjectController, ExhaustedRevisionPreservesBothBranches)
 TEST(ProjectController, LastRevisionIsUsableExactlyOnce)
 {
     ProjectController controller;
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     ProjectControllerTestAccess::setRevision(controller, maxRevision - 1);
     EXPECT_EQ(controller.setCell(2.0).outcome, CommandOutcome::Applied);
     EXPECT_EQ(controller.project()->inputRevision(), maxRevision);
@@ -217,18 +217,18 @@ TEST(ProjectController, IdentityExhaustionDoesNotReplaceProjectOrHistory)
 {
     ProjectController controller;
     ProjectControllerTestAccess::setLastIdentity(controller, maxRevision - 1);
-    ASSERT_EQ(controller.newProject().outcome, CommandOutcome::Applied);
+    ASSERT_EQ(ProjectControllerTestAccess::newProject(controller).outcome, CommandOutcome::Applied);
     EXPECT_EQ(controller.project()->runtimeIdentity(), maxRevision);
     controller.setCell(0.5);
     const auto stamp = controller.project()->operationStamp();
-    const auto result = controller.newProject();
+    const auto result = ProjectControllerTestAccess::newProject(controller);
     ASSERT_EQ(result.outcome, CommandOutcome::Rejected);
     EXPECT_EQ(result.failure->detail, ErrorDetail::IdentityExhausted);
     EXPECT_TRUE(controller.project()->accepts(stamp));
     EXPECT_DOUBLE_EQ(controller.project()->cell(), 0.5);
     EXPECT_TRUE(controller.canUndo());
     controller.closeProject();
-    EXPECT_EQ(controller.newProject().outcome, CommandOutcome::Rejected);
+    EXPECT_EQ(ProjectControllerTestAccess::newProject(controller).outcome, CommandOutcome::Rejected);
     EXPECT_EQ(controller.project(), nullptr);
 }
 
@@ -242,19 +242,19 @@ TEST(ProjectController, NotificationsSeeSettledStateAndRejectReentry)
         snapshots.emplace_back(state ? state->cell() : 0.0, state ? state->inputRevision() : 0,
                                controller.canUndo(), controller.canRedo());
         for (auto result : {controller.setCell(8.0), controller.undo(), controller.redo(),
-                            controller.newProject(), controller.closeProject()}) {
+                            ProjectControllerTestAccess::newProject(controller), controller.closeProject()}) {
             EXPECT_EQ(result.outcome, CommandOutcome::Rejected);
             ASSERT_TRUE(result.failure);
             EXPECT_EQ(result.failure->detail, ErrorDetail::ReentrantCommand);
         }
     });
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.setCell(0.5);
     controller.setCell(0.5);
     controller.setCell(0.0);
     controller.undo();
     controller.redo();
-    controller.newProject();
+    ProjectControllerTestAccess::newProject(controller);
     controller.closeProject();
     const std::vector<Snapshot> expected{{1, 0, false, false}, {0.5, 1, true, false},
         {1, 2, false, true}, {0.5, 3, true, false}, {1, 0, false, false}, {0, 0, false, false}};

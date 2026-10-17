@@ -47,6 +47,13 @@ target_link_libraries(operation_tests PRIVATE cadcontour_application GTest::gtes
 target_compile_options(operation_tests PRIVATE /W4 /permissive- /utf-8)
 gtest_discover_tests(operation_tests DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 30 LABELS production)
 
+add_executable(import_application_tests operation_test_main.cpp import_application_tests.cpp)
+set_target_properties(import_application_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(import_application_tests PRIVATE cadcontour_application GTest::gtest)
+target_compile_options(import_application_tests PRIVATE /W4 /permissive- /utf-8)
+gtest_discover_tests(import_application_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX AscApplication.
+    PROPERTIES TIMEOUT 30 LABELS production)
+
 add_executable(view_model_tests view_model_tests.cpp)
 set_target_properties(view_model_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(view_model_tests PRIVATE cadcontour_ui cadcontour_uiplugin GTest::gtest_main)

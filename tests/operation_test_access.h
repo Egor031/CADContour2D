@@ -1,6 +1,7 @@
 #pragma once
 
 #include "application/project_controller.h"
+#include <QFileInfo>
 
 namespace cadcontour {
 
@@ -23,6 +24,13 @@ public:
         runner.nextHooks_ = std::move(hooks);
     }
     static std::shared_ptr<detail::OperationContext> context(OperationRunner &runner) { return runner.context_; }
+    static void beforeOwnershipFinalization(OperationRunner &runner,
+        std::function<void(PublicationDecision)> hook)
+    {
+        if (!runner.nextHooks_)
+            runner.nextHooks_ = std::make_shared<OperationRunner::TestHooks>();
+        runner.nextHooks_->beforeOwnershipFinalization = std::move(hook);
+    }
     static bool waitZero(OperationRunner &runner) { return runner.thread_->wait(0); }
     static void *nativeHandle(const std::shared_ptr<detail::OperationContext> &context)
     { return context->nativeCompletion.handle_.load(std::memory_order_acquire); }
@@ -35,6 +43,23 @@ public:
 
 class OperationTestAccess {
 public:
+    static CommandResult import(ProjectController &controller, ImportRequest request, io::ZHandler handler)
+    { return controller.startImport(std::move(request), std::move(handler)); }
+    static void preparation(ProjectController &controller, std::function<void()> hook)
+    { controller.prepareImportHook_ = std::move(hook); }
+    static CommandResult importWork(ProjectController &controller, ImportRequest request,
+                                   std::function<void(WorkerOutcome &)> transform)
+    {
+        request.sourcePath = QFileInfo(request.sourcePath).absoluteFilePath();
+        controller.importSourcePath_ = request.sourcePath;
+        auto work = ascXyzImportWork(request, controller.storageRoot_);
+        return controller.startWork([work = std::move(work), transform = std::move(transform)]
+            (const auto &snapshot, const auto &control) mutable {
+                auto outcome = work(snapshot, control);
+                transform(outcome);
+                return outcome;
+            }, OperationKind::Import, request.replacementConfirmed);
+    }
     static CommandResult start(ProjectController &controller, OperationWork work,
                                std::function<void(double &, std::uint64_t &)> finalize = {})
     {

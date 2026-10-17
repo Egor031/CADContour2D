@@ -19,6 +19,7 @@ public:
     QString releaseToOwner() noexcept { return file_.releaseToOwner(); }
 private:
     friend class CacheWriter;
+    friend class CacheFileTestAccess;
     PendingCache(PublishedFile file, CacheHeader header, FileLayout layout) noexcept
         : file_(std::move(file)), header_(header), layout_(layout) {}
     PublishedFile file_;

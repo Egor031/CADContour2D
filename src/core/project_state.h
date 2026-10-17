@@ -1,8 +1,10 @@
 #pragma once
 
 #include "command_result.h"
+#include "imported_dataset.h"
 
 #include <cstdint>
+#include <optional>
 
 namespace cadcontour {
 
@@ -24,6 +26,8 @@ struct OperationStamp {
 class ProjectState {
 public:
     explicit ProjectState(std::uint64_t runtimeIdentity);
+    ProjectState(std::uint64_t runtimeIdentity, ImportedDataset dataset);
+    const ImportedDataset *dataset() const noexcept { return dataset_ ? &*dataset_ : nullptr; }
 
     double cell() const noexcept { return cell_; }
     std::uint64_t runtimeIdentity() const noexcept { return runtimeIdentity_; }
@@ -40,6 +44,7 @@ private:
     std::uint64_t runtimeIdentity_;
     std::uint64_t inputRevision_ = 0;
     double cell_ = 1.0;
+    std::optional<ImportedDataset> dataset_;
 };
 
 } // namespace cadcontour

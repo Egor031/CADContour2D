@@ -2,6 +2,10 @@
 #include "operation_diagnostics.h"
 
 #include <QUndoCommand>
+#include <QDir>
+#include <QFileInfo>
+#include <QStandardPaths>
+#include <QUuid>
 
 #include <cassert>
 #include <limits>
@@ -45,7 +49,12 @@ private:
     bool wasExecuting_;
 };
 
-ProjectController::ProjectController(QObject *parent) : QObject(parent), runner_(this)
+ProjectController::ProjectController(QObject *parent)
+    : ProjectController(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
+                        + QStringLiteral("/projects"), parent) {}
+
+ProjectController::ProjectController(QString storageRoot, QObject *parent)
+    : QObject(parent), storageRoot_(QDir::cleanPath(QFileInfo(storageRoot).absoluteFilePath())), runner_(this)
 {
     connect(&runner_, &OperationRunner::entered, this, [this](OperationId id) {
         if (id != operation_.id || !operation_.active)
@@ -81,12 +90,12 @@ ProjectController::~ProjectController()
     shutdown_ = ShutdownState::Closing;
     operation_.publicationRevoked = true;
     runner_.drain();
-    history_.clear();
+    session_.reset();
 }
 
 const ProjectState *ProjectController::project() const noexcept
 {
-    return project_ ? &*project_ : nullptr;
+    return session_ ? &session_->state : nullptr;
 }
 
 CommandResult ProjectController::checkEntry() const noexcept
@@ -105,16 +114,7 @@ CommandResult ProjectController::newProject()
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
-    if (lastIdentity_ == std::numeric_limits<std::uint64_t>::max())
-        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::IdentityExhausted);
-    CommandScope guard(*this);
-    invalidateOperation();
-    history_.clear();
-    verification_.reset();
-    previousVerification_.reset();
-    project_.emplace(++lastIdentity_);
-    emit stateChanged();
-    return CommandResult::applied();
+    return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ImportRequired);
 }
 
 CommandResult ProjectController::closeProject()
@@ -122,14 +122,16 @@ CommandResult ProjectController::closeProject()
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
-    if (!project_)
+    if (!session_)
         return CommandResult::noChange();
+    if (contextEpoch_ == std::numeric_limits<std::uint64_t>::max())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ContextEpochExhausted);
     CommandScope guard(*this);
     invalidateOperation();
-    history_.clear();
     verification_.reset();
     previousVerification_.reset();
-    project_.reset();
+    session_.reset();
+    ++contextEpoch_;
     emit stateChanged();
     return CommandResult::applied();
 }
@@ -139,17 +141,17 @@ CommandResult ProjectController::setCell(double value)
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
-    if (!project_)
+    if (!session_)
         return CommandResult::rejected(CommandError::NoProject);
-    const auto result = project_->checkCellChange(value);
+    const auto result = session_->state.checkCellChange(value);
     if (result.outcome != CommandOutcome::Applied)
         return result;
-    if (history_.index() == std::numeric_limits<int>::max())
+    if (session_->history.index() == std::numeric_limits<int>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::HistoryExhausted);
-    auto command = std::make_unique<SetCellCommand>(*project_, value);
+    auto command = std::make_unique<SetCellCommand>(session_->state, value);
     CommandScope guard(*this);
     invalidateOperation();
-    history_.push(command.release()); // QUndoStack owns the command and calls redo().
+    session_->history.push(command.release()); // QUndoStack owns the command and calls redo().
     emit stateChanged();
     return result;
 }
@@ -162,18 +164,18 @@ CommandResult ProjectController::moveHistory(bool undo)
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
-    if (!project_)
+    if (!session_)
         return CommandResult::rejected(CommandError::NoProject);
-    if (!(undo ? history_.canUndo() : history_.canRedo()))
+    if (!(undo ? session_->history.canUndo() : session_->history.canRedo()))
         return CommandResult::noChange();
-    if (project_->inputRevision() == std::numeric_limits<std::uint64_t>::max())
+    if (session_->state.inputRevision() == std::numeric_limits<std::uint64_t>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
     CommandScope guard(*this);
     invalidateOperation();
     if (undo)
-        history_.undo();
+        session_->history.undo();
     else
-        history_.redo();
+        session_->history.redo();
     emit stateChanged();
     return CommandResult::applied();
 }
@@ -181,32 +183,83 @@ CommandResult ProjectController::moveHistory(bool undo)
 CommandResult ProjectController::startOperation(OperationWork work,
                                                std::function<void(VerificationState &)> finalize)
 {
+    const auto result = startWork(std::move(work), OperationKind::Verification);
+    if (result.outcome == CommandOutcome::Applied)
+        finalize_ = std::move(finalize);
+    return result;
+}
+
+CommandResult ProjectController::importAscXyz(ImportRequest request)
+{
+    // Until task 04.3 the production adapter refuses nonzero Z, without a dialog.
+    return startImport(std::move(request), {});
+}
+
+CommandResult ProjectController::startImport(ImportRequest request, io::ZHandler handler)
+{
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
     if (runner_.busy())
         return CommandResult::rejected(CommandError::Busy);
-    if (!project_)
+    if (session_ && !request.replacementConfirmed)
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ReplacementNotConfirmed);
+    if (request.sourcePath.isEmpty())
+        return CommandResult::rejected(CommandError::InvalidValue);
+    const auto confirmed = request.replacementConfirmed;
+    QString source;
+    OperationWork work;
+    try {
+        request.sourcePath = QFileInfo(request.sourcePath).absoluteFilePath();
+        source = request.sourcePath;
+        work = ascXyzImportWork(std::move(request), storageRoot_, std::move(handler));
+    } catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
+    const auto result = startWork(std::move(work), OperationKind::Import, confirmed);
+    if (result.outcome == CommandOutcome::Applied)
+        importSourcePath_ = source;
+    return result;
+}
+
+CommandResult ProjectController::startWork(OperationWork work, OperationKind kind, bool confirmed)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected)
+        return entry;
+    if (runner_.busy())
+        return CommandResult::rejected(CommandError::Busy);
+    if (kind == OperationKind::Verification && !session_)
         return CommandResult::rejected(CommandError::NoProject);
     if (lastOperationId_ == std::numeric_limits<OperationId>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::OperationIdExhausted);
     if (!work)
         return CommandResult::rejected(CommandError::InvalidValue);
-    const OperationSnapshot snapshot{project_->operationStamp(), project_->cell()};
+    OperationSnapshot snapshot;
+    if (session_) {
+        snapshot.stamp = session_->state.operationStamp();
+        snapshot.cell = session_->state.cell();
+        snapshot.projectContext = snapshot.stamp;
+    }
+    snapshot.kind = kind;
+    snapshot.contextEpoch = contextEpoch_;
+    snapshot.replacementConfirmed = confirmed;
     CommandScope guard(*this);
+    snapshot_ = snapshot;
     operation_ = {};
     operation_.id = ++lastOperationId_;
     operation_.stamp = snapshot.stamp;
+    operation_.kind = kind;
     operation_.status = OperationStatus::Starting;
     operation_.active = true;
-    finalize_ = std::move(finalize);
+    finalize_ = {};
     operationClock_.start();
     operationDiagnostic("start", operation_);
     if (const auto failure = runner_.start(operation_.id, snapshot, std::move(work)))
         finishOperation(operation_.id, WorkerStatus::Failed, *failure, false);
     else
         emit operationChanged();
-    return CommandResult::applied(); // acceptance, not successful computation
+    return CommandResult::applied();
 }
 
 void ProjectController::invalidateOperation()
@@ -222,10 +275,52 @@ void ProjectController::invalidateOperation()
 
 bool ProjectController::applicable(OperationId id) const noexcept
 {
-    return shutdown_ == ShutdownState::Open && project_ && operation_.active
+    const auto current = session_ ? std::optional(session_->state.operationStamp()) : std::nullopt;
+    return shutdown_ == ShutdownState::Open && operation_.active
         && id == operation_.id && operation_.decision == PublicationDecision::Pending
         && !operation_.publicationRevoked && !operation_.cancellationRequested
-        && project_->accepts(operation_.stamp);
+        && snapshot_.contextEpoch == contextEpoch_ && snapshot_.projectContext == current
+        && (snapshot_.kind != OperationKind::Import || !snapshot_.projectContext
+            || snapshot_.replacementConfirmed);
+}
+
+std::unique_ptr<ProjectController::ProjectSession>
+ProjectController::prepareImport(const ImportReadyProduct &product)
+{
+    const auto &m = product.metadata;
+    const auto directory = QDir::cleanPath(product.storageDirectory);
+    const auto relative = QDir::cleanPath(product.relativeCachePath);
+    if (!cache::validateMetadata(m) || m.pointCount == 0
+        || m.pointCount != product.source.measurements
+        || m.hasNonZeroZ != product.source.firstNonZeroZ.has_value()
+        || product.source.bytesRead == 0 || product.source.physicalLines == 0
+        || product.sourcePath != importSourcePath_ || QUuid(product.storageId).isNull()
+        || !QDir::isAbsolutePath(directory) || QFileInfo(directory).absolutePath() != storageRoot_
+        || !QFileInfo(directory).fileName().startsWith(QStringLiteral("project-") + product.storageId + u'-')
+        || QDir::isAbsolutePath(relative) || !relative.startsWith(QStringLiteral("datasets/"))
+        || relative.mid(9).contains(u'/') || !relative.endsWith(QStringLiteral(".pc2dcache"))
+        || !QFileInfo(QDir(directory).filePath(relative)).isFile())
+        throw std::invalid_argument("invalid import metadata or missing cache");
+    if (lastIdentity_ == std::numeric_limits<std::uint64_t>::max()
+        || contextEpoch_ == std::numeric_limits<std::uint64_t>::max())
+        throw std::overflow_error("project identity/context exhausted");
+    ImportedDataset dataset;
+    dataset.cacheId = m.id;
+    dataset.storageId = product.storageId.toStdString();
+    dataset.storageDirectory = directory.toStdWString();
+    dataset.relativeCachePath = relative.toStdWString();
+    dataset.sourcePath = product.sourcePath.toStdWString();
+    dataset.sourceBytes = product.source.bytesRead;
+    dataset.sourceLines = product.source.physicalLines;
+    dataset.pointCount = m.pointCount;
+    dataset.minimum = {m.bounds.minX, m.bounds.minY};
+    dataset.maximum = {m.bounds.maxX, m.bounds.maxY};
+    dataset.hasNonZeroZ = m.hasNonZeroZ;
+    auto candidate = std::make_unique<ProjectSession>(ProjectState(lastIdentity_ + 1, std::move(dataset)),
+        PersistentStorage{directory, relative});
+    if (prepareImportHook_)
+        prepareImportHook_();
+    return candidate;
 }
 
 void ProjectController::processReady(OperationId id)
@@ -253,40 +348,78 @@ void ProjectController::processReady(OperationId id)
     bool committed = false;
     if (outcome.status == WorkerStatus::Succeeded && applicable(id)) {
         try {
-            const auto &product = *outcome.product;
-            if (product.sourceCell != project_->cell())
-                throw std::invalid_argument("product does not match snapshot cell");
-            auto candidate = std::make_unique<VerificationState>();
-            if (verification_ && verification_->generation == std::numeric_limits<std::uint64_t>::max())
-                throw std::overflow_error("verification generation exhausted");
-            candidate->generation = verification_ ? verification_->generation + 1 : 1;
-            candidate->sourceCell = product.sourceCell;
-            candidate->value = product.value;
-            if (finalize_)
-                finalize_(*candidate); // may fail; receives only the temporary candidate
-            if (candidate->sourceCell != product.sourceCell)
-                throw std::invalid_argument("candidate validation failed");
-            // No events, dialogs, allocations or throwing history pushes after this check.
-            if (applicable(id)) {
-                candidate->acceptedProduct = lease.takeProduct();
-                previousVerification_.swap(verification_);
-                verification_.swap(candidate); // noexcept owner exchange is the commit
-                operation_.decision = PublicationDecision::Accept;
-                runner_.decide(id, PublicationDecision::Accept);
-                committed = true;
-                operationDiagnostic("accept", operation_, operationClock_.elapsed());
+            if (operation_.kind == OperationKind::Import) {
+                if (!outcome.imported || outcome.product)
+                    throw std::invalid_argument("expected import product");
+                auto candidate = prepareImport(*outcome.imported);
+                if (applicable(id)) {
+                    struct Commit {
+                        ProjectController &controller;
+                        std::unique_ptr<ProjectSession> &candidate;
+                    } commit{*this, candidate};
+                    committed = lease.accept(&commit, [](void *data) noexcept {
+                        auto &c = *static_cast<Commit *>(data);
+                        c.controller.session_.swap(c.candidate);
+                        ++c.controller.lastIdentity_;
+                        ++c.controller.contextEpoch_;
+                        c.controller.operation_.decision = PublicationDecision::Accept;
+                    });
+                    if (committed) {
+                        verification_.reset();
+                        previousVerification_.reset();
+                    }
+                }
+            } else {
+                if (!outcome.product || outcome.imported)
+                    throw std::invalid_argument("expected verification product");
+                const auto &product = *outcome.product;
+                if (product.sourceCell != session_->state.cell())
+                    throw std::invalid_argument("product does not match snapshot cell");
+                auto candidate = std::make_unique<VerificationState>();
+                if (verification_ && verification_->generation == std::numeric_limits<std::uint64_t>::max())
+                    throw std::overflow_error("verification generation exhausted");
+                candidate->generation = verification_ ? verification_->generation + 1 : 1;
+                candidate->sourceCell = product.sourceCell;
+                candidate->value = product.value;
+                if (finalize_)
+                    finalize_(*candidate); // may fail; receives only the temporary candidate
+                if (candidate->sourceCell != product.sourceCell)
+                    throw std::invalid_argument("candidate validation failed");
+                // No events, dialogs, allocations or throwing history pushes after this check.
+                if (applicable(id)) {
+                    struct Commit {
+                        ProjectController &controller;
+                        ReadyProductLease &lease;
+                        std::unique_ptr<VerificationState> &candidate;
+                    } commit{*this, lease, candidate};
+                    committed = lease.accept(&commit, [](void *data) noexcept {
+                        auto &c = *static_cast<Commit *>(data);
+                        c.candidate->acceptedProduct = c.lease.takeProduct();
+                        c.controller.previousVerification_.swap(c.controller.verification_);
+                        c.controller.verification_.swap(c.candidate);
+                        c.controller.operation_.decision = PublicationDecision::Accept;
+                    });
+                }
             }
         } catch (const std::bad_alloc &) {
             operation_.failure = OperationFailure::make(FailureReason::OutOfMemory, OperationPhase::Finalizing);
+        } catch (const std::invalid_argument &error) {
+            operation_.failure = OperationFailure::make(operation_.kind == OperationKind::Import
+                ? FailureReason::InvalidProduct : FailureReason::PublicationFailed,
+                OperationPhase::Finalizing, error.what());
         } catch (const std::exception &error) {
-            operation_.failure = OperationFailure::make(FailureReason::PublicationFailed,
+            operation_.failure = OperationFailure::make(operation_.kind == OperationKind::Import
+                ? FailureReason::CandidatePreparationFailed : FailureReason::PublicationFailed,
                                                         OperationPhase::Finalizing, error.what());
         } catch (...) {
-            operation_.failure = OperationFailure::make(FailureReason::PublicationFailed, OperationPhase::Finalizing);
+            operation_.failure = OperationFailure::make(operation_.kind == OperationKind::Import
+                ? FailureReason::CandidatePreparationFailed : FailureReason::PublicationFailed, OperationPhase::Finalizing);
         }
     }
-    if (committed)
+    if (committed) {
+        operationDiagnostic("accept", operation_, operationClock_.elapsed());
         emit stateChanged(); // observer delivery is outside fallible candidate preparation
+    }
     if (operation_.decision == PublicationDecision::Pending) {
         operation_.decision = PublicationDecision::Discard;
         runner_.decide(id, PublicationDecision::Discard);

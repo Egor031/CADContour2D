@@ -160,7 +160,8 @@ ApplicationWindow {
                 Button {
                     objectName: "newProjectButton"
                     text: "Новый проект"
-                    enabled: window.project.actionsEnabled
+                    // File selection/import UI is introduced in task 04.4.
+                    enabled: false
                     onClicked: window.project.newProject()
                 }
                 Item { Layout.fillWidth: true }

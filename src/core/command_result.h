@@ -5,10 +5,11 @@
 namespace cadcontour {
 
 enum class CommandOutcome { Applied, NoChange, Rejected };
-enum class CommandError { InvalidValue, NoProject, UnsafeState, Busy };
+enum class CommandError { InvalidValue, NoProject, UnsafeState, Busy, ResourceUnavailable };
 enum class ErrorDetail { CellMustBeFiniteAndPositive, RevisionExhausted,
                          IdentityExhausted, HistoryExhausted, ReentrantCommand,
-                         WrongThread, ShuttingDown, OperationIdExhausted };
+                         WrongThread, ShuttingDown, OperationIdExhausted,
+                         ImportRequired, ReplacementNotConfirmed, ContextEpochExhausted, OutOfMemory };
 
 struct CommandFailure {
     CommandError category;

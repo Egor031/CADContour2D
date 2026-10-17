@@ -1,3 +1,4 @@
+#include "project_test_access.h"
 #include "operation_probe.h"
 #include "ui/application_shutdown.h"
 
@@ -13,7 +14,7 @@ int main(int argc, char **argv)
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("CADContour2D-operation-probe"));
     cadcontour::ProjectController controller;
-    controller.newProject();
+    cadcontour::ProjectControllerTestAccess::newProject(controller);
     cadcontour::ProjectViewModel viewModel(controller);
     cadcontour::OperationProbe probe(controller);
     QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
@@ -48,7 +49,7 @@ int main(int argc, char **argv)
         else if (scenario == QStringLiteral("cancel"))
             QTimer::singleShot(300, &viewModel, &cadcontour::ProjectViewModel::cancelOperation);
         else if (scenario == QStringLiteral("replace"))
-            QTimer::singleShot(300, &viewModel, &cadcontour::ProjectViewModel::newProject);
+            QTimer::singleShot(300, &controller, [&] { cadcontour::ProjectControllerTestAccess::newProject(controller); });
     }
     const auto result = app.exec();
     if (!scenario.isEmpty()) {

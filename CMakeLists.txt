@@ -16,6 +16,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 
 add_library(cadcontour_core STATIC
     src/core/project_state.h src/core/project_state.cpp
+    src/core/imported_dataset.h src/core/cache_id.h
     src/core/command_result.h src/core/coordinates.h src/core/coordinates.cpp
 )
 set_target_properties(cadcontour_core PROPERTIES AUTOMOC OFF AUTOUIC OFF)
@@ -49,8 +50,9 @@ add_library(cadcontour_application STATIC
     src/application/operation_runner.h src/application/operation_runner.cpp
     src/application/native_thread_completion.h src/application/native_thread_completion.cpp
     src/application/operation_diagnostics.h src/application/operation_diagnostics.cpp
+    src/application/import_operation.h src/application/import_operation.cpp
 )
-target_link_libraries(cadcontour_application PUBLIC cadcontour_core Qt6::Core Qt6::Gui)
+target_link_libraries(cadcontour_application PUBLIC cadcontour_core cadcontour_io Qt6::Core Qt6::Gui)
 target_link_libraries(cadcontour_application PRIVATE spdlog::spdlog_header_only)
 target_compile_definitions(cadcontour_application PRIVATE SPDLOG_WCHAR_FILENAMES)
 target_compile_options(cadcontour_application PRIVATE /W4 /permissive- /fp:precise /utf-8)

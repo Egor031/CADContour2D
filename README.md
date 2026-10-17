@@ -60,7 +60,11 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 
 В новом проекте выбранный `cell` начинается с 1 мм без наследования прежнего значения. Это изменяемый пользователем параметр последующего явного построения Density Map; импорт не требует `cell` и карту не строит. Изменение выбранного `cell` не меняет существующие карты; каждая версия хранит собственные параметры построения. Автоматическая рекомендация `cell` — потенциальная тема исследования без выбранного алгоритма и утверждённой необходимости, не зависимость задач 04 или 06.
 
-Этот сценарий создания предстоит реализовать в задаче 04. Save/Open `.pc2dproj`, восстановление параметров и частично доступного состояния при отсутствующем или повреждённом cache — отдельная задача 05; обычная работа после импорта не требует исходного ASC/XYZ. Ниже описан целевой поток обработки, фактическая готовность — в [Project Status](#project-status).
+Application API создания/замены реализован в 04.2; выбор файла и полный GUI ещё
+предстоят. Save/Open `.pc2dproj`, восстановление параметров и частично доступного
+состояния при отсутствующем или повреждённом cache — отдельная задача 05; обычная
+работа после импорта не требует исходного ASC/XYZ. Ниже описан целевой поток
+обработки, фактическая готовность — в [Project Status](#project-status).
 
 Основной поток данных:
 
@@ -176,7 +180,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 chcp 65001 >nul
 set "PATH=%QT_ROOT%\bin;%PATH%"
 cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-release --target CADContour2D asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
+cmake --build --preset windows-release --target CADContour2D import_application_tests asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
 ctest --preset windows-release -L production --output-on-failure
 ```
 
@@ -186,7 +190,7 @@ Debug также фактически проверен:
 
 ```bat
 cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
-cmake --build --preset windows-debug --target CADContour2D asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
+cmake --build --preset windows-debug --target CADContour2D import_application_tests asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
@@ -396,7 +400,15 @@ start /wait "" build\windows-release\CADContour2D.exe
 start /wait "" build\windows-debug\CADContour2D.exe
 ```
 
-Текущий каркас задачи 01 при запуске вызывает `newProject()` и создаёт пустой C++ `ProjectState` с `cell = 1 мм`. Окно показывает параметры, runtime identity, ревизию входов, отсутствие Density Map; доступны изменение `cell`, Undo/Redo и новый проект. Точка и запятая разрешены, ошибочный draft остаётся в поле. Изменения параметра не запускают вычислений. Это запуск из установленного Qt kit, не deployment package. Целевая семантика создания после импорта из раздела Workflow будет интегрирована в задаче 04; приведённые ниже сценарии приёмки задач 01–02 описывают фактически проверенный каркас.
+После 04.2 production запускается без проекта. До 04.4 выбор ASC/XYZ в GUI отсутствует,
+«Новый проект» отключён; прямой legacy-вызов возвращает `ImportRequired`. Создание
+пустого проекта из production недоступно. Программный C++ API
+`ProjectController::importAscXyz(ImportRequest)` работает в фоне и принимает новый
+проект только после успеха. Подробности API и проверок —
+[отчёт 04.2](docs/asc-xyz-application-check.md). Это запуск из установленного Qt kit,
+не deployment package. Приведённые ниже сценарии приёмки задач 01–02 описывают
+исторически проверенный каркас; их cell/Undo/verification-инварианты сохранены
+в тестах с отдельным friend fixture, отсутствующим в production executable.
 
 В задаче 01 запуск настоящих Debug/Release окон и начальное состояние подтверждены через Windows accessibility; оба executable закрыты с кодом 0, runtime logs пусты. Автоматические QML tests проверили сценарий, resize и закрытие, включая native Windows run. Пользователь подтвердил успешное выполнение всех семи пунктов согласованной ручной приёмки, включая изменение размера окна и закрытие приложения.
 
@@ -468,7 +480,7 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/cache-performance-report.md). Интеграция с application state остаётся задаче 04. **Статус задачи 03: ACCEPTED**, все пять частей реализации завершены.
+Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/cache-performance-report.md). Интеграция с application state реализована в 04.2. **Статус задачи 03: ACCEPTED**, все пять частей реализации завершены.
 
 Задача 03 принята пользователем после независимого комплексного ревью: **PASS WITH COMMENTS**, без подтверждённых дефектов P0–P2. Единственное замечание R2/P3 относилось к устаревшему перечню Open decisions в [algorithms.md, §45](docs/algorithms.md#45-указатель-основных-open-decisions) и устранено. В ходе завершённого ревью ранее повторены Debug/Release production (**298/298**), cache integration (**1/1**) и benchmark regression (**7/7**) в каждой конфигурации; исходные результаты и команды — в разделах выше и [историческом отчёте](docs/cache-performance-report.md#исправление-r1p2-после-независимого-ревью). При оформлении принятия сборки, тесты и нагрузочные измерения не повторялись; ранее описанные ограничения производительности, ресурсов и сохранности данных сохраняются.
 
@@ -497,5 +509,25 @@ Sequential sources отклоняются до чтения. Доказател�
 
 GUI import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 
-Часть 04.1 реализована; задача 04 в целом не принята. В следующих частях предстоит заменить текущую пользовательскую семантику `newProject()` сценарием выбора ASC/XYZ и безопасного создания/замены проекта после успешного импорта, с начальным `cell = 1 мм` и его ручным изменением. Save/Open и восстановление относятся к 05, явное построение и версии Density Map — к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
+В 04.2 реальный import подключён к OperationRunner. PendingCache и файловые guards
+остаются в worker; Ready содержит metadata, а необратимый Accept согласован с
+noexcept обменом подготовленных ProjectState/QUndoStack. Первый импорт не требует
+проекта, повторный требует явного разрешения замены. Новый проект получает новую
+identity, `cell = 1 мм` и пустую историю. Source после успеха не требуется.
+Принятые caches сохраняются в AppLocalDataLocation даже после Close/Shutdown;
+до 05 допускается их накопление без manifest/GC. Ненулевой Z в production пока
+безопасно отклоняется, без молчаливого Continue. Подробный технический отчёт —
+[asc-xyz-application-check.md](docs/asc-xyz-application-check.md).
+
+Проверки 04.2 в Debug и Release: сборка и `all_qmllint` — PASS, новые application
+import tests — **22/22**, полная production CTest — **364/364** в каждой конфигурации
+(включая ASC/XYZ **42**, cache **166**, operation **51**, QML **14** cases).
+Адресный запуск: `ctest --preset windows-debug -R ^AscApplication --output-on-failure`
+либо с `windows-release`. Dev probe `--auto replace` — PASS в обеих конфигурациях.
+Статус 04.2 — **READY FOR INDEPENDENT REVIEW**.
+
+Части 04.1–04.2 реализованы; задача 04 в целом не принята. Настоящее подтверждение Z
+относится к 04.3, FileDialog/GUI и финальная сквозная проверка — к 04.4.
+Save/Open и восстановление относятся к 05, явное построение и версии Density Map —
+к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
 

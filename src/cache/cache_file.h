@@ -34,6 +34,7 @@ public:
     QString releaseToOwner() noexcept;
 private:
     friend class StagedFile;
+    friend class CacheFileTestAccess;
     PublishedFile(std::unique_ptr<QTemporaryFile> file, QString path) noexcept;
     std::unique_ptr<QTemporaryFile> file_;
     QString path_;

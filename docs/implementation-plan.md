@@ -180,8 +180,8 @@ benchmark-проверки описаны в [README](../README.md#project-statu
 
 ### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
 
-**Статус: 04.1 реализована; headless parser и CacheWriter pipeline проверены.
-Вся задача 04 не принята; application/GUI сценарий ещё не реализован.**
+**Статус: 04.1 и 04.2 реализованы. Вся задача 04 не принята;
+настоящее Z confirmation и GUI ещё предстоят.**
 
 04.1 предоставляет `io::parseAscXyz` и `io::importAscXyz`, bounded buffers/batches,
 direct binary64 conversion, structured source diagnostics, синхронный единственный
@@ -193,10 +193,15 @@ Z Continue/Cancel и RAII `PendingCache`. Проверки и ограничен
 пустой source — `InsufficientData`. Первый полностью проверенный `z != 0.0`
 запрашивает решение до следующего чтения/передачи batch. Эти решения не открыты.
 
-Следующая часть 04.2 должна подключить typed import product к worker/application
-adapter, обеспечить корректный межпоточный lifecycle и gate создания/замены
-проекта без фиктивного пустого ProjectState. Настоящее межпоточное подтверждение Z,
-FileDialog/GUI и итоговые large-file/end-to-end проверки ещё предстоят.
+04.2 подключает реальный importer к OperationRunner: worker-only PendingCache,
+metadata-only Ready lease, создание/подтверждённая замена state/history одним
+noexcept commit с необратимым Accept, постоянный изолируемый storage и structured
+import diagnostics. Production запускается без проекта; legacy New временно
+отклоняется, кнопка отключена до 04.4. Ненулевой Z без решения не принимается.
+Технический отчёт и фактические проверки —
+[asc-xyz-application-check.md](asc-xyz-application-check.md).
+Настоящее межпоточное подтверждение Z (04.3), FileDialog/GUI и итоговые
+large-file/end-to-end проверки ещё предстоят.
 
 Создание пустого `ProjectState` командой `newProject()` было корректным результатом принятой задачи 01. В задаче 04 команда «Новый проект» начинает выбор ASC/XYZ, а проект создаётся и принимается только после успешного импорта; это новое поведение не меняет исходных обязательств и приёмки задачи 01.
 
