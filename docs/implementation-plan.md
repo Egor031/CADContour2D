@@ -143,10 +143,10 @@ Debug/Release configure/build и QML lint успешны; после испра�
 
 ### 03. Persistent Point Cache и пространственный доступ
 
-**Статус: IN PROGRESS, реализация 4/5.** Создан headless `cadcontour_cache`: типы,
+**Статус: READY FOR REVIEW, реализация 5/5.** Создан headless `cadcontour_cache`: типы,
 codec, checksums, checked arithmetic/layout, file I/O, протокол публикации файлов,
 streaming ingest с назначением ID/metadata и bounded Morton128 external sort.
-Предварительный v1 описан в [point-cache-format.md](point-cache-format.md).
+Зафиксированный v1 описан в [point-cache-format.md](point-cache-format.md).
 Отсортированные PointRecord выдаются однократно в callback без финального scratch-файла;
 memory/disk/file budgets, multi-generation merge, cancellation и failure cleanup
 покрыты headless tests. Рабочие контракты — в том же документе формата.
@@ -156,8 +156,12 @@ CacheWriter упаковывает поток в point pages и строит pac
 Реализованы CacheReader, bounded scanAll, общий DFS для scanBox/scanBoxes и строгая
 validation произвольного файла с внешней проверкой уникальности/полноты ID.
 Реальный Writer → Reader round-trip высоты 2 и ранние измерения spatial I/O —
-в [cache-reader-check.md](cache-reader-check.md). Итоговая нагрузочная приёмка 5/5
-ещё не выполнена; задача 03 целиком не завершена и не принята.
+в [cache-reader-check.md](cache-reader-check.md). Приёмка 5/5: crash/ownership
+регрессия, глобальная Morton validation, 42 млн records при 8/128 MiB,
+HDD/source-order сравнение и измеренные ресурсы — в
+[cache-performance-report.md](cache-performance-report.md). Изменений byte layout
+не потребовалось. Заключительное независимое ревью и окончательное принятие
+пользователем ещё не выполнены; статус ACCEPTED не установлен.
 
 - **Цель:** получить постоянное хранилище, пригодное для больших облаков и локальной выборки.
 - **Содержание:** выбрать versioned binary layout, metadata, bounded streaming writer, reader и disk-oriented index; стабильную идентификацию исходных записей. Проработать создание индекса без полного массива точек в RAM, включая временные локальные datasets.
@@ -166,7 +170,7 @@ validation произвольного файла с внешней провер�
 - **Результат:** поток точек записывается, cache повторно открывается, пространственные запросы возвращают соответствующие исходные записи.
 - **Проверка:** побитовый round-trip конечных X/Y `double` без дополнительного округления, включая соседние представимые значения, разные масштабы, отрицательные значения, субнормальные числа и знаки нуля; сохранение координат соответствующих исходных записей после пространственной сортировки, индексации и повторного открытия. Точное содержимое range queries относительно последовательного эталона, границы блоков/ячеек, повторные measurements, версии, повреждённые/усечённые файлы, отказ записи.
 - **Критерий завершения:** cache immutable после публикации; selective query не требует чтения всех point records; writer имеет ограниченную память.
-- **Открытые решения:** tiles/grid против более простой блочной организации с пространственными metadata; block layout, размер индекса. Представление X/Y в binary64 и побитовое восстановление фиксированы [architecture.md, §§10.1, 12](architecture.md#12-persistent-point-cache). Выбор layout/index обосновать локальными измерениями объёма чтения и числа seeks. Compression добавлять только при подтверждённой пользе.
+- **Выбранный v1:** Morton128 → packed 64-KiB point pages → BBox hierarchy; измерены объём чтения, logical seeks, latency и стоимость построения относительно source-order baseline. Представление X/Y в binary64 и побитовое восстановление фиксированы [architecture.md, §§10.1, 12](architecture.md#12-persistent-point-cache). Compression не требуется; её добавление возможно только при подтверждённой пользе и с учётом версии формата.
 
 Основание: [architecture.md, §§12–14](architecture.md#12-persistent-point-cache).
 

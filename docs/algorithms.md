@@ -1485,6 +1485,14 @@ InsufficientData
 
 ## 39. Производительность
 
+Для Persistent Point Cache v1 текущий подход — Morton128 external ordering и
+packed BBox hierarchy. Полная validation проверяет глобальный порядок
+`(Morton128, RecordId)` с O(1) дополнительного состояния, помимо прежней строгой
+проверки ID внешней сортировкой. Выборочность и цена построения сопоставлены с
+source-order baseline на controlled synthetic measurements/HDD;
+[результаты и ограничения](cache-performance-report.md). Это решение о хранении
+и доступе, не подтверждение rough/precise методов на реальных scans.
+
 Алгоритмы проектируются для:
 
 - слабого CPU;

@@ -494,14 +494,17 @@ density pixel ↔ view
 
 Ручные операции пользователя не должны изменять его.
 
-Предварительный внутренний binary layout v1 и файловый протокол описаны в
-[point-cache-format.md](point-cache-format.md). В реализации 4/5 задачи 03 готовы
+Зафиксированный внутренний binary layout v1 и файловый протокол описаны в
+[point-cache-format.md](point-cache-format.md). В реализации 5/5 задачи 03 готовы
 codec, файловый фундамент, streaming ingest/external sort, CacheWriter,
 packed BBox hierarchy и PendingCache с автономным Accept/Discard владением,
 CacheReader со spatial queries и строгой полной validation. Reader владеет только
 read-only handle; время жизни immutable dataset обеспечивает внешний владелец.
-Application dataset lifecycle и нагрузочная приёмка ещё не реализованы.
-Формат не заморожен до итоговой проверки 5/5.
+Полная validation дополнительно проверяет канонический порядок Morton128/RecordId
+с O(1) состояния. Большой round-trip, ресурсные profiles, HDD queries и crash
+lifecycle проверены: [cache-performance-report.md](cache-performance-report.md).
+Application dataset lifecycle относится к последующим задачам; заключительное
+независимое ревью и принятие пользователем остаются отдельным шагом.
 
 ---
 
@@ -540,13 +543,13 @@ binary cache writer
 
 Для этого предусматривается spatial index или эквивалентная организация данных.
 
-Точный вариант:
-
-- uniform tiles;
-- grid;
-- другой индекс;
-
-не фиксируется этим документом и должен выбираться с учётом результатов экспериментов и формата cache.
+Для v1 выбран Morton128 ordering → packed point pages → BBox hierarchy с bounded
+external sort при построении и одним packed DFS при запросах. Сравнение с
+source-order pages и тем же BBox index, в том числе на HDD, подтвердило полезную
+выборочность с измеренной ценой построения. Layout/каноничность определены в
+[point-cache-format.md](point-cache-format.md), измерения и ограничения — в
+[cache-performance-report.md](cache-performance-report.md). Это не утверждение
+универсального выигрыша для каждого распределения или полного scanAll.
 
 Приоритетом является последовательный и локализованный I/O, подходящий для HDD и медленных файловых систем.
 
@@ -1257,8 +1260,11 @@ Reset убирает второй этап из текущего project state, 
 
 Это краткий указатель основных инженерных вопросов, а не исчерпывающий перечень всех деталей реализации.
 
-- **Point Cache Format:** binary layout, blocks, metadata, versioning details и compression; обязательные свойства — §12.
-- **Spatial Index:** disk-oriented tiles/grid или другой индекс; контракт доступа — §14.
+Point Cache Format и Spatial Index для v1 определены в §§12–14 и
+[point-cache-format.md](point-cache-format.md) по результатам задачи 03.
+Compression не требуется для v1; возможное дальнейшее развитие формата не
+блокирует следующие этапы.
+
 - **Density Map Versions:** политика повторного построения с теми же параметрами, представление идентичности/provenance и связей datasets, persistence layout и UI переключения; обязательные контракты — §§9, 15, 23, 27–28. Автоматическое восстановление Precise Stage не утверждено (§6.2).
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
 - **Project Serialization:** формат manifest/state-файла (§28). Предпочтительны существующие возможности Qt, если они удовлетворяют контракту.

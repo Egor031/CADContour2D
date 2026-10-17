@@ -13,10 +13,16 @@ include(GoogleTest)
 gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production)
 
 add_executable(cache_tests cache_codec_tests.cpp cache_format_tests.cpp cache_file_tests.cpp cache_stream_sort_tests.cpp
-    cache_writer_tests.cpp cache_reader_tests.cpp)
+    cache_writer_tests.cpp cache_reader_tests.cpp cache_reliability_tests.cpp)
 set_target_properties(cache_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cache_tests PRIVATE cadcontour_cache GTest::gtest_main)
 target_compile_options(cache_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+add_executable(cache_crash_probe cache_crash_probe.cpp)
+set_target_properties(cache_crash_probe PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(cache_crash_probe PRIVATE cadcontour_cache)
+target_compile_options(cache_crash_probe PRIVATE /W4 /permissive- /fp:precise /utf-8)
+target_compile_definitions(cache_tests PRIVATE CACHE_CRASH_PROBE_EXE="$<TARGET_FILE:cache_crash_probe>")
+add_dependencies(cache_tests cache_crash_probe)
 gtest_discover_tests(cache_tests DISCOVERY_MODE PRE_TEST TEST_FILTER "-CacheReaderIntegration.*"
     PROPERTIES LABELS production TIMEOUT 30)
 add_test(NAME cache_reader_integration COMMAND cache_tests --gtest_filter=CacheReaderIntegration.*)

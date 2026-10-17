@@ -336,8 +336,44 @@ Writer: 2 786 009 records, 1023 point pages, 3 index pages, файл 67 248 128 
 в [cache-reader-check.md](docs/cache-reader-check.md). Новый C++ собран с `/W4`
 без предупреждений; configure сохраняет известные Qt diagnostics.
 
-HDD/cold-cache, peak RSS, гигабайтная матрица и реальное исчерпание ресурсов не
-проверялись. Application integration и приёмка всей задачи 03 остаются впереди.
+На этапе 4/5 HDD, peak RSS и гигабайтная матрица ещё не проверялись;
+результаты последующего этапа — ниже. Application integration относится к задаче 04.
+
+### Reliability и Performance — задача 03, реализация 5/5
+
+Формат **v1 зафиксирован без изменения byte layout**. Полная validation проверяет
+глобальный `(Morton128, RecordId)`; fast open сохраняет прежнюю стоимость.
+Добавлены две регрессии rehashed перестановок, четыре изолированных crash cases
+и проверки предельной высоты packed index без гигантских файлов.
+
+Release HDD матрица: **7/7 PASS**, включая два Writer → Reader → validation цикла
+по 42 млн records (1.008 GB point records), budgets 8/128 MiB и пять распределений
+по 1.2 млн records. Build — 106.0/62.8 s, validation — 107.5/64.4 s, peak process
+Working Set к концу validation — 19.5/139.5 MiB. Local query читает 3 вместо
+2672 point pages source-order baseline. OS cache не сбрасывался; это first-pass/
+warm measurements, без обещания cold-cache latency или power-loss durability.
+Полный отчёт, resource/I/O tables, baseline tradeoffs и raw JSON —
+[cache-performance-report.md](docs/cache-performance-report.md).
+
+В обеих конфигурациях выполнены configure/build изменённых targets, затем
+`ctest --preset windows-debug -L production --output-on-failure` и аналогичная
+команда для `windows-release`: **298/298 PASS**, в том числе **166 cache tests**.
+Отдельный `ctest --preset windows-debug -L cache_integration -V` и аналогичный
+Release запуск — **1/1 PASS** в каждой конфигурации; integration не входит в
+production label. Новый C++ собран с `/W4` без предупреждений.
+
+Benchmark — отдельный opt-in target, гигабайтные данные не входят в production CTest:
+
+```bat
+cmake --preset windows-release -DCADCONTOUR2D_BUILD_TOOLS=ON
+cmake --build --preset windows-release --target cache_tests cache_benchmark --parallel 4
+build\windows-release\cache_benchmark.exe --help
+build\windows-release\cache_benchmark.exe --parent F:\CADContour2D-benchmark --report build\cache-benchmark-smoke.json --points 120000 --memory-mib 8 --distribution multi --repeats 3
+```
+
+Используется CMD-среда выше; `--report` требует новый путь, `--parent` — существующий
+каталог с достаточным резервом. Tool создаёт уникальный child, освобождает собственные
+данные при успехе и сохраняет диагностику при failure. Большие команды — в отчёте.
 
 ### Run
 
@@ -426,7 +462,7 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (4/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, streaming ingest и bounded Morton128 external sort, CacheWriter с point pages и packed BBox hierarchy, CacheReader со spatial queries и полной validation. Sealing/readback и публикация через `QTemporaryFile::rename()` сохраняют cleanup-владение до PendingCache и явного Accept. Reader не владеет удалением dataset. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Интеграции с application state и итоговой нагрузочной приёмки пока нет.
+Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/cache-performance-report.md). Интеграция с application state остаётся задаче 04. **Статус задачи 03: READY FOR REVIEW**, требуется отдельное независимое ревью и принятие пользователем.
 
-Import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
+Import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Задача 03 не имеет статуса ACCEPTED.
 

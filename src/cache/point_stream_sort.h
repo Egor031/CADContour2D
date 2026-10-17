@@ -62,6 +62,7 @@ private:
     struct Statistics {
         std::uint64_t peakBufferBytes = 0, liveBufferBytes = 0, peakPlannedDiskBytes = 0;
         std::uint64_t initialRuns = 0, mergeGenerations = 0;
+        std::uint64_t readBytes = 0, writeBytes = 0, readOperations = 0, writeOperations = 0, seekOperations = 0;
         std::uint32_t openFiles = 0, peakOpenFiles = 0;
     };
     PointStreamSort(ResourceLimits limits, CancelCheck cancel, void *context);

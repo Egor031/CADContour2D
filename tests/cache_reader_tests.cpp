@@ -403,6 +403,59 @@ TEST(CacheReader, IDValidationRejectsEqualSumXorAndExtremaAndCrossPageDuplicates
     EXPECT_EQ(QDir(dir.path()).entryList(QDir::Dirs | QDir::NoDotAndDotDot).size(), 0);
 }
 
+TEST(CacheReader, ValidationRejectsRehashedNoncanonicalOrderAndPermitsReuse)
+{
+    // Coincident coordinates keep every page BBox unchanged even across pages.
+    // Signed zero has the same Morton key, but its original bits must survive.
+    for (const auto boundary : {std::size_t{17}, format::pointCapacity - 1}) {
+        QTemporaryDir dir;
+        std::vector<Measurement> input(2 * format::pointCapacity + 3, {0., -0., 0.});
+        for (std::size_t i = 1; i < input.size(); i += 2) input[i] = {-0., +0., 0.};
+        auto cache = write(dir.filePath("tie-order"), dir.path(), input); ASSERT_TRUE(cache);
+        const auto firstPage = boundary / format::pointCapacity;
+        const auto secondPage = (boundary + 1) / format::pointCapacity;
+        const auto changeId = [&](std::size_t page, std::size_t slot, RecordId id) {
+            mutate(cache.value().path(), format::headerSize + page * format::pageSize,
+                format::pageSize, [&](auto bytes) { binary::putU64(bytes, 64 + slot * 24, id); });
+        };
+        changeId(firstPage, boundary % format::pointCapacity, boundary + 1);
+        changeId(secondPage, (boundary + 1) % format::pointCapacity, boundary);
+        auto r = CacheReader::open(cache.value().path(), readLimits); ASSERT_TRUE(r);
+        EXPECT_TRUE(r.value()->scanAll(discard));
+        auto v = r.value()->validate(validationLimits, dir.path()); ASSERT_FALSE(v);
+        EXPECT_EQ(v.error().code, ErrorCode::CorruptCache);
+        EXPECT_EQ(v.error().phase, Phase::Validation);
+        EXPECT_EQ(QDir(dir.path()).entryList(QDir::Dirs | QDir::NoDotAndDotDot).size(), 0);
+        changeId(firstPage, boundary % format::pointCapacity, boundary);
+        changeId(secondPage, (boundary + 1) % format::pointCapacity, boundary + 1);
+        EXPECT_TRUE(r.value()->validate(validationLimits, dir.path()));
+    }
+}
+
+TEST(CacheReader, ValidationRejectsRehashedMortonKeyInversion)
+{
+    QTemporaryDir dir;
+    auto cache = write(dir.filePath("key-order"), dir.path(), data(12000)); ASSERT_TRUE(cache);
+    mutate(cache.value().path(), format::headerSize, format::pageSize, [](auto bytes) {
+        // Exchange complete records: IDs, exact bounds, counts and checksums remain valid.
+        bool swapped = false;
+        for (std::size_t i = 1; i < format::pointCapacity; ++i) {
+            const auto a = 64 + (i - 1) * 24, b = a + 24;
+            if (mortonKey(decodeRecord(Bytes(bytes).subspan(a, 24)).value().point)
+                != mortonKey(decodeRecord(Bytes(bytes).subspan(b, 24)).value().point)) {
+                std::swap_ranges(bytes.begin() + a, bytes.begin() + b, bytes.begin() + b);
+                swapped = true;
+                break;
+            }
+        }
+        ASSERT_TRUE(swapped);
+    });
+    auto r = CacheReader::open(cache.value().path(), readLimits); ASSERT_TRUE(r);
+    EXPECT_TRUE(r.value()->scanAll(discard));
+    auto v = r.value()->validate(validationLimits, dir.path()); ASSERT_FALSE(v);
+    EXPECT_EQ(v.error().code, ErrorCode::CorruptCache);
+}
+
 TEST(CacheReader, ValidationCancellationDuringIDSortAndAllocationFailure)
 {
     QTemporaryDir dir;
@@ -430,6 +483,13 @@ TEST(CacheReader, HigherPackedLevelsHaveBoundedShapeAndRejectMaliciousHeight)
     constexpr std::uint64_t c = format::indexCapacity;
     EXPECT_TRUE(R::shape(c * c + 1, 3, c + 1 + 2 + 1));
     EXPECT_TRUE(R::shape(c * c * c + 1, 4, c * c + 1 + c + 1 + 2 + 1));
+    const auto heightFivePages = c * c * c * c + 1;
+    const auto heightFiveIndex = c * c * c + c * c + c + 6;
+    EXPECT_TRUE(calculateLayout((heightFivePages - 1) * format::pointCapacity + 1, heightFiveIndex));
+    EXPECT_TRUE(R::shape(heightFivePages, 5, heightFiveIndex));
+    // Even the smallest sixth level cannot fit the actual qint64 layout.
+    const auto heightSixPages = (heightFivePages - 1) * c + 1;
+    EXPECT_FALSE(calculateLayout((heightSixPages - 1) * format::pointCapacity + 1, 1));
     EXPECT_FALSE(R::shape(c * c + 1, UINT32_MAX, c + 5));
     EXPECT_FALSE(R::shape(c * c + 1, 3, UINT64_MAX));
 }

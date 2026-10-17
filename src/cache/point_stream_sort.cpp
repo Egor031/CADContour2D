@@ -181,12 +181,16 @@ Status PointStreamSort::readAt(QFile &file, std::uint64_t offset, MutableBytes b
     if (auto s = beforeIO(Operation::Seek, file); !s) return s;
     if (auto s = file::seek(file, offset); !s) return inPhase(s, phase_);
     if (auto s = beforeIO(Operation::Read, file); !s) return s;
-    return inPhase(file::readExact(file, bytes), phase_);
+    auto result = inPhase(file::readExact(file, bytes), phase_);
+    if (result) { statistics_.readBytes += bytes.size(); ++statistics_.readOperations; ++statistics_.seekOperations; }
+    return result;
 }
 Status PointStreamSort::write(QFile &file, Bytes bytes)
 {
     if (auto s = beforeIO(Operation::Write, file); !s) return s;
-    return inPhase(file::writeExact(file, bytes), phase_);
+    auto result = inPhase(file::writeExact(file, bytes), phase_);
+    if (result) { statistics_.writeBytes += bytes.size(); ++statistics_.writeOperations; }
+    return result;
 }
 Status PointStreamSort::flush(QFile &file)
 {
@@ -258,9 +262,12 @@ Status PointStreamSort::finishRun(QFile &file, std::uint64_t offset, std::uint64
     binary::putU64(header, 16, *length); binary::putU64(header, 24, checksum);
     if (auto s = beforeIO(Operation::Seek, file); !s) return s;
     if (auto s = file::seek(file, offset); !s) return inPhase(s, phase_);
+    ++statistics_.seekOperations;
     if (auto s = write(file, header); !s) return s;
     if (auto s = beforeIO(Operation::Seek, file); !s) return s;
-    return inPhase(file::seek(file, *end), phase_);
+    auto result = inPhase(file::seek(file, *end), phase_);
+    if (result) ++statistics_.seekOperations;
+    return result;
 }
 
 Status PointStreamSort::spill()

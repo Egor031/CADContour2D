@@ -347,8 +347,17 @@ Result<ReadStatistics> CacheReader::validate(ResourceLimits limits, const QStrin
             limits.temporaryDiskBytes, limits.maxOpenFiles - 1}, parent, cancel, context);
         if (!sorted) return sorted.error();
         auto measurements = std::make_unique<Measurement[]>(format::pointCapacity);
+        Morton128 previousKey{};
+        RecordId previousId = 0;
+        bool hasPrevious = false;
         auto traversal = walk({}, false, [&](auto records) -> Status {
             for (std::size_t i = 0; i < records.size(); ++i) {
+                const auto key = mortonKey(records[i].point);
+                if (hasPrevious && (key < previousKey
+                    || (key == previousKey && records[i].id <= previousId))) return corrupt(phase_);
+                previousKey = key;
+                previousId = records[i].id;
+                hasPrevious = true;
                 // An injective representation of uint64 ID; each half is exactly
                 // representable in binary64. Equal IDs have adjacent Morton keys.
                 measurements[i] = {static_cast<double>(records[i].id >> 32),

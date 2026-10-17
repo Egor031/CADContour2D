@@ -1,5 +1,8 @@
 # CacheReader — реализация 4/5 задачи 03
 
+Исторический отчёт этапа 4/5. Последующая нагрузочная приёмка и усиленный контракт
+каноничности полной validation — в [cache-performance-report.md](cache-performance-report.md).
+
 ## A. Baseline
 
 Проверка 17 октября 2026 г., Windows x64. Ветка `main`, исходный HEAD
