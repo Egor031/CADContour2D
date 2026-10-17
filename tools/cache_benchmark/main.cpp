@@ -106,6 +106,41 @@ void number(QJsonObject &object, const char *name, std::uint64_t value) {
     // Decimal strings preserve uint64 exactly in structured reports.
     object[name] = QString::number(value);
 }
+QJsonObject preflight(std::uint64_t n, std::uint64_t disk, CacheWriter &writer)
+{
+    const auto pages = checked::pageCount(n, format::pointCapacity);
+    require(pages && *pages, "invalid point page count");
+    auto children = *pages, indexPages = std::uint64_t{0};
+    while (children) {
+        const auto parents = checked::pageCount(children, format::indexCapacity);
+        const auto total = parents ? checked::add(indexPages, *parents) : std::nullopt;
+        require(total.has_value(), "index page count overflow");
+        children = *parents;
+        indexPages = *total;
+        if (children == 1) break;
+    }
+    const auto layout = take(calculateLayout(n, indexPages));
+    const auto runs = checked::pageCount(n, S::capacity(*W::sorter(writer)));
+    const auto payload = checked::multiply(n, 40);
+    const auto headers = runs ? checked::multiply(*runs, 32) : std::nullopt;
+    const auto generation = payload && headers ? checked::add(*payload, *headers) : std::nullopt;
+    const auto doubleGeneration = generation ? checked::multiply(*generation, 2) : std::nullopt;
+    const auto descriptors = checked::multiply(*pages, 96);
+    const auto writerPeak = descriptors ? checked::add(layout.fileSize, *descriptors) : std::nullopt;
+    const auto plannedPeak = doubleGeneration && writerPeak ? checked::add(*doubleGeneration, *writerPeak) : std::nullopt;
+    require(plannedPeak && checked::fileOffset(*generation) && checked::fileOffset(*descriptors)
+        && *plannedPeak <= disk && *doubleGeneration <= disk - disk / 2 && *writerPeak <= disk / 2,
+        "predicted dataset exceeds split disk budget");
+    const auto recordBytes = checked::multiply(n, format::recordSize);
+    const auto indexBytes = checked::multiply(indexPages, format::pageSize);
+    require(recordBytes && indexBytes, "point or index byte count overflow");
+    QJsonObject report;
+    number(report, "conservativePlannedPeakBytes", *plannedPeak);
+    number(report, "writerReserveBytes", W::reserve(writer));
+    number(report, "pointRecordBytes", *recordBytes);
+    number(report, "cacheBytes", layout.fileSize); number(report, "indexBytes", *indexBytes);
+    return report;
+}
 QJsonObject stats(const ReadStatistics &s) {
     QJsonObject j;
     number(j, "pointPages", s.pointPages); number(j, "indexPages", s.indexPages);
@@ -337,6 +372,7 @@ int main(int argc, char **argv)
     }
     QJsonObject report;
     std::unique_ptr<QTemporaryDir> dataDir, tempDir;
+    bool buildStarted = false;
     int exitCode = 1;
     try {
         auto unsignedOption = [&](const char *name) {
@@ -376,37 +412,28 @@ int main(int argc, char **argv)
         }
         QStringList roots{dataDir->path()}; if (tempDir) roots.append(tempDir->path());
         SetConsoleCtrlHandler(interrupt, TRUE);
+        const ResourceLimits limits{*memory, *disk, 4};
+        const auto path = dataDir->filePath("morton.cache");
+        {
+            // Use the real resource configuration, without copying Writer/Sorter formulas.
+            // Destroy the empty probe before oracle and the separately measured build.
+            auto probe = take(CacheWriter::create(path, limits, scratch, cancelOnly));
+            preflight(n, *disk, *probe);
+        }
         auto qs = queries();
         for (std::uint64_t id = 0; id < n; ++id) {
             if (id % 65536 == 0) require(!interrupted, "cancelled preparing oracle");
             auto m = source.at(id);
             for (auto &q : qs) if (q.boxes.empty() || matches(m, q.boxes)) ++q.expected;
         }
-        const ResourceLimits limits{*memory, *disk, 4};
-        const auto path = dataDir->filePath("morton.cache");
+        buildStarted = true;
         Observer observer;
         Monitor monitor(roots);
         QElapsedTimer timer; timer.start();
         auto writer = take(CacheWriter::create(path, limits, scratch, Observer::cancel, &observer));
         observer.writer = writer.get();
-        const auto s = W::sorter(*writer);
-        const auto runs = *checked::pageCount(n, S::capacity(*s));
-        const auto payload = checked::multiply(n, 40), headers = checked::multiply(runs, 32);
-        const auto generation = payload && headers ? checked::add(*payload, *headers) : std::nullopt;
-        const auto doubleGeneration = generation ? checked::multiply(*generation, 2) : std::nullopt;
-        const auto pages = *checked::pageCount(n, format::pointCapacity);
-        auto children = pages, indexPages = std::uint64_t{0};
-        while (children) { children = *checked::pageCount(children, format::indexCapacity); indexPages += children; if (children == 1) break; }
-        const auto layout = take(calculateLayout(n, indexPages));
-        const auto descriptors = checked::multiply(pages, 96);
-        const auto writerPeak = descriptors ? checked::add(layout.fileSize, *descriptors) : std::nullopt;
-        const auto plannedPeak = doubleGeneration && writerPeak ? checked::add(*doubleGeneration, *writerPeak) : std::nullopt;
-        require(plannedPeak && *plannedPeak <= *disk && *doubleGeneration <= *disk - *disk / 2 && *writerPeak <= *disk / 2,
-            "predicted dataset exceeds split disk budget");
-        number(report, "conservativePlannedPeakBytes", *plannedPeak);
-        number(report, "writerReserveBytes", W::reserve(*writer));
-        number(report, "pointRecordBytes", *checked::multiply(n, format::recordSize));
-        number(report, "cacheBytes", layout.fileSize); number(report, "indexBytes", indexPages * format::pageSize);
+        const auto plan = preflight(n, *disk, *writer);
+        for (auto it = plan.begin(); it != plan.end(); ++it) report.insert(it.key(), it.value());
         std::array<Measurement, 4096> batch{};
         for (std::uint64_t offset = 0; offset < n;) {
             const auto count = std::size_t(std::min<std::uint64_t>(batch.size(), n - offset));
@@ -491,8 +518,8 @@ int main(int argc, char **argv)
     } catch (const std::exception &error) {
         report["status"] = interrupted ? "CANCELLED" : "FAIL";
         report["error"] = QString::fromUtf8(error.what());
-        if (dataDir && dataDir->isValid()) { dataDir->setAutoRemove(false); report["retainedDataDirectory"] = dataDir->path(); }
-        if (tempDir && tempDir->isValid()) { tempDir->setAutoRemove(false); report["retainedScratchDirectory"] = tempDir->path(); }
+        if (buildStarted && dataDir && dataDir->isValid()) { dataDir->setAutoRemove(false); report["retainedDataDirectory"] = dataDir->path(); }
+        if (buildStarted && tempDir && tempDir->isValid()) { tempDir->setAutoRemove(false); report["retainedScratchDirectory"] = tempDir->path(); }
         std::fprintf(stderr, "%s\n", error.what());
     }
     QFile output(parser.value("report"));

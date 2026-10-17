@@ -67,6 +67,17 @@ target_link_libraries(operation_probe PRIVATE cadcontour_verification cadcontour
 target_compile_options(operation_probe PRIVATE /W4 /permissive- /utf-8)
 
 if(CADCONTOUR2D_BUILD_TOOLS)
+    add_executable(cache_benchmark_tests cache_benchmark_tests.cpp)
+    set_target_properties(cache_benchmark_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+    target_link_libraries(cache_benchmark_tests PRIVATE Qt6::Core GTest::gtest_main)
+    target_compile_options(cache_benchmark_tests PRIVATE /W4 /permissive- /utf-8)
+    target_compile_definitions(cache_benchmark_tests PRIVATE
+        CACHE_BENCHMARK_EXE="$<TARGET_FILE:cache_benchmark>"
+        CACHE_BENCHMARK_REFERENCE="${PROJECT_SOURCE_DIR}/docs/benchmarks/cache05/multi-8m-42m.json")
+    add_dependencies(cache_benchmark_tests cache_benchmark)
+    gtest_discover_tests(cache_benchmark_tests DISCOVERY_MODE PRE_TEST
+        PROPERTIES LABELS cache_benchmark TIMEOUT 30)
+
     add_executable(synthetic_generator_tests synthetic_generator_tests.cpp)
     set_target_properties(synthetic_generator_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
     target_link_libraries(synthetic_generator_tests PRIVATE synthetic_generator GTest::gtest_main)

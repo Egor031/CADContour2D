@@ -402,3 +402,52 @@ integration не входят в текущую headless задачу.
 нет; v1 зафиксирован. Нормативы производительности для произвольного оборудования
 не вводятся. Заключительное независимое ревью и окончательное принятие пользователем
 остаются отдельным заданием; **ACCEPTED не установлен**.
+
+## Исправление R1/P2 после независимого ревью
+
+На исходном `dd3be9f` подтверждён поздний resource preflight в benchmark harness:
+полный oracle выполнялся до checked layout и проверки split disk budget.
+Ограниченный запуск `--points 18446744073709551615 --memory-mib 8 --repeats 2`
+за 1.2 s не завершился, потребил 1.14 s CPU и не создал данных/отчёта; собственный
+диагностический процесс остановлен. Это дефект обработки невозможных параметров,
+не production cache и не причина пересматривать семь успешных измерений выше.
+
+Теперь до oracle создаётся и уничтожается пустой Writer с теми же paths/limits:
+он проверяет реальные budgets и предоставляет фактический sorter run capacity,
+без копирования ресурсных формул. Общий `preflight()` проверяет checked page counts,
+layout/qint64, размеры generations/descriptors и split disk budget. До отказа
+возможны лишь bounded buffers и пустые scratch files/4-KiB staging header, без
+измерений и record I/O. Ранний отказ очищает собственные каталоги; сохранение
+диагностики неполного build после его начала осталось прежним.
+
+После probe выполняется oracle; затем, как прежде, создаются Observer/Monitor,
+стартует build timer и создаётся новый измеряемый Writer. Проверки повторяются
+внутри прежнего timed interval, JSON success schema, query oracle и resource
+monitoring не менялись. Probe не перекрывается с измеряемыми buffers/handles,
+не входит в phase samples/buildMs. Lifetime PeakWorkingSet по своему прежнему
+определению остаётся максимумом всего процесса, включая подготовку/probe; это
+не отдельная метрика фазы build и не утверждение cold-start условий.
+
+Добавлен opt-in CTest label `cache_benchmark`: **7/7 PASS в Debug и Release**.
+Проверены UINT64_MAX, самостоятельный qint64 layout failure без uint64 overflow,
+overflow двух scratch generations, недостаточный disk budget, нулевые count и
+memory, успешные 12000 records с обеими организациями, oracle/full validation,
+timings/resources и сравнением JSON schema с прежним report. Negative cases
+проверяют exit=1, конкретную диагностику, JSON FAIL без build/query results и
+пустые data/scratch roots, а не только ограничение времени.
+
+```bat
+cmake --build --preset windows-debug --target cache_benchmark_tests --parallel 4
+cmake --build --preset windows-release --target cache_benchmark_tests --parallel 4
+ctest --preset windows-debug -L cache_benchmark -V
+ctest --preset windows-release -L cache_benchmark -V
+build\windows-debug\cache_tests.exe --gtest_filter=-CacheReaderIntegration.*
+build\windows-release\cache_tests.exe --gtest_filter=-CacheReaderIntegration.*
+```
+
+Обе сборки с `/W4` без новых предупреждений; существующие cache tests —
+**166/166 PASS** в каждой конфигурации. `git diff --check` чистый. Гигабайтная
+матрица не повторялась, её JSON не менялись. Все новые test datasets/каталоги
+удалены, прежние заблокированные каталоги на F: и в Temp не затрагивались.
+Production API, ресурсные контракты и зафиксированный v1 сохранены.
+**FIXED — READY FOR RE-REVIEW** по замечанию R1; ACCEPTED не установлен.
