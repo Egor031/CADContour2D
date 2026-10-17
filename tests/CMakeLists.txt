@@ -13,11 +13,14 @@ include(GoogleTest)
 gtest_discover_tests(dependency_smoke DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production)
 
 add_executable(cache_tests cache_codec_tests.cpp cache_format_tests.cpp cache_file_tests.cpp cache_stream_sort_tests.cpp
-    cache_writer_tests.cpp)
+    cache_writer_tests.cpp cache_reader_tests.cpp)
 set_target_properties(cache_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cache_tests PRIVATE cadcontour_cache GTest::gtest_main)
 target_compile_options(cache_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
-gtest_discover_tests(cache_tests DISCOVERY_MODE PRE_TEST PROPERTIES LABELS production TIMEOUT 30)
+gtest_discover_tests(cache_tests DISCOVERY_MODE PRE_TEST TEST_FILTER "-CacheReaderIntegration.*"
+    PROPERTIES LABELS production TIMEOUT 30)
+add_test(NAME cache_reader_integration COMMAND cache_tests --gtest_filter=CacheReaderIntegration.*)
+set_tests_properties(cache_reader_integration PROPERTIES LABELS cache_integration TIMEOUT 300)
 
 add_executable(project_tests project_tests.cpp coordinate_tests.cpp)
 set_target_properties(project_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)

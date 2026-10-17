@@ -495,11 +495,13 @@ density pixel ↔ view
 Ручные операции пользователя не должны изменять его.
 
 Предварительный внутренний binary layout v1 и файловый протокол описаны в
-[point-cache-format.md](point-cache-format.md). В реализации 3/5 задачи 03 готовы
+[point-cache-format.md](point-cache-format.md). В реализации 4/5 задачи 03 готовы
 codec, файловый фундамент, streaming ingest/external sort, CacheWriter,
-packed BBox hierarchy и PendingCache с автономным Accept/Discard владением.
-Reader/spatial queries, application dataset lifecycle и нагрузочная приёмка
-ещё не реализованы. Формат не заморожен до их проверки.
+packed BBox hierarchy и PendingCache с автономным Accept/Discard владением,
+CacheReader со spatial queries и строгой полной validation. Reader владеет только
+read-only handle; время жизни immutable dataset обеспечивает внешний владелец.
+Application dataset lifecycle и нагрузочная приёмка ещё не реализованы.
+Формат не заморожен до итоговой проверки 5/5.
 
 ---
 

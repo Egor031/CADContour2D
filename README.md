@@ -139,7 +139,8 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
-| [point-cache-format.md](docs/point-cache-format.md) | Binary layout v1, streaming sort, CacheWriter, BBox index и PendingCache задачи 03 (3/5) |
+| [point-cache-format.md](docs/point-cache-format.md) | Binary layout v1, sort, Writer/Reader, spatial queries и validation задачи 03 (4/5) |
+| [cache-reader-check.md](docs/cache-reader-check.md) | Проверки Reader, ресурсная модель и ранние измерения spatial I/O |
 | [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
 | [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
 
@@ -306,6 +307,38 @@ power-loss durability не проверялись. Production CacheReader и spa
 Synthetic Point Cloud Generator regression повторно не запускалась. Задача 03
 остаётся IN PROGRESS и не принята целиком.
 
+### CacheReader и spatial queries — задача 03, реализация 4/5
+
+Headless `CacheReader` открывает готовые файлы без передачи владения PendingCache,
+проверяет envelope/root и выдаёт bounded batches с исходными ID и битами binary64.
+`scanAll` читает physical order; `scanBox` и `scanBoxes` используют один packed DFS
+с inclusive boundaries и union без повторов. Страницы проверяются перед выдачей.
+Отдельная полная validation проверяет весь dataset, реальные bounds/counts и строгое
+покрытие ID 0..N-1 через существующий bounded external sort. Формат/Writer не изменены.
+Контракты API/ownership/budgets — в [point-cache-format.md](docs/point-cache-format.md#cachereader-и-полная-validation-45).
+
+В приведённой CMD-среде выполнены configure обоих presets и те же build targets,
+что для этапа 3/5, затем:
+
+```bat
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+ctest --preset windows-debug -L cache_integration -V
+ctest --preset windows-release -L cache_integration -V
+```
+
+**292/292 production tests (160 cache, включая 44 новых Reader tests) и отдельный
+integration test PASS в каждой конфигурации.** Индекс высоты 2 создан настоящим
+Writer: 2 786 009 records, 1023 point pages, 3 index pages, файл 67 248 128 байт.
+Локальная область/полоса/union прочитали 2/32/7 point pages вместо 1023;
+эталонные ID и биты координат совпали. Рабочие массивы Reader — 245 440 байт,
+один handle и два traversal frames. Детальные результаты и ограничения измерений —
+в [cache-reader-check.md](docs/cache-reader-check.md). Новый C++ собран с `/W4`
+без предупреждений; configure сохраняет известные Qt diagnostics.
+
+HDD/cold-cache, peak RSS, гигабайтная матрица и реальное исчерпание ресурсов не
+проверялись. Application integration и приёмка всей задачи 03 остаются впереди.
+
 ### Run
 
 Добавление Qt runtime в `PATH` относится только к текущей консоли и её дочерним процессам:
@@ -393,7 +426,7 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (3/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, streaming ingest и bounded Morton128 external sort, CacheWriter с point pages и packed BBox hierarchy. Sealing/readback и публикация через `QTemporaryFile::rename()` сохраняют cleanup-владение до PendingCache и явного Accept. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Production reader, spatial queries, интеграции с application state и итоговой нагрузочной приёмки пока нет.
+Для задачи 03 (4/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, streaming ingest и bounded Morton128 external sort, CacheWriter с point pages и packed BBox hierarchy, CacheReader со spatial queries и полной validation. Sealing/readback и публикация через `QTemporaryFile::rename()` сохраняют cleanup-владение до PendingCache и явного Accept. Reader не владеет удалением dataset. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Интеграции с application state и итоговой нагрузочной приёмки пока нет.
 
-Import, cache reader/spatial queries, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
+Import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
 

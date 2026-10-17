@@ -143,7 +143,7 @@ Debug/Release configure/build и QML lint успешны; после испра�
 
 ### 03. Persistent Point Cache и пространственный доступ
 
-**Статус: IN PROGRESS, реализация 3/5.** Создан headless `cadcontour_cache`: типы,
+**Статус: IN PROGRESS, реализация 4/5.** Создан headless `cadcontour_cache`: типы,
 codec, checksums, checked arithmetic/layout, file I/O, протокол публикации файлов,
 streaming ingest с назначением ID/metadata и bounded Morton128 external sort.
 Предварительный v1 описан в [point-cache-format.md](point-cache-format.md).
@@ -153,8 +153,11 @@ memory/disk/file budgets, multi-generation merge, cancellation и failure cleanu
 CacheWriter упаковывает поток в point pages и строит packed BBox hierarchy с
 ограниченной памятью. Sealing/readback, общий бюджет sorter+writer, ошибки/отмена
 и владение PendingCache проверены в Debug/Release; результаты — в README.
-CacheReader/spatial queries и итоговая нагрузочная приёмка ещё не реализованы;
-задача 03 целиком не завершена и не принята.
+Реализованы CacheReader, bounded scanAll, общий DFS для scanBox/scanBoxes и строгая
+validation произвольного файла с внешней проверкой уникальности/полноты ID.
+Реальный Writer → Reader round-trip высоты 2 и ранние измерения spatial I/O —
+в [cache-reader-check.md](cache-reader-check.md). Итоговая нагрузочная приёмка 5/5
+ещё не выполнена; задача 03 целиком не завершена и не принята.
 
 - **Цель:** получить постоянное хранилище, пригодное для больших облаков и локальной выборки.
 - **Содержание:** выбрать versioned binary layout, metadata, bounded streaming writer, reader и disk-oriented index; стабильную идентификацию исходных записей. Проработать создание индекса без полного массива точек в RAM, включая временные локальные datasets.

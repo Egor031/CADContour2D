@@ -2,15 +2,15 @@
 
 ## Статус и область
 
-Внутренний предварительный формат **v1**, реализация 3/5 задачи 03. Не заморожен:
-reader, spatial queries и производительность ещё должны быть проверены.
+Внутренний предварительный формат **v1**, реализация 4/5 задачи 03. Не заморожен:
+итоговая нагрузочная приёмка и сравнение производительности остаются этапу 5/5.
 Обоснованные изменения layout до завершения задачи 03 требуют согласованного
 обновления этого документа, codec и тестов. Опубликованных версий и миграций пока нет.
 
 `cadcontour_cache` зависит только от `cadcontour_core` и Qt Core. Здесь реализованы
 типы, codec отдельных элементов, проверяемый layout, точный файловый I/O и протокол
 публикации файла, streaming ingest/external sort, CacheWriter, packed BBox hierarchy
-и PendingCache. Writer создаёт завершённый dataset; production reader и интеграции
+и PendingCache, CacheReader со spatial queries и полной validation. Интеграции
 с project state пока нет. Небольшие файлы базовых файловых тестов имеют собственную
 тестовую сигнатуру и не являются datasets.
 
@@ -134,7 +134,8 @@ BBox конечный и упорядоченный: minX ≤ maxX, minY ≤ max
 Для пустого dataset kind/count/height = 0, root = `UINT64_MAX` (noPage).
 Для непустого: kind = 1, pageCount > 0, root < pageCount, 1 ≤ height ≤ pageCount.
 Поля описывают packed BBox hierarchy, построенную по Morton-порядку sorter.
-Построение описано ниже; практическая эффективность spatial access пока не подтверждена.
+Построение описано ниже; ранняя проверка выборочности I/O описана в
+[cache-reader-check.md](cache-reader-check.md). Итоговой нагрузочной приёмки ещё нет.
 
 ## Point/index page
 
@@ -179,7 +180,7 @@ CacheWriter заполняет все point pages кроме последней 
 Leaves level = 1 ссылаются на Points; level ≥ 2 — на Index. Writer проверяет
 согласованность своего дерева при sealing, используя descriptors записанных point
 pages и readback index pages. Полная validation произвольного стороннего dataset
-остаётся задачей reader. Codec одной entry/page не проверяет согласованность дерева.
+выполняется Reader. Codec одной entry/page не проверяет согласованность дерева.
 
 ## Completion footer
 
@@ -222,7 +223,7 @@ kind и byte-order marker отклоняются как unsupported. Невер�
 Codec принимает буфер ровно размера элемента. Primitive integer/double операции
 проверяют диапазон до доступа и не требуют alignment. Контроль finite coordinates
 отдельный от raw bits. Полная проверка IDs, topology индекса, покрытия BBox и всех
-records произвольного большого файла остаётся задачей будущего reader; ограниченная
+records произвольного большого файла выполняется Reader; ограниченная
 проверка собственного результата writer описана ниже.
 
 SHA-256 выявляет случайное повреждение; это не подпись и не аутентификация.
@@ -504,9 +505,139 @@ descriptor directory также остаётся под RAII. Если блок�
 уничтожении владельцев или процесс аварийно завершён, временные файлы могут остаться;
 recovery/scavenger относится к дальнейшим задачам.
 
+## CacheReader и полная validation (4/5)
+
+### API, открытие и владение
+
+`CacheReader::open(path, ResourceLimits, cancel, context)` возвращает
+`Result<unique_ptr<CacheReader>>`. Metadata/index/layout доступны только у успешно
+открытого объекта. Reader владеет одним `QFile` в ReadOnly | Unbuffered, encoded
+page buffer и рабочими массивами. Он не владеет удалением dataset, не вызывает
+`PendingCache::releaseToOwner()` и не запускает потоки. Владелец файла обеспечивает
+его неизменность и время жизни. Несколько Reader могут открыть тот же файл, в том
+числе до application Accept. Leases и защита от внешней подмены не реализуются.
+
+Быстрое открытие проверяет реальный размер, оба header subblocks, footer и
+`validateEnvelope()`. Из pointPages вычисляется форма существующей packed hierarchy:
+число страниц каждого уровня, начало уровня и его children. Height/pageCount/root
+должны ей соответствовать; root — последняя index page. Это вычисление по числам,
+а не чтение index section. Затем проверяется root: framing/checksum, kind, ordinal,
+level, count, children и агрегированные bounds/counts относительно metadata.
+Для пустого dataset root не читается. Открытие читает 8192 байта envelope и одну
+65536-байтную root page для непустого dataset, **ни одной point page**.
+
+Успешное открытие не подтверждает исправность непрочитанных страниц. Обычный scan
+проверяет использованные страницы; полная validation проверяет весь dataset.
+Изменение файла другим процессом во время чтения нарушает immutable-контракт;
+Reader не обещает согласованный snapshot такого изменения.
+
+### Scans и ошибки
+
+`scanAll(sink, cancel, context)`, `scanBox(box, sink, cancel, context)` и
+`scanBoxes(span<const BoundingBox>, sink, cancel, context)` возвращают
+`Result<ReadStatistics>`. Sink имеет существующий тип
+`std::function<Status(span<const PointRecord>)>`. Внутренний batch содержит до
+2726 записей; span действителен только внутри callback. Ошибка Status сохраняется
+без переклассификации, любое исключение sink становится ConsumerFailed. Внутренний
+bad_alloc становится ResourceExhausted. Отказ, исключение или cancellation могут
+следовать после выданного префикса; rollback выдачи отсутствует. Потребитель нового
+dataset публикует его только после успешного завершения scan.
+
+Атомарный operation guard отклоняет concurrent/reentrant scan/validation с
+InvalidState до доступа к mutable state. Ошибка callback и обычная отмена не
+делают Reader терминальным. Следующий запрос сбрасывает счётчики и device error,
+заново выполняет checked seeks и проверки страниц. После I/O/corruption failure
+это также разрешено, но success возможен лишь при реально исправном доступном
+файле. Reader ничего не исправляет. Уничтожать Reader во время активного вызова
+нельзя. Sink/cancel contexts и входной span областей заимствуются на время вызова;
+caller не должен менять области во время обхода.
+
+Все query bounds валидируются до чтения/выдачи. Требуются конечные значения и
+min <= max по обеим осям. Принадлежность точная и inclusive, без epsilon,
+расширения или изменения X/Y. Вырожденные rectangles и пустая union допустимы.
+Повторные measurements различаются по ID, а перекрывающиеся/repeated rectangles
+не дублируют выдачу. scanAll выдаёт физический порядок point section. Пространственный
+DFS идёт по children в том же порядке, выдавая подпоследовательность scanAll.
+
+При чтении проверяются codec страницы и ожидаемые kind/ordinal/level, checked
+offset/range, полнота point pages кроме последней, ID < N и containment координат
+в metadata. Индекс дополнительно проверяет packed child ordinals, вместимость
+группы, leaf counts, checked subtree sums и точные bounds относительно parent.
+Point page до callback сверяется с её parent descriptor, включая bounds по битам
+и signed-zero extrema. Непересекающиеся поддеревья не читаются; полная проверка
+отсечённых bounds не подразумевается. Fallback на scanAll при ошибке индекса нет.
+
+### Обход и ресурсы
+
+Один итеративный DFS обслуживает всю union. Frame хранит одну декодированную index
+page на активный уровень; encoded buffer общий для всех чтений. Packed grouping
+задаёт единственного parent каждой страницы, исключает повторный child и пропуски
+без visited set. Уровень строго уменьшается при спуске. Проверка формы ограничена
+64 slots; в qint64 layout v1 реально возможны не более пяти уровней. Повреждённый
+height не управляет allocations до проверки формы. Полный index в RAM не читается.
+Проверка membership/intersection линейна по числу входных rectangles, без planner.
+
+Для `p = absolute dataset path length` в UTF-16 units и height `h` open резервирует:
+
+```text
+R = 65536 + 65536 + 2726*sizeof(PointRecord) + h*sizeof(Frame) + 16*p
+```
+
+Первая часть — control/stack/Qt/path reserve, вторая — encoded buffer.
+На текущем x64 `sizeof(Frame)=57240`, `sizeof(PointRecord)=24`: рабочие массивы
+составляют 130960 байт при h=0, 188200 при h=1, 245440 при h=2. Ни query, ни
+scanAll не выделяют массив результата или массив размера N. Требуются ненулевой
+memory budget >= R и минимум один файл; temporaryDiskBytes для open/scans не нужен.
+Это бюджет рабочих allocations, не предел RSS, памяти Qt/runtime или OS file cache.
+
+`ReadStatistics` относится к текущему успешному вызову, без предшествующего open.
+Он содержит прочитанные index/point pages, успешно переданные байты readExact,
+число вызовов readExact/seek, число успешно выданных записей, размер постоянных
+рабочих массивов Reader и число frames. Это логические операции, не syscalls и
+не физические HDD seeks. Validation включает envelope I/O; её returnedRecords
+считает записи, переданные внутреннему ID-проверяющему sink. bufferBytes не включает
+временный массив validation и память sorter.
+
+### Строгая validation произвольного файла
+
+После успешного open вызывается `validate(totalLimits, temporaryParent, cancel,
+context)`. Она повторно читает envelope, сравнивает с metadata открытия и обходит
+всё дерево без пространственного отсечения. Все pages, references и локальные
+инварианты проверяются; packed coverage и итоговые числа посещённых point/index
+pages доказывают полную достижимость, отсутствие cycles/reuse/пропусков. Сравнение
+каждого parent descriptor с фактическим child summary связывает subtree counts
+и bounds с реальными records вплоть до root/metadata, включая signed zero.
+
+Для строгой проверки ID используется существующий PointStreamSort с локальными
+искусственными measurements `{double(id >> 32), double(id & UINT32_MAX), 0}`.
+Обе половины точно представимы в binary64. Отображение ID в такую пару и её Morton
+key инъективно; исходные ID здесь не заменяются ID, назначенными sorter. После
+сортировки одинаковые исходные ID обязательно соседние, в том числе через границы
+sink batches. Отсутствие повторов, N записей и ранее проверенное `0 <= id < N`
+строго доказывают полноту диапазона 0..N-1. Сумма/XOR/min/max для этого не используются.
+Source records/координаты и алгоритм production Morton sorting не изменяются.
+
+Для `t = absolute temporary parent length` validation резервирует
+`V = R + 2726*sizeof(Measurement) + 16*t`; sorter получает `M - V` памяти,
+весь temporaryDiskBytes и `H - 1` файлов. Непустая validation требует минимум
+трёх файлов в общем бюджете. Sorter отдельно учитывает собственный control reserve,
+run buffers, source+destination disk budget и bounded merge fan-in. Scratch entry
+занимает 40 байт, header каждой run — 32; при merge одновременно могут существовать
+два поколения. Пустой dataset требует только R/один handle, без scratch.
+
+Scratch создаётся только внутри уникального каталога текущей validation и удаляется
+sorter через прежний RAII/cleanup protocol. Нехватка бюджета — structured failure;
+фактический I/O отказ также запрещает success. CleanupFailed на пути успеха
+сохраняется; после основной ошибки cleanup её не подменяет. Если ОС запрещает
+удаление до уничтожения операции, scratch может остаться, как и у writer/sorter.
+Dataset во всех случаях открыт только для чтения и не изменяется/не удаляется.
+Cancellation проверяется на границах страниц/children/batches и внутри external
+sort, а также перед success; гарантированной latency синхронного I/O нет.
+
+Проверки и ранние измерения: [cache-reader-check.md](cache-reader-check.md).
+
 ## Что ещё не реализовано
 
-Нет ASC/XYZ parser, CacheReader/spatial queries,
-полной validation произвольного dataset, application/OperationRunner integration,
+Нет ASC/XYZ parser, application/OperationRunner integration,
 project serialization, Density Map и Reduced Point Cloud. Данный формат не означает
 завершения или принятия всей задачи 03.
