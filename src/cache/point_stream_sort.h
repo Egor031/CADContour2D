@@ -44,6 +44,7 @@ public:
 
 private:
     friend class PointStreamSortTestAccess;
+    friend class CacheWriter; // preserve cleanup ownership until the enclosing operation is destroyed
     struct Entry {
         Morton128 key;
         PointRecord record;

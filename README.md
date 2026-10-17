@@ -139,7 +139,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
-| [point-cache-format.md](docs/point-cache-format.md) | Предварительный binary layout v1, codec, file I/O и bounded streaming sort задачи 03 (2/5) |
+| [point-cache-format.md](docs/point-cache-format.md) | Binary layout v1, streaming sort, CacheWriter, BBox index и PendingCache задачи 03 (3/5) |
 | [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
 | [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
 
@@ -261,8 +261,50 @@ ctest --preset windows-release -L production --output-on-failure
 Реальное исчерпание RAM/заполнение диска не выполнялись. Гигабайтные прогоны,
 HDD/seeks performance и сравнение индексов относятся к следующим заданиям.
 Полная Synthetic Point Cloud Generator regression повторно не запускалась;
-подсистема не затронута. Финальный cache writer, Point Pages и BBox index ещё
-не реализованы; вся задача 03 остаётся IN PROGRESS.
+подсистема не затронута. Это результаты реализации 2/5; writer/index добавлены ниже.
+
+### CacheWriter, BBox index и PendingCache — задача 03, реализация 3/5
+
+`CacheWriter` использует существующий `PointStreamSort`, потоково пишет point pages
+и строит packed BBox hierarchy. Ограниченный descriptor stream и повторное чтение
+предыдущего index level позволяют обойтись одним page buffer и одним массивом
+entries. Общий ресурсный бюджет учитывает одновременно живущие sorter и writer.
+Проверка собственного результата внутри `StagedFile::publish()` предшествует
+единственному rename. `PendingCache` владеет готовым файлом до Discard или явного
+`releaseToOwner()`. Формат v1 не изменён; API, ресурсные формулы и границы validation —
+в [point-cache-format.md](docs/point-cache-format.md#cachewriter-bbox-hierarchy-и-pendingcache-35).
+
+В указанной выше CMD-среде выполнены configure Debug/Release и:
+
+```bat
+cmake --build --preset windows-debug --target cadcontour_cache cache_tests project_tests operation_tests view_model_tests qml_integration_tests dependency_smoke --parallel 4
+ctest --preset windows-debug -L production --output-on-failure
+
+cmake --build --preset windows-release --target cadcontour_cache cache_tests project_tests operation_tests view_model_tests qml_integration_tests dependency_smoke --parallel 4
+ctest --preset windows-release -L production --output-on-failure
+```
+
+**116/116 cache tests и 248/248 production tests PASS в каждой конфигурации**
+(78 прежних cache + 38 новых writer/index). Новый C++ и tests собраны с `/W4` без
+предупреждений. Configure сохраняет известные необязательные Qt6TaskTree/Vulkan
+diagnostics. Независимый тестовый DFS проверяет бинарное дерево, фактические
+records/counts/bounds, все IDs и биты X/Y, включая signed zero/subnormal/adjacent
+binary64; проверены 2726/2727 records и 1022/1023 descriptors. Искусственные
+descriptors проверяют уровни без миллионов реальных records; такие scratch-файлы
+не публикуются как datasets.
+
+Проверены rehashed semantic corruption, multi-generation sorter+writer, writer и
+sorter failures после записанного префикса/всего sink, cancellation по фазам,
+реальные flush/rename пути с инъекцией flush failure, запрет overwrite, move и
+Accept/Discard. Native handles, фактические file lengths/counts и capacities рабочих
+буферов проверены отдельно от плановых budgets. Native locks проверяют cleanup
+failure, сохранение первичной ошибки и повторное удаление деструктором.
+
+Реальное исчерпание RAM/заполнение диска, peak RSS, большие scans, HDD benchmarks и
+power-loss durability не проверялись. Production CacheReader и spatial queries
+пока отсутствуют; полного production round-trip нет. GUI не изменён; полная
+Synthetic Point Cloud Generator regression повторно не запускалась. Задача 03
+остаётся IN PROGRESS и не принята целиком.
 
 ### Run
 
@@ -351,7 +393,7 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (2/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, публикация через `QTemporaryFile::rename()` с явным cleanup-владением, streaming ingest и bounded Morton128 external sort. Отсортированный поток готов для будущего Point Page builder. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Полноценного cache dataset и интеграции с application state пока нет.
+Для задачи 03 (3/5) реализован самостоятельный headless `cadcontour_cache`: базовые типы и structured errors, binary64 codec, предварительный формат v1, SHA-256 отдельных блоков, checked layout и file I/O, streaming ingest и bounded Morton128 external sort, CacheWriter с point pages и packed BBox hierarchy. Sealing/readback и публикация через `QTemporaryFile::rename()` сохраняют cleanup-владение до PendingCache и явного Accept. Формат описан в [point-cache-format.md](docs/point-cache-format.md) и ещё не заморожен. Production reader, spatial queries, интеграции с application state и итоговой нагрузочной приёмки пока нет.
 
-Import, streaming cache writer, spatial index/reader, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
+Import, cache reader/spatial queries, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Вся задача 03 не завершена и не принята.
 

@@ -42,7 +42,8 @@ enum class ErrorCode {
     OpenFailed, ReadFailed, WriteFailed, SeekFailed, FlushFailed,
     PublishFailed, ResourceExhausted, Cancelled, InvalidState, ConsumerFailed, CleanupFailed
 };
-enum class Phase { Codec, Layout, FileIO, Publication, Ingest, RunSort, RunWrite, Merge, Output, Cleanup };
+enum class Phase { Codec, Layout, FileIO, Publication, Ingest, RunSort, RunWrite, Merge, Output, Cleanup,
+                   PointPages, IndexBuild, Sealing };
 enum class Operation { Encode, Decode, Calculate, Open, Read, Write, Seek, Size, Flush, Publish,
                        Append, Sort, Consume, Remove };
 

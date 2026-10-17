@@ -1,4 +1,4 @@
-#include "cache/cache_file.h"
+#include "cache_file_test_access.h"
 
 #include <QDir>
 #include <QFile>
@@ -11,14 +11,6 @@
 #include <cstring>
 
 using namespace cadcontour::cache;
-
-namespace cadcontour::cache {
-class CacheFileTestAccess {
-public:
-    static void setFlush(StagedFile &file, Status (*flush)(QFileDevice &)) { file.flush_ = flush; }
-    static void close(StagedFile &file) { file.file_->close(); }
-};
-} // namespace cadcontour::cache
 
 namespace {
 constexpr std::array<std::byte, 8> payload{std::byte{'P'}, std::byte{'C'}, std::byte{'2'}, std::byte{'D'},

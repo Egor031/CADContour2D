@@ -170,6 +170,13 @@ Status StagedFile::flush()
 }
 Result<PublishedFile> StagedFile::publish(std::uint64_t expected, Validator validator)
 {
+    auto call = [](QIODevice &device, std::uint64_t size, void *context) -> Status {
+        return (*static_cast<Validator *>(context))(device, size);
+    };
+    return publish(expected, validator ? +call : nullptr, &validator);
+}
+Result<PublishedFile> StagedFile::publish(std::uint64_t expected, ContextValidator validator, void *context)
+{
     if (auto s = writableState(); !s) return s.error();
     terminal_ = true;
     auto fail = [this](Error error) -> Result<PublishedFile> {
@@ -186,7 +193,7 @@ Result<PublishedFile> StagedFile::publish(std::uint64_t expected, Validator vali
         return fail(makeError(ErrorCode::IncompleteCache, Phase::Publication, Operation::Size,
                               QStringLiteral("Unexpected file size")));
     if (auto s = file::seek(*file_, 0); !s) return fail(s.error());
-    if (auto s = validator(*file_, expected); !s) return fail(s.error());
+    if (auto s = validator(*file_, expected, context); !s) return fail(s.error());
     // Keep autoRemove enabled across rename and the noexcept transfer to guard.
     if (!file_->rename(finalPath_)) {
         auto e = ioError(*file_, ErrorCode::PublishFailed, Operation::Publish);

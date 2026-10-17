@@ -2,16 +2,17 @@
 
 ## Статус и область
 
-Внутренний предварительный формат **v1**, реализация 2/5 задачи 03. Не заморожен:
-writer, spatial index, reader и производительность ещё должны быть проверены.
+Внутренний предварительный формат **v1**, реализация 3/5 задачи 03. Не заморожен:
+reader, spatial queries и производительность ещё должны быть проверены.
 Обоснованные изменения layout до завершения задачи 03 требуют согласованного
 обновления этого документа, codec и тестов. Опубликованных версий и миграций пока нет.
 
 `cadcontour_cache` зависит только от `cadcontour_core` и Qt Core. Здесь реализованы
 типы, codec отдельных элементов, проверяемый layout, точный файловый I/O и протокол
-публикации файла, streaming ingest и external sort. Это не готовый Persistent Point
-Cache. Небольшие файлы файловых тестов имеют собственную тестовую сигнатуру и не
-являются datasets.
+публикации файла, streaming ingest/external sort, CacheWriter, packed BBox hierarchy
+и PendingCache. Writer создаёт завершённый dataset; production reader и интеграции
+с project state пока нет. Небольшие файлы базовых файловых тестов имеют собственную
+тестовую сигнатуру и не являются datasets.
 
 Канонические обязательства: [architecture.md, §§10, 12–14](architecture.md#12-persistent-point-cache),
 [algorithms.md, §3](algorithms.md#3-общие-численные-правила).
@@ -132,9 +133,8 @@ BBox конечный и упорядоченный: minX ≤ maxX, minY ≤ max
 
 Для пустого dataset kind/count/height = 0, root = `UINT64_MAX` (noPage).
 Для непустого: kind = 1, pageCount > 0, root < pageCount, 1 ≤ height ≤ pageCount.
-Поля описывают будущую BBox hierarchy. Morton-порядок реализован в sorter ниже;
-метод построения hierarchy и практическая эффективность spatial access ещё
-не реализованы и не подтверждены.
+Поля описывают packed BBox hierarchy, построенную по Morton-порядку sorter.
+Построение описано ниже; практическая эффективность spatial access пока не подтверждена.
 
 ## Point/index page
 
@@ -156,7 +156,7 @@ Offsets относительно начала страницы. Page ID — ordi
 | после payload | до 65504 | Нулевой padding |
 | 65504 | 32 | SHA-256 байтов [0, 65504) |
 
-Будущий writer заполняет все point pages кроме последней полностью, что
+CacheWriter заполняет все point pages кроме последней полностью, что
 согласуется с формулой pointPages. Самостоятельный page codec допускает частичную
 страницу, не решая её положение в файле. Пустых страниц нет.
 
@@ -176,10 +176,10 @@ Offsets относительно начала страницы. Page ID — ordi
 Эти локальные ограничения проверяются encoder, decoder и validation отдельной страницы.
 Неверный count на входе encoder — `InvalidInput`, в бинарном элементе — `CorruptCache`.
 
-Leaves level = 1 ссылаются на Points; level ≥ 2 — на Index. Будущий index validator
-проверит level дочерних страниц, section ranges, BBox coverage, subtree counts и
-отсутствие циклов, включая равенство count фактическому числу записей дочерней страницы.
-Эта полная проверка согласованности не является обязанностью codec одной entry/page.
+Leaves level = 1 ссылаются на Points; level ≥ 2 — на Index. Writer проверяет
+согласованность своего дерева при sealing, используя descriptors записанных point
+pages и readback index pages. Полная validation произвольного стороннего dataset
+остаётся задачей reader. Codec одной entry/page не проверяет согласованность дерева.
 
 ## Completion footer
 
@@ -222,7 +222,8 @@ kind и byte-order marker отклоняются как unsupported. Невер�
 Codec принимает буфер ровно размера элемента. Primitive integer/double операции
 проверяют диапазон до доступа и не требуют alignment. Контроль finite coordinates
 отдельный от raw bits. Полная проверка IDs, topology индекса, покрытия BBox и всех
-records большого файла остаётся будущим writer/reader.
+records произвольного большого файла остаётся задачей будущего reader; ограниченная
+проверка собственного результата writer описана ниже.
 
 SHA-256 выявляет случайное повреждение; это не подпись и не аутентификация.
 
@@ -255,7 +256,10 @@ SHA-256 выявляет случайное повреждение; это не 
 3. `publish(expectedSize, validator)` — терминальная попытка, включая отказ validation.
    Требует непустой validator и размер в диапазоне qint64. Проверяет flush, точный
    размер, seek(0), затем вызывает validator требуемой структуры. Validator обязан
-   только читать, проверять свои I/O и возвращать structured result без исключений.
+   только читать staged device, проверять свои I/O и возвращать structured result без
+   исключений. Перегрузка с `ContextValidator` синхронно заимствует caller context для
+   рабочих буферов, cancellation и cleanup собственных scratch-файлов перед rename;
+   исходная перегрузка без context сохраняется.
 4. Только после этих проверок однократно вызывает именно
    `QTemporaryFile::rename(finalPath)`. Замена существующего пути запрещена;
    copy/delete fallback, `QFile::rename` и повторный rename отсутствуют.
@@ -349,7 +353,7 @@ qint64 и одновременное существование source+destinati
 
 `finish(sink)` однократно передаёт ограниченные `span<const PointRecord>` в глобальном
 порядке, затем возвращает `Result<CacheMetadata>`. Span действителен только до
-возврата callback; sink может передавать записи в будущий Point Page builder,
+возврата callback; sink может передавать записи в Point Page builder CacheWriter,
 накапливающий до `format::pointCapacity` для `encodePointPage()`. Sink должен
 подготавливать результат временно: после выданного префикса возможны I/O failure,
 отмена или отказ sink. Только успешный `finish` разрешает дальнейшую публикацию.
@@ -376,10 +380,133 @@ cleanup без возможности вернуть вторую ошибку. 
 остаться; crash recovery/scavenger не реализованы. Parent должен быть доверенным,
 защита от подмены scratch-файлов сторонним процессом вне контракта.
 
+## CacheWriter, BBox hierarchy и PendingCache (3/5)
+
+### API и поток страниц
+
+`CacheWriter::create(finalPath, limits, temporaryParent, cancel, context)` создаёт
+одну headless операцию. `append(span<const Measurement>)` передаёт batches
+существующему PointStreamSort; ID, Morton key и исходная metadata принадлежат sorter.
+`finish()` однократно возвращает `Result<PendingCache>`. Дополнительной сортировки
+или полного файла отсортированных точек нет.
+
+Sink накапливает до 2726 PointRecord, вызывает `encodePointPage()` и пишет страницу
+в StagedFile. Непустая последняя страница записывается после успешного завершения
+sorter. Point ordinals идут от 0, все страницы кроме последней полны. Фактические
+bounds выбираются по исходным binary64 с явными правилами signed zero, как в ingest;
+нет epsilon, квантования или расширения bounds. Count и побитовый BBox всего
+выданного потока сравниваются с metadata успешного `PointStreamSort::finish()`.
+Ошибка sorter после последнего sink, включая cleanup, запрещает публикацию.
+
+Для каждой записанной point page сохраняется descriptor: 64 байта существующего
+encoded IndexEntry и 32 байта SHA-256 этих 64 байт. Это приватный scratch framing,
+не новое поле v1. Один unbuffered `points.desc` в уникальном каталоге содержит
+ровно `96 * pointPages` байт; длина, digest, ordinal, kind и count проверяются.
+
+### Построение и размещение уровней
+
+Leaf pages объединяют последовательные группы до 1022 point descriptors. Все
+листья записываются подряд в index section с level=1. Следующий проход читает
+предыдущий уровень из уже записанных index pages: bounds и checked sum counts
+каждой страницы становятся descriptor для родителя. Полного массива descriptors
+и дополнительных файлов уровней нет. Один буфер страницы переиспользуется для
+чтения дочерней страницы и записи родительской; bounded массив entries удерживает
+только одну родительскую группу.
+
+Уровни следуют снизу вверх, ordinals index section непрерывны от 0. В каждой
+группе children идут в исходном порядке; root — последняя index page. Height равен
+root level. Bounds родителя — точное объединение дочерних bounds, pointCount —
+checked sum исходных записей. Повторять проходы нужно до единственного root.
+Для пустого dataset страниц и root нет; layout/header/footer остаются допустимыми.
+Это текущий инженерный вариант packed hierarchy; сравнение эффективности индексов
+и HDD performance ещё не выполнено.
+
+### Совместный ресурсный бюджет
+
+Пусть `M/T/H` — caller memoryBytes/temporaryDiskBytes/maxOpenFiles, а `p` — сумма
+длин absolute final path и absolute temporary parent в UTF-16 units. Writer резервирует:
+
+```text
+W = 65536 + 65536
+    + max(2726 * sizeof(PointRecord), 1022 * sizeof(IndexEntry)) + 16*p
+sorter.memoryBytes        = M - W
+writer.temporaryDiskBytes = floor(T/2)
+sorter.temporaryDiskBytes = T - floor(T/2)
+sorter.maxOpenFiles       = H - 2
+```
+
+Первая часть W — reserve для control objects, ограниченного стека, путей и
+служебных расходов; вторая — единственный encoded page buffer. На текущем x64
+`sizeof(PointRecord)=24`, `sizeof(IndexEntry)=56`; phase-specific массивы имеют
+соответственно 65424 и 57232 байта. Point array и sorter уничтожаются до allocation
+index array. Validation использует те же page/entries buffers. Размер массива
+не зависит от общего количества точек, страниц или уровней.
+
+Бюджет sorter дополнительно включает его собственный fixed reserve, описанный
+выше. Слишком малые M/T или H<4 отклоняются. Во время сортировки одновременно
+открыты staged cache, descriptor file и до двух runs; при index/sealing — не более
+двух файлов. Directory не удерживает постоянный file handle.
+
+Перед каждым ростом проверяются checked sizes, qint64 offsets и сумма логических
+длин cache+descriptors в writer half; sorter отдельно ограничивает source+destination
+другой половиной. Финальный cache учитывается, пока существуют runs. Деление
+консервативное: свободный бюджет одной половины не заимствуется другой. Фактическая
+запись/flush могут отказать независимо от планового бюджета. Нехватка свободного
+места обрабатывается как I/O failure; предварительный snapshot свободного места
+не гарантировал бы успех последующих записей.
+Filesystem metadata/allocation granularity, входные batches, общий Qt/runtime и
+файловый кэш ОС не являются контролируемыми рабочими allocations. W и тестовые
+счётчики не означают измеренный peak RSS или жёсткий лимит памяти процесса.
+
+### Sealing, validation и владение
+
+Состояния writer: Accepting → Finishing → Succeeded либо Failed/Cancelled.
+Повторный вход отклоняется без изменения выполняемой операции. После failure
+сохраняется первая ошибка; после success дальнейшие append/finish дают InvalidState.
+bad_alloc преобразуется в ResourceExhausted, в том числе внутри sink.
+
+После успешной сортировки/индексации writer записывает окончательные header и
+completion footer через существующие codecs/calculateLayout. Затем
+`StagedFile::publish(expectedSize, validator, context)` проверяет flush и точный
+размер. Validator перечитывает header/footer, вызывает validateEnvelope и сравнивает
+идентичность/metadata с исходным потоком. Все index pages проверяются по framing,
+checksum/padding, count, ordinal и level. Leaves сравниваются с checksummed point
+descriptors и ожидаемой вместимостью исходных страниц. Parent entries сравниваются
+с readback summaries children. Проверяются непрерывное покрытие каждого уровня,
+отсутствие пропусков/дубликатов/циклов, section ranges, root, bounds и subtree counts.
+Корректный SHA-256 сам по себе не заменяет эти проверки.
+
+Validator не перечитывает все point pages: он проверяет собственный результат
+writer по descriptors сформированных страниц. Это не общий validator произвольного
+cache и не проверка случайного повреждения всех point payloads после записи.
+Независимые headless tests дополнительно читают все records небольших datasets,
+проверяют IDs, биты X/Y, порядок и BBox, затем обходят дерево отдельным DFS.
+
+Cancellation проверяется при выдаче потока, на границах страниц, каждого child/
+группы/уровня, sealing/readback и непосредственно перед завершением validator.
+После успешной validation scratch закрывается и удаляется до rename; отказ удаления
+даёт CleanupFailed. Используется прежний один QTemporaryFile::rename без overwrite
+и copy fallback. Synchronous I/O и rename не имеют гарантированной latency отмены;
+успешный завершающий gate является границей публикации, отмена после него не
+отменяет состоявшийся success. Гарантии при отключении питания не добавлены.
+
+Владение непрерывно: StagedFile → PublishedFile → move-only PendingCache.
+PendingCache предоставляет path/metadata/index/layout; уничтожение означает
+Discard. `releaseToOwner()` передаёт путь принятому владельцу через существующий
+PublishedFile, отключает autoRemove без allocations или большого I/O. Повторная
+передача и moved-from объект имеют пустой path. Долговременное удаление принятого
+dataset и application publication gate здесь не реализованы.
+
+При failure/cancellation PendingCache не возвращается, временные handles/буферы
+освобождаются, удаления не меняют первую ошибку. Если удаление scratch sorter
+блокирует ОС, writer сохраняет его cleanup-владение до destructor retry; собственный
+descriptor directory также остаётся под RAII. Если блокировка сохраняется при
+уничтожении владельцев или процесс аварийно завершён, временные файлы могут остаться;
+recovery/scavenger относится к дальнейшим задачам.
+
 ## Что ещё не реализовано
 
-Нет ASC/XYZ parser, финального streaming cache writer,
-упаковки потока страниц, index builder/tree traversal, CacheReader/spatial queries,
-полной dataset validation, PendingCache, application/OperationRunner integration,
+Нет ASC/XYZ parser, CacheReader/spatial queries,
+полной validation произвольного dataset, application/OperationRunner integration,
 project serialization, Density Map и Reduced Point Cloud. Данный формат не означает
 завершения или принятия всей задачи 03.

@@ -42,6 +42,7 @@ private:
 class StagedFile {
 public:
     using Validator = Status (*)(QIODevice &, std::uint64_t expectedSize);
+    using ContextValidator = Status (*)(QIODevice &, std::uint64_t expectedSize, void *context);
     static Result<std::unique_ptr<StagedFile>> create(const QString &finalPath);
     StagedFile(const StagedFile &) = delete;
     StagedFile &operator=(const StagedFile &) = delete;
@@ -53,9 +54,11 @@ public:
     Status seek(std::uint64_t offset);
     Result<std::uint64_t> size();
     Status flush();
-    // Terminal attempt (also on validation failure). Validator must only read,
+    // Terminal attempt (also on validation failure). Validator must only read the staged device,
     // returns structured failure and must check the caller's required structure.
     Result<PublishedFile> publish(std::uint64_t expectedSize, Validator validator);
+    // Context is borrowed only for this synchronous call (e.g. buffers and cancellation).
+    Result<PublishedFile> publish(std::uint64_t expectedSize, ContextValidator validator, void *context);
     const std::optional<Error> &firstError() const noexcept { return firstError_; }
 private:
     friend class CacheFileTestAccess;

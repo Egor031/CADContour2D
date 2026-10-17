@@ -495,9 +495,10 @@ density pixel ↔ view
 Ручные операции пользователя не должны изменять его.
 
 Предварительный внутренний binary layout v1 и файловый протокол описаны в
-[point-cache-format.md](point-cache-format.md). В реализации 2/5 задачи 03 готовы
-codec, файловый фундамент, streaming ingest и bounded external sort;
-writer, spatial index/reader и полный dataset lifecycle
+[point-cache-format.md](point-cache-format.md). В реализации 3/5 задачи 03 готовы
+codec, файловый фундамент, streaming ingest/external sort, CacheWriter,
+packed BBox hierarchy и PendingCache с автономным Accept/Discard владением.
+Reader/spatial queries, application dataset lifecycle и нагрузочная приёмка
 ещё не реализованы. Формат не заморожен до их проверки.
 
 ---
@@ -841,7 +842,7 @@ Snapshot включает идентичность целевой версии �
 
 Snapshot сам по себе не обеспечивает этот инвариант. Gate сверяет OperationId, исходный ProjectIdentity/InputRevision, отсутствие отзыва публикации и открытое состояние приложения непосредственно перед commit. При появлении версий/Rough-входов их идентичность и ревизия включаются в тот же контракт; это не критерий совместимости сохранённых версий.
 
-Fallible preparation не изменяет текущий результат, предыдущий корректный результат и историю. После final check commit не выполняет allocations, dialogs, обработку событий или throwing history pushes; согласованные владельцы меняются атомарно не более одного раза. Будущий adapter реальной операции должен подготовить также её dataset/history изменения и проверить их атомарность; проверочный product задачи 02 не доказывает корректность ещё не реализованных cache/PNG writers и не становится domain dataset.
+Fallible preparation не изменяет текущий результат, предыдущий корректный результат и историю. После final check commit не выполняет allocations, dialogs, обработку событий или throwing history pushes; согласованные владельцы меняются атомарно не более одного раза. Будущий adapter реальной операции должен подготовить также её dataset/history изменения и проверить их атомарность; проверочный product задачи 02 не доказывает корректность cache/PNG publication adapters и не становится domain dataset.
 
 Worker после Ready ожидает единственное решение Accept/Discard по predicate condition variable. Все ветви gate дают решение. Borrowed product удерживается lease до конца preparation, в том числе при reentrant shutdown; worker освобождает discarded product и временные ресурсы вне mutex. Accept передаёт владение product application layer. Shutdown заранее выставляет Discard, если решения ещё нет, и уведомляет worker до любого ожидания; уже выполненный Accept не отменяется.
 
