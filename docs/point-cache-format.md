@@ -2,13 +2,14 @@
 
 ## Статус и область
 
-Внутренний зафиксированный формат **v1**, реализация 5/5 задачи 03. Byte layout,
+Внутренний зафиксированный формат **v1**, все пять частей задачи 03 завершены
+(5/5), статус задачи — **ACCEPTED**. Byte layout,
 encoding, checksums, packed hierarchy и канонический порядок определены этим
 документом. Нагрузочная матрица и сравнение с source-order baseline — в
 [cache-performance-report.md](cache-performance-report.md). Несовместимое изменение
 требует нового version identifier и согласованного обновления документа, codec
-и тестов. Опубликованных версий и миграций пока нет. Фиксация v1 не заменяет
-заключительное независимое ревью и принятие задачи пользователем.
+и тестов. Опубликованных версий и миграций пока нет. Принятие задачи пользователем
+после независимого ревью зафиксировано в [плане реализации](implementation-plan.md#03-persistent-point-cache-и-пространственный-доступ).
 
 `cadcontour_cache` зависит только от `cadcontour_core` и Qt Core. Здесь реализованы
 типы, codec отдельных элементов, проверяемый layout, точный файловый I/O и протокол
@@ -662,5 +663,5 @@ sort, а также перед success; гарантированной latency �
 ## Что ещё не реализовано
 
 Нет ASC/XYZ parser, application/OperationRunner integration,
-project serialization, Density Map и Reduced Point Cloud. Данный формат не означает
-завершения или принятия всей задачи 03.
+project serialization, Density Map и Reduced Point Cloud. Эти компоненты выходят
+за область принятой задачи 03.

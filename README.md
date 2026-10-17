@@ -139,7 +139,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
-| [point-cache-format.md](docs/point-cache-format.md) | Binary layout v1, sort, Writer/Reader, spatial queries и validation задачи 03 (4/5) |
+| [point-cache-format.md](docs/point-cache-format.md) | Binary layout v1, sort, Writer/Reader, spatial queries и validation задачи 03 (5/5) |
 | [cache-reader-check.md](docs/cache-reader-check.md) | Проверки Reader, ресурсная модель и ранние измерения spatial I/O |
 | [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
 | [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
@@ -304,8 +304,8 @@ failure, сохранение первичной ошибки и повторн�
 Реальное исчерпание RAM/заполнение диска, peak RSS, большие scans, HDD benchmarks и
 power-loss durability не проверялись. Production CacheReader и spatial queries
 пока отсутствуют; полного production round-trip нет. GUI не изменён; полная
-Synthetic Point Cloud Generator regression повторно не запускалась. Задача 03
-остаётся IN PROGRESS и не принята целиком.
+Synthetic Point Cloud Generator regression повторно не запускалась. Это результаты
+этапа 3/5, когда задача 03 оставалась IN PROGRESS и не была принята целиком.
 
 ### CacheReader и spatial queries — задача 03, реализация 4/5
 
@@ -439,7 +439,7 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**Задача 01: ACCEPTED. Задача 02: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задача 01: ACCEPTED. Задача 02: ACCEPTED. Задача 03: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -462,7 +462,9 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/cache-performance-report.md). Интеграция с application state остаётся задаче 04. **Статус задачи 03: READY FOR REVIEW**, требуется отдельное независимое ревью и принятие пользователем.
+Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/cache-performance-report.md). Интеграция с application state остаётся задаче 04. **Статус задачи 03: ACCEPTED**, все пять частей реализации завершены.
 
-Import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы. Задача 03 не имеет статуса ACCEPTED.
+Задача 03 принята пользователем после независимого комплексного ревью: **PASS WITH COMMENTS**, без подтверждённых дефектов P0–P2. Единственное замечание R2/P3 относилось к устаревшему перечню Open decisions в [algorithms.md, §45](docs/algorithms.md#45-указатель-основных-open-decisions) и устранено. В ходе завершённого ревью ранее повторены Debug/Release production (**298/298**), cache integration (**1/1**) и benchmark regression (**7/7**) в каждой конфигурации; исходные результаты и команды — в разделах выше и [историческом отчёте](docs/cache-performance-report.md#исправление-r1p2-после-независимого-ревью). При оформлении принятия сборки, тесты и нагрузочные измерения не повторялись; ранее описанные ограничения производительности, ресурсов и сохранности данных сохраняются.
+
+Import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 

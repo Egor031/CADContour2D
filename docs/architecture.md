@@ -503,8 +503,9 @@ read-only handle; время жизни immutable dataset обеспечивае
 Полная validation дополнительно проверяет канонический порядок Morton128/RecordId
 с O(1) состояния. Большой round-trip, ресурсные profiles, HDD queries и crash
 lifecycle проверены: [cache-performance-report.md](cache-performance-report.md).
-Application dataset lifecycle относится к последующим задачам; заключительное
-независимое ревью и принятие пользователем остаются отдельным шагом.
+Application dataset lifecycle относится к последующим задачам. Все пять частей
+задачи 03 завершены; задача принята пользователем (**ACCEPTED**) после независимого
+ревью (**PASS WITH COMMENTS**). Итог — в [плане реализации](implementation-plan.md#03-persistent-point-cache-и-пространственный-доступ).
 
 ---
 

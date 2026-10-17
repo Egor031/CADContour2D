@@ -1652,7 +1652,7 @@ I/O volume, если существенно
 - [Geometry Optimization passes и критерии (§35)](#35-geometry-optimization).
 - [Intersection/touch validation и численные tolerances (§36)](#36-проверка-топологии).
 
-Point-cache layout, spatial index, persistence и DXF compatibility остаются инженерными Open decisions в [architecture.md, §45](architecture.md#45-указатель-основных-open-decisions).
+Project persistence и DXF compatibility остаются инженерными Open decisions в [architecture.md, §45](architecture.md#45-указатель-основных-open-decisions).
 
 ---
 
