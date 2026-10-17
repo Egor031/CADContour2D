@@ -480,11 +480,20 @@ failures и cancellation возвращают structured error. Прямое bin
 пока синхронный. Формат Point Cache v1 и application/GUI не менялись.
 Интерфейсы, проверки и ограничения — [отчёт 04.1](docs/asc-xyz-import-check.md).
 
-Проверки 04.1 в Debug и Release: сборка и `all_qmllint` — PASS, production CTest —
+Первоначальные проверки 04.1 в Debug и Release: сборка и `all_qmllint` — PASS, production CTest —
 **337/337 PASS** (включая **39 новых** parser/importer и **166 cache** cases),
 отдельный `-L cache_integration` — **1/1 PASS**. Только новый набор запускается
 `ctest --preset windows-debug -R ^AscXyz --output-on-failure` или с
 `windows-release`. Вся задача 04 этим не объявляется принятой.
+
+После независимого ревью подтверждены и исправлены R1/R2: fallback при bad_alloc
+использует static diagnostic без conversion/truncation; parser принимает только
+non-sequential binary QIODevice (обычный QFile/QBuffer) с начальной позицией 0.
+Sequential sources отклоняются до чтения. Доказательства, адресные tests и границы
+проверки OOM — [отчёт исправлений](docs/asc-xyz-review-fixes.md).
+Повторные Debug/Release проверки: сборка и QML lint — PASS, ASC/XYZ — **42/42**
+(включая 3 regression cases), production — **340/340**, cache integration — **1/1**
+в каждой конфигурации.
 
 GUI import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 

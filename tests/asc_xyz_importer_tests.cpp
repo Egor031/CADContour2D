@@ -10,6 +10,8 @@
 #include <gtest/gtest.h>
 
 #include <bit>
+#include <new>
+#include <type_traits>
 #include <vector>
 
 using namespace cadcontour::cache;
@@ -25,6 +27,10 @@ public:
 }
 
 namespace {
+static_assert(std::is_nothrow_copy_constructible_v<Error>);
+static_assert(std::is_nothrow_move_constructible_v<Error>);
+static_assert(std::is_nothrow_constructible_v<std::variant<SourceSummary, Error>, Error &&>);
+static_assert(std::is_nothrow_constructible_v<std::variant<ImportProduct, Error>, Error &&>);
 ResourceLimits limits() { return {8ULL << 20, 64ULL << 20, 6}; }
 void write(const QString &path, const QByteArray &bytes)
 {
@@ -197,4 +203,22 @@ TEST(AscImport, InjectedAppendAndFinishIoFailuresThroughParserPipeline)
         }
         EXPECT_TRUE(children(dir).isEmpty());
     }
+}
+
+TEST(AscImportReviewRegression, BadAllocPropagatesThroughImportResultAndCleansWriter)
+{
+    QTemporaryDir dir; ASSERT_TRUE(dir.isValid());
+    const auto source = dir.filePath("source.xyz"), target = dir.filePath("output.cache");
+    write(source, "1 2 1\n");
+    auto result = importAscXyz(source, target, dir.path(), limits(), [](auto) -> ZDecision {
+        throw std::bad_alloc{};
+    });
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().code, ErrorCode::ResourceExhausted);
+    EXPECT_EQ(result.error().phase, Phase::Parse); // original parser error is preserved
+    EXPECT_EQ(result.error().detail, QStringLiteral("ASC/XYZ allocation failed"));
+    EXPECT_EQ(result.error().detail.capacity(), 0);
+    EXPECT_FALSE(result.error().detail.isDetached());
+    EXPECT_FALSE(result.error().offset); EXPECT_FALSE(result.error().source);
+    EXPECT_EQ(children(dir), QStringList{"source.xyz"});
 }

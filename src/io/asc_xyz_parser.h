@@ -28,8 +28,10 @@ struct SourceSummary {
     std::optional<NonZeroZ> firstNonZeroZ;
 };
 
-// Synchronous, one pass, borrowed binary source at its beginning. Short reads are legal;
-// zero progress requires confirmed EOF. Source/sink/handlers must not reenter or mutate
+// Synchronous, one pass, borrowed non-sequential binary source at its beginning
+// (e.g. a regular QFile or QBuffer). Sequential devices are rejected before reading:
+// their atEnd() can mean a temporary pause. Short reads are legal; zero progress
+// requires EOF. Source/sink/handlers must not reenter or mutate
 // the parser. A sink may see a prefix before failure; it must stage its result.
 // Nonzero Z requires a handler; its single request precedes further reads/sink calls.
 cache::Result<SourceSummary> parseAscXyz(

@@ -211,7 +211,9 @@ X Y Z
 ### Current approach
 
 В 04.1 реализован headless parser `io::parseAscXyz(QIODevice&, sink, zHandler, cancel, context)`:
-последовательные read blocks 64 KiB, line buffer максимум 64 KiB и batches до 4096
+поддержаны непоследовательные binary sources (обычный QFile/QBuffer) с позицией 0;
+sequential devices отклоняются до чтения как InvalidInput, без ожидания данных.
+Используются последовательные read blocks 64 KiB, line buffer максимум 64 KiB и batches до 4096
 `Measurement`. Память не зависит от числа измерений; незавершённая строка одна.
 Пустые строки пропускаются, непустая строка требует ровно три token; некорректные
 записи, лишние поля и отсутствие измерений завершаются structured failure.

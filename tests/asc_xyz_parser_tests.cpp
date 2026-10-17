@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <bit>
+#include <new>
 #include <stdexcept>
 #include <vector>
 
@@ -17,14 +18,22 @@ using namespace cadcontour::cache;
 using namespace cadcontour::io;
 
 namespace {
-// No QIODevice read-ahead: each readData call is one controlled short read.
+// Finite random-access file model. No QIODevice read-ahead: each readData call is
+// one controlled short read; size/position/seek expose the supported EOF contract.
 class Source : public QIODevice {
 public:
     QByteArray bytes;
     qint64 block = 7, position = 0, failure = -1, zeroProgress = -1;
     int reads = 0;
     explicit Source(QByteArray input) : bytes(std::move(input)) { open(ReadOnly | Unbuffered); }
-    bool isSequential() const override { return true; }
+    bool isSequential() const override { return false; }
+    qint64 size() const override { return bytes.size(); }
+    bool seek(qint64 offset) override
+    {
+        if (offset < 0 || offset > bytes.size() || !QIODevice::seek(offset)) return false;
+        position = offset;
+        return true;
+    }
     bool atEnd() const override { return position == bytes.size(); }
 protected:
     qint64 readData(char *out, qint64 maximum) override
@@ -230,4 +239,49 @@ TEST(AscParser, ReadFailureAfterDeliveredBatchesDiscardsRealWriterPrefix)
         EXPECT_GT(batches, 0);
     }
     EXPECT_TRUE(QDir(dir.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot | QDir::Hidden).isEmpty());
+}
+
+TEST(AscParserReviewRegression, BadAllocReturnsStaticDiagnosticThroughResult)
+{
+    for (bool inSink : {true, false}) {
+        QBuffer source; source.setData("1 2 1\n"); ASSERT_TRUE(source.open(QIODevice::ReadOnly));
+        auto result = parseAscXyz(source, [=](auto) -> Status {
+            if (inSink) throw std::bad_alloc{};
+            return success();
+        }, [=](auto) -> ZDecision {
+            if (!inSink) throw std::bad_alloc{};
+            return ZDecision::Continue;
+        });
+        ASSERT_FALSE(result);
+        EXPECT_EQ(result.error().code, ErrorCode::ResourceExhausted);
+        EXPECT_EQ(result.error().phase, Phase::Parse);
+        EXPECT_EQ(result.error().operation, Operation::Decode);
+        EXPECT_EQ(result.error().detail, QStringLiteral("ASC/XYZ allocation failed"));
+        // The returned error must retain read-only literal storage, not an allocated
+        // conversion buffer. Assertions run only after the controlled throw unwinds.
+        EXPECT_EQ(result.error().detail.capacity(), 0);
+        EXPECT_FALSE(result.error().detail.isDetached());
+        EXPECT_FALSE(result.error().offset); EXPECT_FALSE(result.error().source);
+    }
+}
+
+TEST(AscParserReviewRegression, RejectsSequentialSourceBeforeTemporaryEof)
+{
+    class SequentialSource : public Source {
+    public:
+        using Source::Source;
+        bool isSequential() const override { return true; }
+    } source("1 2 0\n");
+    int deliveries = 0;
+    auto parsed = parseAscXyz(source, [&](auto) { ++deliveries; return success(); }, {});
+    EXPECT_FALSE(parsed);
+    if (!parsed) {
+        EXPECT_EQ(parsed.error().code, ErrorCode::InvalidInput);
+        EXPECT_EQ(parsed.error().phase, Phase::SourceRead);
+        EXPECT_TRUE(parsed.error().detail.contains("Sequential"));
+    }
+    EXPECT_EQ(source.reads, 0); EXPECT_EQ(deliveries, 0);
+    // Data can arrive after a pause; there was no terminal EOF in this model.
+    source.bytes += "3 4 0\n";
+    EXPECT_FALSE(source.atEnd());
 }

@@ -179,8 +179,10 @@ Status Parser::byte(char c)
 }
 Result<SourceSummary> Parser::run()
 {
+    if (source_.isSequential())
+        return error(ErrorCode::InvalidInput, "Sequential sources are not supported", Phase::SourceRead);
     if (!source_.isOpen() || !source_.isReadable() || source_.isTextModeEnabled() || !sink_
-        || (!source_.isSequential() && source_.pos() != 0))
+        || source_.pos() != 0)
         return error(ErrorCode::InvalidInput, "Expected binary source at beginning and a sink");
     if (auto s = checkpoint(); !s) return s.error();
     buffers_ = std::make_unique<Buffers>();
@@ -226,6 +228,10 @@ cache::Result<SourceSummary> parseAscXyz(QIODevice &source, const MeasurementSin
     const ZHandler &zHandler, CancelCheck cancel, void *context)
 {
     try { return Parser(source, sink, zHandler, cancel, context).run(); }
-    catch (const std::bad_alloc &) { return error(cache::ErrorCode::ResourceExhausted, "ASC/XYZ allocation failed"); }
+    catch (const std::bad_alloc &) {
+        // Construct the fallback directly: no text conversion or truncation after OOM.
+        return cache::Error{cache::ErrorCode::ResourceExhausted, cache::Phase::Parse,
+            cache::Operation::Decode, {}, 0, QStringLiteral("ASC/XYZ allocation failed"), {}};
+    }
 }
 } // namespace cadcontour::io

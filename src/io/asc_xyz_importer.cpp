@@ -55,6 +55,9 @@ cache::Result<ImportProduct> importAscXyz(const QString &sourcePath, const QStri
     const QString &parent, cache::ResourceLimits limits, const ZHandler &handler, CancelCheck cancel, void *context)
 {
     try { return run(sourcePath, cachePath, parent, limits, handler, cancel, context); }
-    catch (const std::bad_alloc &) { return error(cache::ErrorCode::ResourceExhausted, "Importer allocation failed"); }
+    catch (const std::bad_alloc &) {
+        return cache::Error{cache::ErrorCode::ResourceExhausted, cache::Phase::SourceRead,
+            cache::Operation::Read, {}, 0, QStringLiteral("Importer allocation failed"), {}};
+    }
 }
 } // namespace cadcontour::io

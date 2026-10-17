@@ -556,7 +556,9 @@ binary cache writer
 **Реализованная часть 04.1:** `cadcontour_io` (без GUI/application dependency)
 содержит streaming parser и синхронный headless `io::importAscXyz(sourcePath,
 finalCachePath, temporaryParent, ResourceLimits, zHandler, cancel, context)`.
-Parser принимает borrowed binary `QIODevice` и bounded sink, не создаёт Writer.
+Parser принимает borrowed non-sequential binary `QIODevice` в начальной позиции
+(обычный QFile/QBuffer) и bounded sink, не создаёт Writer. Sequential devices
+отклоняются до чтения: их `atEnd()` не подтверждает окончательный конец потока.
 Importer владеет `QFile`, связывает parser с `CacheWriter::create/append/finish`
 и возвращает `Result<ImportProduct>`: move-only `PendingCache` и `SourceSummary`
 (bytes/physical lines/measurements/первый ненулевой Z). Общие `Measurement`,

@@ -1,5 +1,10 @@
 # Проверка 04.1: headless ASC/XYZ → PendingCache
 
+Первоначальные проверки относятся к HEAD `9af1a0c`. После независимого ревью
+R1/R2 исправлены fallback при bad_alloc и контракт source: parser принимает
+только non-sequential binary QIODevice с позицией 0. Результаты повторных
+проверок и границы OOM-проверки — [asc-xyz-review-fixes.md](asc-xyz-review-fixes.md).
+
 ## A. Baseline
 
 Дата: 2026-10-17. Ветка `main`, исходный HEAD
@@ -21,7 +26,7 @@ owner до Accept. GUI задач 01–02 создаёт пустой ProjectSta
 
 Добавлены:
 
-- `src/io/asc_xyz_parser.h/.cpp` — синхронный parser borrowed `QIODevice` → bounded sink;
+- `src/io/asc_xyz_parser.h/.cpp` — синхронный parser borrowed non-sequential binary `QIODevice` → bounded sink;
 - `src/io/asc_xyz_importer.h/.cpp` — файловый headless orchestrator;
 - `tests/asc_xyz_parser_tests.cpp`, `tests/asc_xyz_importer_tests.cpp`;
 - `tests/fixtures/import/binary64_golden.h`, `generate_binary64_golden.py`;
