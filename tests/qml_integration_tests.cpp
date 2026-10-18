@@ -380,24 +380,28 @@ TEST(QmlRegistration, MainRequiresTypedInjection)
     EXPECT_TRUE(component.errorString().contains(QStringLiteral("Required property project")));
 }
 
-TEST(QmlIntegration, StartupHasNoProjectAndLegacyNewCommandCannotCreateOne)
+TEST(QmlIntegration, StartupOffersSelectionWithoutCreatingProject)
 {
     ProjectController controller;
     ProjectViewModel viewModel(controller);
     QQmlApplicationEngine engine;
     QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
-    engine.setInitialProperties({{QStringLiteral("project"), QVariant::fromValue(&viewModel)}});
+    engine.setInitialProperties({{QStringLiteral("project"), QVariant::fromValue(&viewModel)},
+                                 {QStringLiteral("fileDialogEnabled"), false}});
     engine.loadFromModule("CADContour2D", "Main");
     ASSERT_EQ(engine.rootObjects().size(), 1);
     auto *window = qobject_cast<QQuickWindow *>(engine.rootObjects().front());
     ASSERT_NE(window, nullptr);
     auto *button = window->findChild<QObject *>(QStringLiteral("newProjectButton"));
     ASSERT_NE(button, nullptr);
+    QCoreApplication::processEvents();
     EXPECT_FALSE(button->property("enabled").toBool());
     EXPECT_FALSE(viewModel.hasProject());
     EXPECT_TRUE(viewModel.cellText().isEmpty());
-    viewModel.newProject();
+    EXPECT_TRUE(viewModel.selectingFile());
+    viewModel.cancelFileSelection(viewModel.selectionToken());
+    EXPECT_TRUE(button->property("enabled").toBool());
     EXPECT_EQ(controller.project(), nullptr);
-    EXPECT_FALSE(viewModel.errorMessage().isEmpty());
+    EXPECT_TRUE(viewModel.errorMessage().isEmpty());
     window->close();
 }

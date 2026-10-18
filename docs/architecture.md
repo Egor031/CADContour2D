@@ -409,8 +409,8 @@ Project
 
 В 04.2 production запускается без проекта. `importAscXyz(ImportRequest)` создаёт
 новый сеанс после успешного принятия cache; замена требует явного
-`replacementConfirmed` именно для этого запроса. До FileDialog в 04.4 кнопка
-«Новый проект» отключена, legacy `newProject()` возвращает `ImportRequired`.
+`replacementConfirmed` именно для этого запроса. В 04.4A «Новый проект» в GUI
+начинает выбор ASC/XYZ; legacy controller `newProject()` возвращает `ImportRequired`.
 Пустые domain fixtures доступны только через friend test access, включая dev probe.
 Принятие задачи 01 этим не пересматривается.
 
@@ -603,15 +603,52 @@ Consumer явно регистрируется через `setNonZeroZConsumer(Q
 отключение или уничтожение отменяет активный импорт. Worker не хранит QObject
 и не вызывает GUI callbacks. Без consumer используется пустой parser handler:
 плоский файл импортируется, ненулевой Z даёт InvalidInput с диагностикой требования
-decision handler, без ожидания или автоматического Continue. Это временная
-fail-closed политика до подключения GUI в 04.4; timeout не используется.
+decision handler, без ожидания или автоматического Continue. Это
+fail-closed политика для callers без consumer; timeout не используется.
 
 На Z-wait чтение и передача measurements остановлены, bounded parser buffers
 остаются в worker. Continue продолжает тот же проход; Cancel возвращает Cancelled,
 сохраняя прежний проект и history. Close отменяет также первый импорт из NoProject.
 Публикация после Continue по-прежнему требует отдельного Ready/Accept (§25).
-FileDialog/GUI и сквозные большие прогоны — 04.4; точный progress внутренних фаз
-здесь не добавлен. Подробности — [04.1](asc-xyz-import-check.md),
+В 04.4A production `ProjectViewModel` регистрируется единственным GUI consumer
+до импорта. QML вызывает стартовый выбор через `Qt.callLater` после Component completion,
+однократно за сеанс адаптера; Cancel оставляет NoProject. Нативный `QtQuick.Dialogs.FileDialog`
+передаёт QUrl; C++ проверяет local-file semantics, absolute Windows/UNC path,
+расширение и отсутствие query/fragment/credentials/NUL, затем использует `toLocalFile()`.
+Проверка доступности source и весь файловый I/O остаются в worker.
+
+Выбор и подтверждение замены имеют одноразовый UI token. До FileDialog controller
+выдаёт `ImportContext` (optional project stamp, application epoch и номер последней
+операции). GUI передаёт его как `ImportRequest::expectedContext`; controller
+повторно сверяет контекст и доступность запуска. Изменение контекста, Busy или Closing
+снимают выбор; старый callback не разрешает новый импорт. Это дополнительная проверка
+перед запуском, прежний publication gate остаётся обязательным.
+
+Z-диалог хранит UUID отображаемого запроса, а adapter сверяет его с актуальным
+`pendingNonZeroZ()` и передаёт существующий typed request в `answerNonZeroZ`.
+Пользовательское закрытие означает Cancel. Программное закрытие предварительно
+снимает UI token, исключая ложный ответ. Destructor ViewModel отключает входящие
+controller signals до QObject destruction: отзыв consumer может синхронно отменить
+worker, но уже не вызывает методы уничтоженного derived adapter.
+
+Карточка читает только принятый `ProjectState::dataset()`. Count и диагностические
+64-bit counters передаются строками, coordinates/Z — shortest round-trip binary64
+без группировки, с технической десятичной точкой. Ошибки импорта и ввода cell
+разделены; progress/failure не меняют draft/selection/error cell.
+
+GUI выбирает `interactiveResources`, worker разрешает его в обычный ненулевой
+ResourceLimits на томе storage: рабочий бюджет 128 MiB, 32 файла, дисковый бюджет
+доступного места после резерва 64 MiB и 5% оставшегося объёма. Это политика одного
+импорта, а не предел RAM приложения или ограничение размера исходного файла.
+Explicit limits headless callers сохраняются. Неизвестный/недостаточный disk budget
+даёт ResourceExhausted; snapshot свободного места не гарантирует последующую запись.
+
+Необязательный синхронный observer импортера сообщает только границы Parsing и
+BuildingCache; application добавляет Preparing/Finalizing, Z-wait и terminal outcome.
+Сортировка, индекс и sealing объединены в BuildingCache. Total неизвестен, GUI
+использует indeterminate без вымышленных процентов. Mailbox и threading не менялись.
+Большие сквозные прогоны остаются в 04.4B. Подробности — [04.4A](asc-xyz-gui-check.md),
+[04.1](asc-xyz-import-check.md),
 [04.2](asc-xyz-application-check.md), [04.3](nonzero-z-confirmation-check.md).
 
 ---

@@ -1,12 +1,15 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs as NativeDialogs
 import CADContour2D
 
 ApplicationWindow {
     id: window
     required property ProjectViewModel project
     property Component developmentControls: null
+    // Tests suppress only the OS window and deliver FileDialog.selectedFile/accepted.
+    property bool fileDialogEnabled: true
 
     width: 680
     height: 600
@@ -14,6 +17,7 @@ ApplicationWindow {
     minimumHeight: 380
     visible: true
     title: "CADContour2D"
+    Component.onCompleted: Qt.callLater(function() { window.project.offerStartupImport() })
 
     onClosing: function(close) {
         close.accepted = window.project.requestClose()
@@ -27,6 +31,183 @@ ApplicationWindow {
         function onShutdownChanged() {
             if (window.project.shutdownReady)
                 Qt.callLater(function() { window.close() })
+        }
+        function onFileSelectionRequested() {
+            fileDialog.requestToken = window.project.selectionToken
+            if (window.fileDialogEnabled)
+                fileDialog.open()
+        }
+        function onImportUiChanged() {
+            if (!window.project.selectingFile) {
+                fileDialog.requestToken = ""
+                fileDialog.close()
+            }
+            if (window.project.replacementPending) {
+                if (!replacementDialog.visible) {
+                    replacementDialog.requestToken = window.project.selectionToken
+                    replacementDialog.open()
+                }
+            } else {
+                replacementDialog.requestToken = ""
+                replacementDialog.close()
+            }
+        }
+        function onNonZeroZChanged() {
+            const token = window.project.nonZeroZToken
+            if (token.length > 0) {
+                if (zDialog.requestToken !== token) {
+                    zDialog.requestToken = token
+                    zDialog.open()
+                }
+            } else {
+                zDialog.requestToken = ""
+                zDialog.close()
+            }
+        }
+    }
+
+    NativeDialogs.FileDialog {
+        id: fileDialog
+        objectName: "importFileDialog"
+        property string requestToken: ""
+        title: "Выберите облако точек ASC/XYZ"
+        fileMode: NativeDialogs.FileDialog.OpenFile
+        nameFilters: ["Облака точек (*.asc *.xyz)", "ASC (*.asc)", "XYZ (*.xyz)"]
+        acceptLabel: "Импортировать"
+        rejectLabel: "Отмена"
+        onAccepted: window.project.selectImportFile(requestToken, selectedFile)
+        onRejected: window.project.cancelFileSelection(requestToken)
+    }
+
+    Dialog {
+        id: replacementDialog
+        objectName: "replacementDialog"
+        property string requestToken: ""
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, window.width - 32)
+        height: Math.min(280, window.height - 32)
+        modal: true
+        title: "Заменить текущий проект?"
+        closePolicy: Popup.CloseOnEscape
+        onClosed: {
+            const token = requestToken
+            requestToken = ""
+            window.project.confirmReplacement(token, false)
+        }
+        contentItem: Flickable {
+            implicitHeight: 0
+            contentWidth: width
+            contentHeight: replacementText.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            ScrollBar.vertical: ScrollBar {}
+            Label {
+                id: replacementText
+                width: replacementDialog.availableWidth
+                textFormat: Text.PlainText
+                text: "Выбран файл: " + window.project.replacementFileName
+                    + "\n\nНовый проект заменит текущий только после успешного импорта. При отказе, ошибке или отмене текущий проект останется доступным."
+                    + "\n\nПосле замены история Undo/Redo не переносится. Обычная отмена действия не восстановит предыдущий проект."
+                wrapMode: Text.Wrap
+            }
+        }
+        footer: DialogButtonBox {
+            Button {
+                objectName: "replaceConfirmButton"
+                text: "Заменить проект"
+                onClicked: {
+                    const token = replacementDialog.requestToken
+                    replacementDialog.requestToken = ""
+                    window.project.confirmReplacement(token, true)
+                    replacementDialog.close()
+                }
+            }
+            Button {
+                objectName: "replaceRejectButton"
+                text: "Отказаться"
+                onClicked: replacementDialog.close()
+            }
+        }
+    }
+
+    Dialog {
+        id: zDialog
+        objectName: "nonZeroZDialog"
+        property string requestToken: ""
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, window.width - 32)
+        height: Math.min(240, window.height - 32)
+        modal: true
+        title: "Ненулевая координата Z"
+        closePolicy: Popup.CloseOnEscape
+        onClosed: {
+            const token = requestToken
+            requestToken = ""
+            window.project.answerNonZeroZ(token, false)
+        }
+        contentItem: Flickable {
+            implicitHeight: 0
+            contentWidth: width
+            contentHeight: zText.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
+            ScrollBar.vertical: ScrollBar {}
+            Label {
+                id: zText
+                objectName: "nonZeroZMessage"
+                width: zDialog.availableWidth
+                textFormat: Text.PlainText
+                text: window.project.nonZeroZText
+                wrapMode: Text.Wrap
+            }
+        }
+        footer: DialogButtonBox {
+            Button {
+                objectName: "continueZButton"
+                text: "Продолжить импорт"
+                onClicked: {
+                    const token = zDialog.requestToken
+                    zDialog.requestToken = ""
+                    window.project.answerNonZeroZ(token, true)
+                    zDialog.close()
+                }
+            }
+            Button {
+                objectName: "cancelZButton"
+                text: "Отменить импорт"
+                onClicked: zDialog.close()
+            }
+        }
+    }
+
+    footer: Pane {
+        ColumnLayout {
+            anchors.fill: parent
+            RowLayout {
+                Layout.fillWidth: true
+                Button {
+                    objectName: "newProjectButton"
+                    text: "Новый проект"
+                    enabled: window.project.canImport
+                    onClicked: window.project.newProject()
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    objectName: "closeButton"
+                    text: "Закрыть"
+                    onClicked: window.close()
+                }
+            }
+            Button {
+                objectName: "stopOperationButton"
+                text: "Остановить операцию"
+                visible: window.project.operationActive
+                enabled: window.project.canCancelOperation
+                Layout.fillWidth: true
+                onClicked: window.project.cancelOperation()
+            }
         }
     }
 
@@ -42,9 +223,51 @@ ApplicationWindow {
 
             Label {
                 objectName: "projectStatus"
-                text: window.project.hasProject ? "Новый проект" : "Нет открытого проекта"
+                text: window.project.hasProject ? "Текущий проект" : "Нет открытого проекта"
                 font.pixelSize: 24
                 Layout.fillWidth: true
+            }
+
+            Frame {
+                objectName: "datasetCard"
+                visible: window.project.hasDataset
+                Layout.fillWidth: true
+                ColumnLayout {
+                    anchors.fill: parent
+                    Label {
+                        objectName: "sourceNameLabel"
+                        textFormat: Text.PlainText
+                        text: window.project.sourceName
+                        font.bold: true
+                        wrapMode: Text.WrapAnywhere
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        objectName: "pointCountLabel"
+                        text: "Точек: " + window.project.pointCountText
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        objectName: "boundsLabel"
+                        text: window.project.boundsText
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        objectName: "cacheStatusLabel"
+                        text: "Point Cache готов · Единицы измерения: миллиметры"
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        objectName: "datasetZLabel"
+                        visible: window.project.datasetHasNonZeroZ
+                        text: "Источник содержит ненулевой Z. Для обработки используются X и Y."
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
+                }
             }
 
             Label {
@@ -70,7 +293,7 @@ ApplicationWindow {
                     objectName: "cellInput"
                     Layout.fillWidth: true
                     enabled: window.project.hasProject && window.project.actionsEnabled
-                    placeholderText: "cell, мм"
+                    placeholderText: "Размер ячейки, мм"
                     Accessible.name: "Размер ячейки в миллиметрах"
                     selectByMouse: true
                     Component.onCompleted: cellInput.text = window.project.cellText
@@ -82,6 +305,15 @@ ApplicationWindow {
                     enabled: window.project.hasProject && window.project.actionsEnabled
                     onClicked: window.project.applyCell(cellInput.text)
                 }
+            }
+
+            Label {
+                objectName: "importErrorLabel"
+                text: window.project.importErrorMessage
+                visible: text.length > 0
+                color: "#b42318"
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
             }
 
             Label {
@@ -124,12 +356,13 @@ ApplicationWindow {
                     value: window.project.progressValue
                     Layout.fillWidth: true
                 }
-                Button {
-                    objectName: "stopOperationButton"
-                    text: "Остановить операцию"
-                    visible: window.project.operationActive
-                    enabled: window.project.canCancelOperation
-                    onClicked: window.project.cancelOperation()
+                Label {
+                    objectName: "importDiagnosticLabel"
+                    textFormat: Text.PlainText
+                    text: window.project.diagnosticText
+                    visible: text.length > 0
+                    wrapMode: Text.WrapAnywhere
+                    Layout.fillWidth: true
                 }
             }
 
@@ -155,22 +388,6 @@ ApplicationWindow {
                 }
             }
 
-            RowLayout {
-                Layout.fillWidth: true
-                Button {
-                    objectName: "newProjectButton"
-                    text: "Новый проект"
-                    // File selection/import UI is introduced in task 04.4.
-                    enabled: false
-                    onClicked: window.project.newProject()
-                }
-                Item { Layout.fillWidth: true }
-                Button {
-                    objectName: "closeButton"
-                    text: "Закрыть"
-                    onClicked: window.close()
-                }
-            }
         }
     }
 }

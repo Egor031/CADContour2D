@@ -24,7 +24,7 @@ struct NonZeroZRequest {
     double value = 0;
     bool operator==(const NonZeroZRequest &) const = default;
 };
-enum class OperationPhase { Preparing, Computing, Finalizing, Cleanup };
+enum class OperationPhase { Preparing, Computing, Parsing, BuildingCache, Finalizing, Cleanup };
 enum class WorkerStatus { Succeeded, Cancelled, Failed };
 enum class PublicationDecision { Pending, Accept, Discard };
 enum class OperationStatus { Idle, Starting, Running, Cancelling, Finishing,

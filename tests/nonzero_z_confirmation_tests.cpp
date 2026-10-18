@@ -124,6 +124,25 @@ TEST_F(ZConfirmation, FlatAndSignedZerosDoNotRequest)
     readCache(3, false);
 }
 
+TEST_F(ZConfirmation, CancelWakesZWaitWithoutPollShutdownOrDrain)
+{
+    start();
+    ASSERT_TRUE(waiting()); // observed under the same mutex after the worker releases it in wait
+    auto c = context();
+    ASSERT_EQ(controller.cancelOperation().outcome, CommandOutcome::Applied);
+    // No GUI events/poll/shutdown/drain until the worker itself publishes Ready.
+    ASSERT_TRUE(waitContext(c, false));
+    {
+        std::lock_guard lock(c->mutex);
+        EXPECT_FALSE(c->waitingForZ);
+        EXPECT_EQ(c->outcome.status, WorkerStatus::Cancelled);
+        EXPECT_FALSE(c->zRequest);
+    }
+    EXPECT_EQ(controller.project(), nullptr);
+    cancelled(); // only now supply Discard and verify final cleanup
+    EXPECT_EQ(attempts(), 0);
+}
+
 class ZPosition : public ZConfirmation, public testing::WithParamInterface<int> {};
 TEST_P(ZPosition, ContinueImportsEveryRecordOnceAndOnlyRequestsFirstNonzero)
 {

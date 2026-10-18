@@ -8,11 +8,14 @@ namespace cadcontour {
 
 class ProjectStateTestAccess {
 public:
+    static void setDataset(ProjectState &state, ImportedDataset data) { state.dataset_ = std::move(data); }
     static void setRevision(ProjectState &state, std::uint64_t value) { state.inputRevision_ = value; }
 };
 
 class ProjectControllerTestAccess {
 public:
+    static void setDataset(ProjectController &controller, ImportedDataset data)
+    { ProjectStateTestAccess::setDataset(controller.session_->state, std::move(data)); }
     // Domain/Undo/verification fixture only. Production creates sessions through import.
     static CommandResult newProject(ProjectController &controller)
     {

@@ -73,6 +73,13 @@ target_link_libraries(qml_integration_tests PRIVATE
 target_compile_options(qml_integration_tests PRIVATE /W4 /permissive- /utf-8)
 gtest_discover_tests(qml_integration_tests DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 30 LABELS production)
 
+qt_add_executable(gui_import_tests qml_test_main.cpp gui_import_tests.cpp)
+target_link_libraries(gui_import_tests PRIVATE
+    cadcontour_ui cadcontour_uiplugin Qt6::Quick GTest::gtest)
+target_compile_options(gui_import_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+gtest_discover_tests(gui_import_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX AscGui.
+    PROPERTIES TIMEOUT 30 LABELS production)
+
 set_source_files_properties(ProbeWindow.qml PROPERTIES QT_RESOURCE_ALIAS ProbeWindow.qml)
 qt_add_qml_module(cadcontour_verification STATIC
     URI CADContour2D.Verification VERSION 1.0

@@ -34,6 +34,8 @@ public:
 
     CommandResult newProject();
     CommandResult importAscXyz(ImportRequest request);
+    // UI captures this before file selection; startImport rechecks it before launching.
+    std::optional<ImportContext> importContext() const noexcept;
     CommandResult closeProject();
     CommandResult setCell(double value);
     CommandResult undo();

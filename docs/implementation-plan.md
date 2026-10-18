@@ -180,8 +180,8 @@ benchmark-проверки описаны в [README](../README.md#project-statu
 
 ### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
 
-**Статус: 04.1–04.3 реализованы. 04.3 — READY FOR REVIEW.
-Вся задача 04 не принята; FileDialog/GUI и сквозная приёмка ещё предстоят.**
+**Статус: 04.1–04.3 реализованы; 04.4A завершена — READY FOR REVIEW.
+Вся задача 04 не принята; целевое GUI-ревью и сквозная нагрузочная приёмка 04.4B ещё предстоят.**
 
 04.1 предоставляет `io::parseAscXyz` и `io::importAscXyz`, bounded buffers/batches,
 direct binary64 conversion, structured source diagnostics, синхронный единственный
@@ -196,8 +196,8 @@ Z Continue/Cancel и RAII `PendingCache`. Проверки и ограничен
 04.2 подключает реальный importer к OperationRunner: worker-only PendingCache,
 metadata-only Ready lease, создание/подтверждённая замена state/history одним
 noexcept commit с необратимым Accept, постоянный изолируемый storage и structured
-import diagnostics. Production запускается без проекта; legacy New временно
-отклоняется, кнопка отключена до 04.4. Ненулевой Z без решения не принимается.
+import diagnostics. Production запускается без проекта; legacy controller New
+отклоняется, GUI-команда выбора файла подключена в 04.4A. Ненулевой Z без решения не принимается.
 Технический отчёт и фактические проверки —
 [asc-xyz-application-check.md](asc-xyz-application-check.md).
 04.3 реализует межпоточный Z request через OperationContext, синхронный ZHandler
@@ -208,7 +208,16 @@ lifetime QObject. Без consumer ненулевой Z безопасно отк
 Headless tests используют реальные worker/parser/cache и управляемые barriers.
 Механизм, доказательство синхронизации и проверки —
 [nonzero-z-confirmation-check.md](nonzero-z-confirmation-check.md).
-FileDialog, настоящий QML consumer/dialog и итоговые large-file/end-to-end проверки — 04.4.
+04.4A подключает нативный FileDialog, стартовое предложение и «Новый проект»,
+контекстное подтверждение замены, ViewModel consumer и настоящий QML Z-dialog,
+карточку принятого dataset, рабочий resource profile и честный phase progress.
+37 новых GUI/UI tests и регрессия пробуждения Z-wait без polling прошли;
+Debug/Release production — **431/431** в каждой конфигурации, сборка и QML lint — PASS.
+Windows GUI smoke проверен отдельно от offscreen integration tests.
+Реализация, команды, найденные и исправленные дефекты и ограничения —
+[asc-xyz-gui-check.md](asc-xyz-gui-check.md).
+04.4B остаётся отдельным этапом: large-file/HDD/UNC/end-to-end нагрузочная матрица
+и окончательная сквозная приёмка. В 04.4A эти прогоны не выполнялись.
 
 Создание пустого `ProjectState` командой `newProject()` было корректным результатом принятой задачи 01. В задаче 04 команда «Новый проект» начинает выбор ASC/XYZ, а проект создаётся и принимается только после успешного импорта; это новое поведение не меняет исходных обязательств и приёмки задачи 01.
 

@@ -199,6 +199,14 @@ CommandResult ProjectController::importAscXyz(ImportRequest request)
     return startImport(std::move(request), {});
 }
 
+std::optional<ImportContext> ProjectController::importContext() const noexcept
+{
+    if (checkEntry().outcome == CommandOutcome::Rejected || runner_.busy())
+        return {};
+    return ImportContext{session_ ? std::optional(session_->state.operationStamp()) : std::nullopt,
+                         contextEpoch_, lastOperationId_};
+}
+
 CommandResult ProjectController::setNonZeroZConsumer(QObject *consumer)
 {
     const auto entry = checkEntry();
@@ -268,6 +276,8 @@ CommandResult ProjectController::startImport(ImportRequest request, io::ZHandler
         return entry;
     if (runner_.busy())
         return CommandResult::rejected(CommandError::Busy);
+    if (request.expectedContext && request.expectedContext != importContext())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ReplacementNotConfirmed);
     if (session_ && !request.replacementConfirmed)
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ReplacementNotConfirmed);
     if (request.sourcePath.isEmpty())

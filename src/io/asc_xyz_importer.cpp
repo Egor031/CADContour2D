@@ -17,7 +17,8 @@ Status checkpoint(CancelCheck cancel, void *context)
     return cancel && cancel(context) ? Status{error(ErrorCode::Cancelled, "ASC/XYZ import cancelled")} : success();
 }
 Result<ImportProduct> run(const QString &sourcePath, const QString &cachePath, const QString &parent,
-                          ResourceLimits limits, const ZHandler &handler, CancelCheck cancel, void *context)
+                          ResourceLimits limits, const ZHandler &handler, CancelCheck cancel, void *context,
+                          const ImportObserver &observer)
 {
     if (auto s = checkpoint(cancel, context); !s) return s.error();
     const auto paths = checked::multiply(static_cast<std::uint64_t>(sourcePath.size()), 16);
@@ -36,6 +37,7 @@ Result<ImportProduct> run(const QString &sourcePath, const QString &cachePath, c
     auto created = CacheWriter::create(cachePath, limits, parent, cancel, context);
     if (!created) return created.error();
     auto writer = std::move(created.value());
+    if (observer) observer(ImportPhase::Parsing);
     auto parsed = parseAscXyz(source, [&](auto batch) { return writer->append(batch); }, handler, cancel, context);
     if (!parsed) return parsed.error();
     auto finalSize = file::size(source);
@@ -45,6 +47,7 @@ Result<ImportProduct> run(const QString &sourcePath, const QString &cachePath, c
         return error(ErrorCode::SourceChanged, "Source size or modification time changed during import");
     source.close();
     if (auto s = checkpoint(cancel, context); !s) return s.error();
+    if (observer) observer(ImportPhase::BuildingCache);
     auto finished = writer->finish();
     if (!finished) return finished.error();
     if (auto s = checkpoint(cancel, context); !s) return s.error();
@@ -52,9 +55,10 @@ Result<ImportProduct> run(const QString &sourcePath, const QString &cachePath, c
 }
 } // namespace
 cache::Result<ImportProduct> importAscXyz(const QString &sourcePath, const QString &cachePath,
-    const QString &parent, cache::ResourceLimits limits, const ZHandler &handler, CancelCheck cancel, void *context)
+    const QString &parent, cache::ResourceLimits limits, const ZHandler &handler, CancelCheck cancel, void *context,
+    const ImportObserver &observer)
 {
-    try { return run(sourcePath, cachePath, parent, limits, handler, cancel, context); }
+    try { return run(sourcePath, cachePath, parent, limits, handler, cancel, context, observer); }
     catch (const std::bad_alloc &) {
         return cache::Error{cache::ErrorCode::ResourceExhausted, cache::Phase::SourceRead,
             cache::Operation::Read, {}, 0, QStringLiteral("Importer allocation failed"), {}};

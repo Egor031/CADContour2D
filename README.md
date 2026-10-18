@@ -60,8 +60,8 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 
 В новом проекте выбранный `cell` начинается с 1 мм без наследования прежнего значения. Это изменяемый пользователем параметр последующего явного построения Density Map; импорт не требует `cell` и карту не строит. Изменение выбранного `cell` не меняет существующие карты; каждая версия хранит собственные параметры построения. Автоматическая рекомендация `cell` — потенциальная тема исследования без выбранного алгоритма и утверждённой необходимости, не зависимость задач 04 или 06.
 
-Application API создания/замены реализован в 04.2; выбор файла и полный GUI ещё
-предстоят. Save/Open `.pc2dproj`, восстановление параметров и частично доступного
+GUI выбора ASC/XYZ, подтверждения замены/Z и карточка dataset реализованы в 04.4A.
+Save/Open `.pc2dproj`, восстановление параметров и частично доступного
 состояния при отсутствующем или повреждённом cache — отдельная задача 05; обычная
 работа после импорта не требует исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
@@ -400,11 +400,12 @@ start /wait "" build\windows-release\CADContour2D.exe
 start /wait "" build\windows-debug\CADContour2D.exe
 ```
 
-После 04.2 production запускается без проекта. До 04.4 выбор ASC/XYZ в GUI отсутствует,
-«Новый проект» отключён; прямой legacy-вызов возвращает `ImportRequired`. Создание
-пустого проекта из production недоступно. Программный C++ API
+Production запускается без проекта и в 04.4A предлагает ASC/XYZ через native FileDialog.
+«Новый проект» повторяет выбор; прямой legacy controller-вызов возвращает `ImportRequired`.
+Создание пустого проекта из production недоступно. Программный C++ API
 `ProjectController::importAscXyz(ImportRequest)` работает в фоне и принимает новый
 проект только после успеха. Подробности API и проверок —
+[отчёт GUI 04.4A](docs/asc-xyz-gui-check.md) и
 [отчёт 04.2](docs/asc-xyz-application-check.md). Это запуск из установленного Qt kit,
 не deployment package. Приведённые ниже сценарии приёмки задач 01–02 описывают
 исторически проверенный каркас; их cell/Undo/verification-инварианты сохранены
@@ -507,7 +508,7 @@ Sequential sources отклоняются до чтения. Доказател�
 (включая 3 regression cases), production — **340/340**, cache integration — **1/1**
 в каждой конфигурации.
 
-GUI import, density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
+Density map, rough stage, reduced point cloud, precise stage и DXF export пока не реализованы.
 
 В 04.2 реальный import подключён к OperationRunner. PendingCache и файловые guards
 остаются в worker; Ready содержит metadata, а необратимый Accept согласован с
@@ -538,10 +539,40 @@ consumer ненулевой Z по-прежнему отклоняется с д
 полный production CTest — **393/393** в каждой конфигурации. Адресные команды:
 `ctest --preset windows-debug -R ^AscConfirmation --output-on-failure` и
 `ctest --preset windows-release -R ^AscConfirmation --output-on-failure`.
-Статус 04.3 — **READY FOR REVIEW**; GUI подтверждения ещё отсутствует.
+Исторический статус реализации 04.3 — **READY FOR REVIEW**; GUI подключён в 04.4A.
 
-Части 04.1–04.3 реализованы; задача 04 в целом не принята. FileDialog, QML consumer
-и диалог, финальная сквозная проверка относятся к 04.4.
+В 04.4A приложение предлагает ASC/XYZ после готовности окна; отмена оставляет
+«Нет открытого проекта», «Новый проект» повторяет выбор. Нативный Windows FileDialog
+передаёт QUrl в C++ adapter, который проверяет Windows/UNC paths и URL semantics.
+Замена подтверждается отдельно для выбранного файла/контекста; прежний dataset/history
+сохраняется до успешного Accept. Настоящий QML Z-dialog использует протокол 04.3;
+закрытие означает Cancel, поздние callbacks не применяются. Карточка показывает
+принятые count/bounds/Z, Point Cache и `cell = 1 мм`; карта плотности не строится.
+
+GUI profile: 128 MiB рабочего бюджета, 32 handles; worker определяет доступное место
+на томе cache и оставляет резерв 64 MiB + 5% остатка. Это не предел RSS или размера
+source. Недостаточные ресурсы и I/O failures возвращают structured failure.
+Progress показывает реальные укрупнённые фазы с неизвестным total, без общего процента.
+
+Проверки 04.4A в Debug/Release: сборка приложения/test targets и `all_qmllint` — PASS;
+полный production CTest — **431/431** в каждой конфигурации, включая **37 новых GUI/UI**
+cases и **30 Z-confirmation** cases с новой регрессией пробуждения без polling.
+Windows GUI smoke проверен отдельно: native selection/cancel, Unicode/spaces,
+import/metadata, replacement, Z и закрытие. Полный отчёт, команды и ограничения —
+[asc-xyz-gui-check.md](docs/asc-xyz-gui-check.md).
+
+Проверенные команды после стандартной CMD-инициализации из Build:
+
+```bat
+cmake --build --preset windows-debug --target CADContour2D gui_import_tests view_model_tests qml_integration_tests nonzero_z_confirmation_tests import_application_tests asc_xyz_tests operation_tests project_tests dependency_smoke operation_probe all_qmllint --parallel 4
+cmake --build --preset windows-release --target CADContour2D gui_import_tests view_model_tests qml_integration_tests nonzero_z_confirmation_tests import_application_tests asc_xyz_tests operation_tests project_tests dependency_smoke operation_probe all_qmllint --parallel 4
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+Части 04.1–04.3 и 04.4A реализованы; **04.4A — READY FOR REVIEW**, задача 04 в целом
+не принята. Целевое GUI-ревью, большие HDD/UNC прогоны и финальная сквозная приёмка
+остаются в **04.4B** и отдельно выполняемых ревью.
 Save/Open и восстановление относятся к 05, явное построение и версии Density Map —
 к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
 

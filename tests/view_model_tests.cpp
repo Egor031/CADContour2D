@@ -8,7 +8,7 @@
 
 using namespace cadcontour;
 
-TEST(ProjectViewModel, LegacyNewCommandPreservesCurrentProjectAndHistory)
+TEST(ProjectViewModel, FileSelectionPreservesCurrentProjectAndHistory)
 {
     ProjectController controller;
     ProjectControllerTestAccess::newProject(controller);
@@ -19,7 +19,8 @@ TEST(ProjectViewModel, LegacyNewCommandPreservesCurrentProjectAndHistory)
     viewModel.newProject();
     EXPECT_TRUE(controller.project()->accepts(stamp));
     EXPECT_TRUE(controller.canRedo());
-    EXPECT_FALSE(viewModel.errorMessage().isEmpty());
+    EXPECT_TRUE(viewModel.selectingFile());
+    EXPECT_TRUE(viewModel.errorMessage().isEmpty());
 }
 
 TEST(ProjectViewModel, ReflectsControllerWithoutIndependentParameters)
