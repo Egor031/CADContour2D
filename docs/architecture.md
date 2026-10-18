@@ -612,7 +612,8 @@ fail-closed политика для callers без consumer; timeout не исп
 Публикация после Continue по-прежнему требует отдельного Ready/Accept (§25).
 В 04.4A production `ProjectViewModel` регистрируется единственным GUI consumer
 до импорта. QML вызывает стартовый выбор через `Qt.callLater` после Component completion,
-однократно за сеанс адаптера; Cancel оставляет NoProject. Нативный `QtQuick.Dialogs.FileDialog`
+однократно за сеанс адаптера; отложенный метод привязан к времени жизни окна.
+Cancel оставляет NoProject. Нативный `QtQuick.Dialogs.FileDialog`
 передаёт QUrl; C++ проверяет local-file semantics, absolute Windows/UNC path,
 расширение и отсутствие query/fragment/credentials/NUL, затем использует `toLocalFile()`.
 Проверка доступности source и весь файловый I/O остаются в worker.
@@ -621,7 +622,9 @@ fail-closed политика для callers без consumer; timeout не исп
 выдаёт `ImportContext` (optional project stamp, application epoch и номер последней
 операции). GUI передаёт его как `ImportRequest::expectedContext`; controller
 повторно сверяет контекст и доступность запуска. Изменение контекста, Busy или Closing
-снимают выбор; старый callback не разрешает новый импорт. Это дополнительная проверка
+снимают выбор; старый callback не разрешает новый импорт. После синхронного UI-уведомления
+adapter повторно проверяет именно созданный token, контекст и Open перед запросом
+FileDialog; QML также не открывает диалог для отозванного выбора. Это дополнительная проверка
 перед запуском, прежний publication gate остаётся обязательным.
 
 Z-диалог хранит UUID отображаемого запроса, а adapter сверяет его с актуальным
@@ -629,7 +632,9 @@ Z-диалог хранит UUID отображаемого запроса, а a
 Пользовательское закрытие означает Cancel. Программное закрытие предварительно
 снимает UI token, исключая ложный ответ. Destructor ViewModel отключает входящие
 controller signals до QObject destruction: отзыв consumer может синхронно отменить
-worker, но уже не вызывает методы уничтоженного derived adapter.
+worker, но уже не вызывает методы уничтоженного derived adapter. Синхронный внешний
+обработчик уведомления или команды может уничтожить adapter; продолжения после
+таких вызовов проверяют время жизни и не обращаются к уничтоженному QObject.
 
 Карточка читает только принятый `ProjectState::dataset()`. Count и диагностические
 64-bit counters передаются строками, coordinates/Z — shortest round-trip binary64

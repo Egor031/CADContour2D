@@ -561,6 +561,13 @@ Windows GUI smoke проверен отдельно: native selection/cancel, Un
 import/metadata, replacement, Z и закрытие. Полный отчёт, команды и ограничения —
 [asc-xyz-gui-check.md](docs/asc-xyz-gui-check.md).
 
+Замечания независимого ревью 04.4A R1–R3 воспроизведены и исправлены: безопасные
+продолжения ViewModel, повторная проверка выбора перед FileDialog и startup,
+привязанный ко времени жизни окна. Добавлен 21 regression case; Debug/Release build,
+`all_qmllint` и полный production CTest — **452/452** в каждой конфигурации.
+Доказательства, команды и ограничения native smoke —
+[asc-xyz-gui-review-fixes.md](docs/asc-xyz-gui-review-fixes.md).
+
 Проверенные команды после стандартной CMD-инициализации из Build:
 
 ```bat
@@ -570,8 +577,8 @@ ctest --preset windows-debug -L production --output-on-failure
 ctest --preset windows-release -L production --output-on-failure
 ```
 
-Части 04.1–04.3 и 04.4A реализованы; **04.4A — READY FOR REVIEW**, задача 04 в целом
-не принята. Целевое GUI-ревью, большие HDD/UNC прогоны и финальная сквозная приёмка
+Части 04.1–04.3 и 04.4A реализованы; **04.4A — FIXED — READY FOR INDEPENDENT VERIFICATION**,
+задача 04 в целом не принята. Повторная проверка GUI fixes, большие HDD/UNC прогоны и финальная сквозная приёмка
 остаются в **04.4B** и отдельно выполняемых ревью.
 Save/Open и восстановление относятся к 05, явное построение и версии Density Map —
 к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.

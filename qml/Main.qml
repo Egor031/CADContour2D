@@ -17,7 +17,11 @@ ApplicationWindow {
     minimumHeight: 380
     visible: true
     title: "CADContour2D"
-    Component.onCompleted: Qt.callLater(function() { window.project.offerStartupImport() })
+    function offerStartupImport(): void {
+        if (window.project)
+            window.project.offerStartupImport()
+    }
+    Component.onCompleted: Qt.callLater(window.offerStartupImport)
 
     onClosing: function(close) {
         close.accepted = window.project.requestClose()
@@ -33,7 +37,11 @@ ApplicationWindow {
                 Qt.callLater(function() { window.close() })
         }
         function onFileSelectionRequested() {
-            fileDialog.requestToken = window.project.selectionToken
+            const token = window.project.selectionToken
+            if (!window.project.actionsEnabled || !window.project.selectingFile
+                    || window.project.operationActive || token.length === 0)
+                return
+            fileDialog.requestToken = token
             if (window.fileDialogEnabled)
                 fileDialog.open()
         }

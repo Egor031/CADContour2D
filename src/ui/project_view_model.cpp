@@ -3,6 +3,7 @@
 #include <QLocale>
 #include <QFileInfo>
 #include <QDir>
+#include <QPointer>
 #include <QRegularExpression>
 
 #include <algorithm>
@@ -77,6 +78,7 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
         synchronizedCell_ = state->cell();
     }
     connect(&controller_, &ProjectController::stateChanged, this, [this] {
+        const QPointer<ProjectViewModel> lifetime(this);
         const auto *state = controller_.project();
         const auto identity = state ? std::optional(state->runtimeIdentity()) : std::nullopt;
         const double value = state ? state->cell() : 0;
@@ -85,10 +87,14 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
         synchronizedCell_ = value;
         if (sync)
             setErrorMessage({});
+        if (!lifetime) return;
         emit stateChanged();
+        if (!lifetime) return;
         if (sync)
             emit cellInputSyncRequested();
+        if (!lifetime) return;
         emit operationChanged(); // visibility/text also depend on the current project identity
+        if (!lifetime) return;
         refreshImportUi();
     });
     connect(&controller_, &ProjectController::operationChanged, this, &ProjectViewModel::operationChanged);
@@ -96,7 +102,9 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
     connect(&controller_, &ProjectController::operationChanged, this, &ProjectViewModel::refreshImportUi);
     connect(&controller_, &ProjectController::shutdownChanged, this, &ProjectViewModel::refreshImportUi);
     connect(&controller_, &ProjectController::nonZeroZConfirmationChanged, this, [this] {
+        const QPointer<ProjectViewModel> lifetime(this);
         emit nonZeroZChanged();
+        if (!lifetime) return;
         emit operationChanged();
     });
 }
@@ -155,16 +163,30 @@ void ProjectViewModel::applyCell(const QString &text)
         setErrorMessage(QStringLiteral("Число выходит за диапазон double. Введите конечное значение больше нуля."));
         return;
     }
+    const QPointer<ProjectViewModel> lifetime(this);
     const auto result = controller_.setCell(value);
+    if (!lifetime) return;
     handleResult(result);
+    if (!lifetime) return;
     if (result.outcome == CommandOutcome::NoChange) {
         setErrorMessage({});
+        if (!lifetime) return;
         emit cellInputSyncRequested(); // only successful Apply canonicalizes a no-op draft
     }
 }
 
-void ProjectViewModel::undo() { handleResult(controller_.undo()); }
-void ProjectViewModel::redo() { handleResult(controller_.redo()); }
+void ProjectViewModel::undo()
+{
+    const QPointer<ProjectViewModel> lifetime(this);
+    const auto result = controller_.undo();
+    if (lifetime) handleResult(result);
+}
+void ProjectViewModel::redo()
+{
+    const QPointer<ProjectViewModel> lifetime(this);
+    const auto result = controller_.redo();
+    if (lifetime) handleResult(result);
+}
 bool ProjectViewModel::canImport() const noexcept
 {
     return actionsEnabled() && !operationActive() && !selectionContext_ && zConsumerRegistered_;
@@ -191,10 +213,14 @@ void ProjectViewModel::newProject()
         emit importUiChanged();
         return;
     }
-    selectionToken_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const auto token = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    selectionToken_ = token;
     importErrorMessage_.clear();
+    const QPointer<ProjectViewModel> lifetime(this);
     emit importUiChanged();
-    emit fileSelectionRequested();
+    if (lifetime && selectionToken_ == token && actionsEnabled() && selectingFile()
+        && selectionContext_ == controller_.importContext())
+        emit fileSelectionRequested();
 }
 
 void ProjectViewModel::clearSelection()
@@ -212,6 +238,7 @@ void ProjectViewModel::refreshImportUi()
         importErrorMessage_ = closing() ? QStringLiteral("Приложение завершает работу.")
             : QStringLiteral("Контекст изменился. Выберите файл заново для нового импорта.");
         clearSelection();
+        return;
     }
     emit importUiChanged();
 }
@@ -264,8 +291,11 @@ void ProjectViewModel::confirmReplacement(const QString &token, bool confirmed)
 void ProjectViewModel::startSelectedImport(bool confirmed)
 {
     ImportRequest request{selectedPath_, {}, confirmed, selectionContext_, true};
+    const QPointer<ProjectViewModel> lifetime(this);
     clearSelection(); // consumes this UI action before application notifications can reenter
+    if (!lifetime) return;
     const auto result = controller_.importAscXyz(std::move(request));
+    if (!lifetime) return;
     if (result.outcome == CommandOutcome::Rejected) {
         importErrorMessage_ = closing() ? QStringLiteral("Приложение завершает работу.")
             : result.failure->category == CommandError::Busy
@@ -359,11 +389,18 @@ void ProjectViewModel::handleResult(const CommandResult &result)
     }
 }
 
-void ProjectViewModel::cancelOperation() { handleResult(controller_.cancelOperation()); }
+void ProjectViewModel::cancelOperation()
+{
+    const QPointer<ProjectViewModel> lifetime(this);
+    const auto result = controller_.cancelOperation();
+    if (lifetime) handleResult(result);
+}
 bool ProjectViewModel::requestClose()
 {
-    controller_.requestShutdown();
-    return shutdownReady();
+    // The session controller outlives this adapter, including synchronous notifications.
+    auto &controller = controller_;
+    controller.requestShutdown();
+    return controller.shutdownState() == ShutdownState::Ready;
 }
 
 bool ProjectViewModel::operationVisible() const noexcept
