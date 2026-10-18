@@ -4,6 +4,7 @@
 #include "io/asc_xyz_importer.h"
 
 #include <QTemporaryDir>
+#include <QUuid>
 
 #include <array>
 #include <cstdint>
@@ -13,6 +14,16 @@
 namespace cadcontour {
 
 using OperationId = std::uint64_t;
+
+// Presence in the mailbox means a decision is pending. The token is unique even
+// across controller lifetimes, where OperationId starts over. One request per operation.
+struct NonZeroZRequest {
+    OperationId operationId = 0;
+    QUuid requestId;
+    std::uint64_t line = 0;
+    double value = 0;
+    bool operator==(const NonZeroZRequest &) const = default;
+};
 enum class OperationPhase { Preparing, Computing, Finalizing, Cleanup };
 enum class WorkerStatus { Succeeded, Cancelled, Failed };
 enum class PublicationDecision { Pending, Accept, Discard };
@@ -51,6 +62,7 @@ struct OperationSnapshot {
     std::uint64_t contextEpoch = 0;
     OperationKind kind = OperationKind::Verification;
     bool replacementConfirmed = false;
+    bool nonZeroZConsumerAvailable = false;
     // Actual version identity / Rough revision belong here when those inputs exist.
 };
 

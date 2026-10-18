@@ -74,6 +74,10 @@ ProjectController::ProjectController(QString storageRoot, QObject *parent)
         emit operationChanged();
     });
     connect(&runner_, &OperationRunner::ready, this, &ProjectController::processReady);
+    connect(&runner_, &OperationRunner::nonZeroZConfirmationChanged, this, [this](OperationId id) {
+        if (id == operation_.id && operation_.active)
+            notifyNonZeroZConfirmation();
+    });
     connect(&runner_, &OperationRunner::observationFailed, this, [this](OperationId id, quint32 code) {
         if (id != operation_.id || !operation_.active)
             return;
@@ -86,6 +90,7 @@ ProjectController::ProjectController(QString storageRoot, QObject *parent)
 
 ProjectController::~ProjectController()
 {
+    disconnect(zConsumerDestroyed_);
     // Drain before history/state/adapters disappear; no event-loop delivery is required.
     shutdown_ = ShutdownState::Closing;
     operation_.publicationRevoked = true;
@@ -122,7 +127,7 @@ CommandResult ProjectController::closeProject()
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
-    if (!session_)
+    if (!session_ && (!operation_.active || operation_.decision != PublicationDecision::Pending))
         return CommandResult::noChange();
     if (contextEpoch_ == std::numeric_limits<std::uint64_t>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ContextEpochExhausted);
@@ -191,8 +196,69 @@ CommandResult ProjectController::startOperation(OperationWork work,
 
 CommandResult ProjectController::importAscXyz(ImportRequest request)
 {
-    // Until task 04.3 the production adapter refuses nonzero Z, without a dialog.
     return startImport(std::move(request), {});
+}
+
+CommandResult ProjectController::setNonZeroZConsumer(QObject *consumer)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected)
+        return entry;
+    if (consumer && consumer->thread() != thread())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::WrongThread);
+    if (consumer == zConsumer_)
+        return CommandResult::noChange();
+    if (consumer && runner_.busy())
+        return CommandResult::rejected(CommandError::Busy);
+    CommandScope guard(*this);
+    disconnect(zConsumerDestroyed_);
+    zConsumer_ = consumer;
+    if (consumer) {
+        zConsumerDestroyed_ = connect(consumer, &QObject::destroyed, this, [this] {
+            zConsumer_.clear();
+            if (operation_.kind == OperationKind::Import)
+                cancelOperation();
+        });
+    } else if (operation_.kind == OperationKind::Import) {
+        cancelOperation();
+    }
+    return CommandResult::applied();
+}
+
+std::optional<NonZeroZRequest> ProjectController::pendingNonZeroZ() const
+{
+    if (QThread::currentThread() != thread() || !zConsumer_ || !applicable(operation_.id))
+        return {};
+    return runner_.pendingNonZeroZ();
+}
+
+CommandResult ProjectController::answerNonZeroZ(const NonZeroZRequest &request, io::ZDecision decision)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected)
+        return entry;
+    if (!zConsumer_ || !applicable(request.operationId)
+        || (decision != io::ZDecision::Continue && decision != io::ZDecision::Cancel))
+        return CommandResult::rejected(CommandError::InvalidValue);
+    CommandScope guard(*this);
+    if (!runner_.answerNonZeroZ(request, decision))
+        return CommandResult::rejected(CommandError::InvalidValue);
+    if (decision == io::ZDecision::Cancel) {
+        operation_.publicationRevoked = true;
+        operation_.cancellationRequested = true;
+        operation_.status = OperationStatus::Cancelling;
+        emit operationChanged();
+    }
+    notifyNonZeroZConfirmation();
+    return CommandResult::applied();
+}
+
+void ProjectController::notifyNonZeroZConfirmation()
+{
+    if (executing_)
+        confirmationNotificationPending_ = true;
+    else
+        emit nonZeroZConfirmationChanged();
 }
 
 CommandResult ProjectController::startImport(ImportRequest request, io::ZHandler handler)
@@ -244,6 +310,7 @@ CommandResult ProjectController::startWork(OperationWork work, OperationKind kin
     snapshot.kind = kind;
     snapshot.contextEpoch = contextEpoch_;
     snapshot.replacementConfirmed = confirmed;
+    snapshot.nonZeroZConsumerAvailable = !zConsumer_.isNull();
     CommandScope guard(*this);
     snapshot_ = snapshot;
     operation_ = {};
@@ -268,6 +335,7 @@ void ProjectController::invalidateOperation()
         return;
     operation_.publicationRevoked = true;
     runner_.cancel();
+    notifyNonZeroZConfirmation();
     operationNotificationPending_ = true;
     operationDiagnostic("invalidate", operation_, operationClock_.elapsed());
     // Notification follows settled project state through finishCommand().
@@ -471,6 +539,7 @@ CommandResult ProjectController::cancelOperation()
     runner_.cancel();
     operationDiagnostic("cancel", operation_, operationClock_.elapsed());
     emit operationChanged();
+    notifyNonZeroZConfirmation();
     return CommandResult::applied();
 }
 
@@ -492,6 +561,7 @@ CommandResult ProjectController::requestShutdown()
         shutdown_ = ShutdownState::Ready;
     emit operationChanged();
     emit shutdownChanged();
+    notifyNonZeroZConfirmation();
     return CommandResult::applied();
 }
 
@@ -500,6 +570,8 @@ void ProjectController::finishCommand()
     if (std::exchange(operationNotificationPending_, false))
         emit operationChanged();
     executing_ = false;
+    if (std::exchange(confirmationNotificationPending_, false))
+        QTimer::singleShot(0, this, [this] { notifyNonZeroZConfirmation(); });
     if (std::exchange(completionPending_, false))
         QTimer::singleShot(0, this, [this] { processReady(operation_.id); });
 }

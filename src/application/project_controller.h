@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QUndoStack>
 #include <QElapsedTimer>
+#include <QPointer>
 
 #include <optional>
 
@@ -25,6 +26,11 @@ public:
     bool canRedo() const noexcept { return session_ && session_->history.canRedo(); }
     const OperationState &operation() const noexcept { return operation_; }
     ShutdownState shutdownState() const noexcept { return shutdown_; }
+    // Owner-thread consumer registration; detach/destruction cancels an active import.
+    CommandResult setNonZeroZConsumer(QObject *consumer);
+    std::optional<NonZeroZRequest> pendingNonZeroZ() const;
+    // Stale, duplicate or invalid responses return Rejected/InvalidValue.
+    CommandResult answerNonZeroZ(const NonZeroZRequest &request, io::ZDecision decision);
 
     CommandResult newProject();
     CommandResult importAscXyz(ImportRequest request);
@@ -40,6 +46,7 @@ signals:
     void stateChanged();
     void operationChanged();
     void shutdownChanged();
+    void nonZeroZConfirmationChanged();
 
 private:
     friend class ProjectControllerTestAccess;
@@ -76,6 +83,7 @@ private:
     void processReady(OperationId id);
     void finishOperation(OperationId id, WorkerStatus status, OperationFailure failure, bool warning);
     void finishCommand();
+    void notifyNonZeroZConfirmation();
 
     std::unique_ptr<ProjectSession> session_;
     QString storageRoot_;
@@ -96,6 +104,9 @@ private:
     std::unique_ptr<VerificationState> previousVerification_;
     bool completionPending_ = false;
     bool operationNotificationPending_ = false;
+    bool confirmationNotificationPending_ = false;
+    QPointer<QObject> zConsumer_;
+    QMetaObject::Connection zConsumerDestroyed_;
 };
 
 } // namespace cadcontour

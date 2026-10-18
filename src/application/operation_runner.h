@@ -21,6 +21,14 @@ struct OperationContext {
     NativeThreadCompletion nativeCompletion;
     std::mutex mutex;
     std::condition_variable decisionChanged;
+    OperationId id = 0;
+    QUuid zRequestId;
+    bool zConsumerAvailable = false;
+    bool zRequested = false;
+    bool zDirty = false;
+    bool waitingForZ = false;
+    std::optional<NonZeroZRequest> zRequest;
+    std::optional<io::ZDecision> zDecision;
     OperationProgress progress;
     bool progressDirty = false;
     bool ready = false;
@@ -36,11 +44,18 @@ class WorkerControl {
 public:
     bool cancelled() const noexcept;
     void report(OperationProgress progress) const;
+    bool nonZeroZConfirmationAvailable() const;
+    io::ZDecision confirmNonZeroZ(io::NonZeroZ z) const;
 private:
     friend class OperationRunner;
-    explicit WorkerControl(std::shared_ptr<detail::OperationContext> context)
-        : context_(std::move(context)) {}
+    explicit WorkerControl(std::shared_ptr<detail::OperationContext> context,
+                           std::function<void()> beforeRequest = {},
+                           std::function<void()> beforeWait = {})
+        : context_(std::move(context)), beforeZRequest_(std::move(beforeRequest)),
+          beforeZWait_(std::move(beforeWait)) {}
     std::shared_ptr<detail::OperationContext> context_;
+    std::function<void()> beforeZRequest_;
+    std::function<void()> beforeZWait_;
 };
 
 using OperationWork = std::function<WorkerOutcome(const OperationSnapshot &, const WorkerControl &)>;
@@ -77,11 +92,14 @@ public:
     void drain() noexcept;
     ReadyProductLease leaseReady(OperationId id);
     bool decide(OperationId id, PublicationDecision decision) noexcept;
+    std::optional<NonZeroZRequest> pendingNonZeroZ() const;
+    bool answerNonZeroZ(const NonZeroZRequest &request, io::ZDecision decision) noexcept;
     void poll();
 signals:
     void entered(cadcontour::OperationId id);
     void progressAvailable(cadcontour::OperationId id, cadcontour::OperationProgress progress);
     void ready(cadcontour::OperationId id);
+    void nonZeroZConfirmationChanged(cadcontour::OperationId id);
     void observationFailed(cadcontour::OperationId id, quint32 systemCode);
     void released(cadcontour::OperationId id, cadcontour::WorkerStatus status,
                   cadcontour::OperationFailure failure, bool cleanupWarning);
@@ -91,6 +109,8 @@ private:
     struct TestHooks {
         std::function<std::unique_ptr<QThread>(std::function<void()>)> factory;
         std::function<void()> beforeDecisionWait;
+        std::function<void()> beforeZRequest;
+        std::function<void()> beforeZWait;
         std::function<void(PublicationDecision)> afterDecision;
         std::function<void(PublicationDecision)> beforeOwnershipFinalization;
         bool skipStart = false;

@@ -589,11 +589,30 @@ QFile поддерживает Unicode/UNC paths; importer сверяет нач
 и число прочитанных байтов. Это обнаружение доступных признаков изменения/усечения,
 а не гарантия неизменности файла: in-place rewrite с сохранением size/mtime может
 не обнаружиться. Блокирующий OS read не прерывается cancellation callback.
-Z-handler самого importer остаётся синхронным. В 04.2 production application
-adapter передаёт пустой handler: ненулевой Z безопасно отклоняется как InvalidInput;
-Continue/Cancel доступны контролируемым headless tests. Настоящее подтверждение Z —
-04.3; FileDialog/GUI и точный progress внутренних фаз — дальнейшие части 04.
-Подробности — [04.1](asc-xyz-import-check.md) и [04.2](asc-xyz-application-check.md).
+Z-handler самого importer остаётся синхронным. В 04.3 application worker связывает
+его с `WorkerControl::confirmNonZeroZ`: один bounded request `{OperationId, UUID,
+physical line, Z}` передаётся через OperationContext и `poll()` в поток controller.
+`ProjectController::pendingNonZeroZ()` возвращает optional ожидающего запроса,
+`nonZeroZConfirmationChanged` уведомляет consumer, `answerNonZeroZ` принимает
+Continue/Cancel. UUID отделяет запросы даже при пересоздании controller и повторении
+OperationId. Недействительный/повторный ответ отклоняется как Rejected/InvalidValue;
+wrong-thread, reentrant и shutdown команды сохраняют обычные command errors.
+
+Consumer явно регистрируется через `setNonZeroZConsumer(QObject*)` до запуска,
+в том же Qt-потоке; регистрация означает готовность обслуживать запросы. Его
+отключение или уничтожение отменяет активный импорт. Worker не хранит QObject
+и не вызывает GUI callbacks. Без consumer используется пустой parser handler:
+плоский файл импортируется, ненулевой Z даёт InvalidInput с диагностикой требования
+decision handler, без ожидания или автоматического Continue. Это временная
+fail-closed политика до подключения GUI в 04.4; timeout не используется.
+
+На Z-wait чтение и передача measurements остановлены, bounded parser buffers
+остаются в worker. Continue продолжает тот же проход; Cancel возвращает Cancelled,
+сохраняя прежний проект и history. Close отменяет также первый импорт из NoProject.
+Публикация после Continue по-прежнему требует отдельного Ready/Accept (§25).
+FileDialog/GUI и сквозные большие прогоны — 04.4; точный progress внутренних фаз
+здесь не добавлен. Подробности — [04.1](asc-xyz-import-check.md),
+[04.2](asc-xyz-application-check.md), [04.3](nonzero-z-confirmation-check.md).
 
 ---
 
@@ -857,6 +876,18 @@ Application layer допускает только один физически в
 Progress передаётся через ограниченный mailbox последнего значения: фаза, выполненное количество и необязательный total. GUI читает его периодически; неизвестная продолжительность не превращается в фиктивный процент. Состояние операции и уведомления о нём отделены от project state и Undo. Они не сбрасывают draft, ошибку ввода, курсор или выделение поля параметра; поле синхронизируется при изменении соответствующего параметра/проекта либо явном Apply с канонизацией no-op.
 
 Cancellation кооперативна и не использует принудительное завершение потока. Запрос отмены немедленно и необратимо отзывает право публикации; проверка worker на checkpoint определяет лишь скорость остановки. Изменение relevant inputs, смена/закрытие проекта и reset также отзывают это право. No-op и отклонённая команда не инвалидируют входы. Worker success, cancellation, failure и application discard различаются; commit и полное завершение потока — разные события.
+
+Z-confirmation — отдельное ожидание до Ready, не PublicationDecision. Request,
+ответ и cancellation flag изменяются под одним mutex с predicate condition variable.
+Worker просыпается при решении, cancellation, Discard или отзыве запроса;
+cancel/invalidation/shutdown выставляют cancellation и снимают request под этим
+mutex, затем notify. Atomic flag остаётся доступен обычным checkpoints. Поэтому
+отмена до входа в wait не теряет пробуждение. Ответ потребляет identity один раз;
+Continue не отменяет общий cancellation и не даёт права публикации. Операция
+остаётся Busy до прежнего native completion/join. Observers и test hooks вызываются
+вне mutex; уведомление, обнаруженное внутри controller command, откладывается
+до возврата команды. Нормальный consumer может синхронно ответить на уведомление.
+Destructor отменяет оба ожидания и drain без GUI event delivery (§26).
 
 К длительным операциям относятся как минимум:
 

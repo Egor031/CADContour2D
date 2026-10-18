@@ -180,8 +180,8 @@ benchmark-проверки описаны в [README](../README.md#project-statu
 
 ### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
 
-**Статус: 04.1 и 04.2 реализованы. Вся задача 04 не принята;
-настоящее Z confirmation и GUI ещё предстоят.**
+**Статус: 04.1–04.3 реализованы. 04.3 — READY FOR REVIEW.
+Вся задача 04 не принята; FileDialog/GUI и сквозная приёмка ещё предстоят.**
 
 04.1 предоставляет `io::parseAscXyz` и `io::importAscXyz`, bounded buffers/batches,
 direct binary64 conversion, structured source diagnostics, синхронный единственный
@@ -200,8 +200,15 @@ import diagnostics. Production запускается без проекта; leg
 отклоняется, кнопка отключена до 04.4. Ненулевой Z без решения не принимается.
 Технический отчёт и фактические проверки —
 [asc-xyz-application-check.md](asc-xyz-application-check.md).
-Настоящее межпоточное подтверждение Z (04.3), FileDialog/GUI и итоговые
-large-file/end-to-end проверки ещё предстоят.
+04.3 реализует межпоточный Z request через OperationContext, синхронный ZHandler
+и condition variable; controller получает запрос и принимает Continue/Cancel.
+Cancel/invalidation/shutdown снимают ожидание; UUID защищает от старого ответа,
+отмена не разрешает публикацию. Consumer регистрируется явно и отслеживается по
+lifetime QObject. Без consumer ненулевой Z безопасно отклоняется с диагностикой.
+Headless tests используют реальные worker/parser/cache и управляемые barriers.
+Механизм, доказательство синхронизации и проверки —
+[nonzero-z-confirmation-check.md](nonzero-z-confirmation-check.md).
+FileDialog, настоящий QML consumer/dialog и итоговые large-file/end-to-end проверки — 04.4.
 
 Создание пустого `ProjectState` командой `newProject()` было корректным результатом принятой задачи 01. В задаче 04 команда «Новый проект» начинает выбор ASC/XYZ, а проект создаётся и принимается только после успешного импорта; это новое поведение не меняет исходных обязательств и приёмки задачи 01.
 

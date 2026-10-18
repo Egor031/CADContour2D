@@ -24,6 +24,14 @@ public:
         runner.nextHooks_ = std::move(hooks);
     }
     static std::shared_ptr<detail::OperationContext> context(OperationRunner &runner) { return runner.context_; }
+    static void zHooks(OperationRunner &runner, std::function<void()> beforeRequest = {},
+                       std::function<void()> beforeWait = {})
+    {
+        if (!runner.nextHooks_)
+            runner.nextHooks_ = std::make_shared<OperationRunner::TestHooks>();
+        runner.nextHooks_->beforeZRequest = std::move(beforeRequest);
+        runner.nextHooks_->beforeZWait = std::move(beforeWait);
+    }
     static void beforeOwnershipFinalization(OperationRunner &runner,
         std::function<void(PublicationDecision)> hook)
     {

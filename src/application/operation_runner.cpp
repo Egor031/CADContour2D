@@ -46,6 +46,46 @@ void WorkerControl::report(OperationProgress progress) const
     context_->progressDirty = true;
 }
 
+bool WorkerControl::nonZeroZConfirmationAvailable() const
+{
+    std::lock_guard lock(context_->mutex);
+    return context_->zConsumerAvailable;
+}
+
+io::ZDecision WorkerControl::confirmNonZeroZ(io::NonZeroZ z) const
+{
+    if (beforeZRequest_)
+        beforeZRequest_(); // test seam, always outside the decision mutex
+    {
+        std::lock_guard lock(context_->mutex);
+        if (cancelled() || context_->decision != PublicationDecision::Pending
+            || context_->ready || !context_->zConsumerAvailable || context_->zRequested)
+            return io::ZDecision::Cancel;
+        context_->zRequested = true;
+        context_->zRequest = NonZeroZRequest{context_->id, context_->zRequestId, z.line, z.value};
+        context_->zDirty = true;
+    }
+    context_->decisionChanged.notify_all();
+    if (beforeZWait_)
+        beforeZWait_();
+    std::unique_lock lock(context_->mutex);
+    context_->waitingForZ = true;
+    context_->decisionChanged.notify_all();
+    context_->decisionChanged.wait(lock, [&] {
+        return cancelled() || context_->decision != PublicationDecision::Pending
+            || !context_->zConsumerAvailable || !context_->zRequest || context_->zDecision.has_value();
+    });
+    context_->waitingForZ = false;
+    const auto result = !cancelled() && context_->decision == PublicationDecision::Pending
+        && context_->zConsumerAvailable && context_->zDecision == io::ZDecision::Continue
+        ? io::ZDecision::Continue : io::ZDecision::Cancel;
+    if (context_->zRequest) {
+        context_->zRequest.reset();
+        context_->zDirty = true;
+    }
+    return result;
+}
+
 ReadyProductLease::ReadyProductLease(ReadyProductLease &&other) noexcept
     : context_(std::move(other.context_)) {}
 ReadyProductLease::~ReadyProductLease()
@@ -94,6 +134,9 @@ std::optional<OperationFailure> OperationRunner::start(OperationId id, Operation
     const auto hooks = std::exchange(nextHooks_, {});
     try {
         auto context = std::make_shared<detail::OperationContext>();
+        context->id = id;
+        context->zRequestId = QUuid::createUuid();
+        context->zConsumerAvailable = snapshot.nonZeroZConsumerAvailable;
         if (hooks) {
             context->nativeCompletion.failDuplicate_.store(hooks->failDuplicate);
             context->nativeCompletion.failOpen_.store(hooks->failOpen);
@@ -136,7 +179,8 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
     WorkerOutcome outcome;
     OperationPhase phase = OperationPhase::Computing;
     try {
-        const WorkerControl control(context);
+        const WorkerControl control(context, hooks ? hooks->beforeZRequest : std::function<void()>{},
+                                    hooks ? hooks->beforeZWait : std::function<void()>{});
         if (!context->nativeCompletion.captureCurrent()) {
             auto failure = OperationFailure::make(FailureReason::NativeObservationFailed,
                 OperationPhase::Preparing, "DuplicateHandle failed; operation was not executed");
@@ -164,6 +208,10 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         if (outcome.imported)
             context->outcome.imported = outcome.imported->ready;
         context->ready = true;
+        if (context->zRequest) { // also clear a request if a test hook/worker threw
+            context->zRequest.reset();
+            context->zDirty = true;
+        }
         // A Discard already supplied by shutdown is deliberately preserved.
     }
     context->decisionChanged.notify_all();
@@ -214,8 +262,19 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
 
 void OperationRunner::cancel() noexcept
 {
-    if (context_)
-        context_->cancellation.store(true, std::memory_order_release);
+    if (context_) {
+        {
+            // The flag used by checkpoints is also a wait predicate: mutate it
+            // under the wait mutex, before notifying, to prevent lost wakeups.
+            std::lock_guard lock(context_->mutex);
+            context_->cancellation.store(true, std::memory_order_release);
+            if (context_->zRequest) {
+                context_->zRequest.reset();
+                context_->zDirty = true;
+            }
+        }
+        context_->decisionChanged.notify_all();
+    }
 }
 void OperationRunner::shutdown() noexcept
 {
@@ -237,6 +296,39 @@ bool OperationRunner::decide(OperationId id, PublicationDecision decision) noexc
     }
     context_->decisionChanged.notify_all();
     return changed;
+}
+
+std::optional<NonZeroZRequest> OperationRunner::pendingNonZeroZ() const
+{
+    if (!context_)
+        return {};
+    std::lock_guard lock(context_->mutex);
+    if (context_->cancellation.load(std::memory_order_acquire)
+        || context_->decision != PublicationDecision::Pending || context_->ready)
+        return {};
+    return context_->zRequest;
+}
+
+bool OperationRunner::answerNonZeroZ(const NonZeroZRequest &request, io::ZDecision decision) noexcept
+{
+    if (!context_ || request.operationId != id_
+        || (decision != io::ZDecision::Continue && decision != io::ZDecision::Cancel))
+        return false;
+    {
+        std::lock_guard lock(context_->mutex);
+        if (!context_->zRequest || context_->zRequest->requestId != request.requestId
+            || context_->zDecision || context_->ready || !context_->zConsumerAvailable
+            || context_->cancellation.load(std::memory_order_acquire)
+            || context_->decision != PublicationDecision::Pending)
+            return false;
+        context_->zDecision = decision;
+        context_->zRequest.reset(); // consume identity before waking the worker
+        context_->zDirty = true;
+        if (decision == io::ZDecision::Cancel)
+            context_->cancellation.store(true, std::memory_order_release);
+    }
+    context_->decisionChanged.notify_all();
+    return true;
 }
 ReadyProductLease OperationRunner::leaseReady(OperationId id)
 {
@@ -265,15 +357,18 @@ void OperationRunner::poll()
         emit entered(id);
     }
     OperationProgress progress;
-    bool dirty, ready;
+    bool dirty, ready, zDirty;
     {
         std::lock_guard lock(context->mutex);
         progress = context->progress;
         dirty = std::exchange(context->progressDirty, false);
         ready = context->ready && context->decision == PublicationDecision::Pending;
+        zDirty = std::exchange(context->zDirty, false);
     }
     if (dirty)
         emit progressAvailable(id, progress);
+    if (zDirty)
+        emit nonZeroZConfirmationChanged(id); // no observers under context mutex
     if (ready)
         emit this->ready(id); // if controller is busy, mailbox remains pending for next poll
     if (context->workerEntered.load(std::memory_order_acquire)

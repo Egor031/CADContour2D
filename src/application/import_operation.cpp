@@ -36,8 +36,13 @@ OperationWork ascXyzImportWork(ImportRequest request, QString storageRoot, io::Z
                 cache::Operation::Open, {}, 0, QStringLiteral("Cannot create import scratch directory"), {}});
         const auto relative = QStringLiteral("datasets/")
             + QUuid::createUuid().toString(QUuid::WithoutBraces) + QStringLiteral(".pc2dcache");
+        // Without a registered consumer keep the parser's explicit fail-closed
+        // diagnostic. The synchronous handler only borrows this live control.
+        io::ZHandler confirmation = handler;
+        if (!confirmation && control.nonZeroZConfirmationAvailable())
+            confirmation = [&control](io::NonZeroZ z) { return control.confirmNonZeroZ(z); };
         auto result = io::importAscXyz(request.sourcePath, QDir(directory->path()).filePath(relative),
-            scratch.path(), request.limits, handler,
+            scratch.path(), request.limits, confirmation,
             [](void *context) noexcept { return static_cast<const WorkerControl *>(context)->cancelled(); },
             const_cast<WorkerControl *>(&control));
         if (!result) {

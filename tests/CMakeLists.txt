@@ -54,6 +54,13 @@ target_compile_options(import_application_tests PRIVATE /W4 /permissive- /utf-8)
 gtest_discover_tests(import_application_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX AscApplication.
     PROPERTIES TIMEOUT 30 LABELS production)
 
+add_executable(nonzero_z_confirmation_tests operation_test_main.cpp nonzero_z_confirmation_tests.cpp)
+set_target_properties(nonzero_z_confirmation_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(nonzero_z_confirmation_tests PRIVATE cadcontour_application GTest::gtest)
+target_compile_options(nonzero_z_confirmation_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+gtest_discover_tests(nonzero_z_confirmation_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX AscConfirmation.
+    PROPERTIES TIMEOUT 30 LABELS production)
+
 add_executable(view_model_tests view_model_tests.cpp)
 set_target_properties(view_model_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(view_model_tests PRIVATE cadcontour_ui cadcontour_uiplugin GTest::gtest_main)

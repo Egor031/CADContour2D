@@ -526,8 +526,22 @@ import tests — **22/22**, полная production CTest — **364/364** в к�
 либо с `windows-release`. Dev probe `--auto replace` — PASS в обеих конфигурациях.
 Статус 04.2 — **READY FOR INDEPENDENT REVIEW**.
 
-Части 04.1–04.2 реализованы; задача 04 в целом не принята. Настоящее подтверждение Z
-относится к 04.3, FileDialog/GUI и финальная сквозная проверка — к 04.4.
+В 04.3 реализовано межпоточное подтверждение ненулевого Z: worker публикует
+единственный типизированный запрос и ждёт Continue/Cancel через condition variable.
+Controller предоставляет регистрацию consumer, pending request, уведомление и
+защищённый ответ с OperationId/UUID. Cancel, invalidation, Close и shutdown снимают
+ожидание; Continue сохраняет отдельный Ready/Accept gate. Без зарегистрированного
+consumer ненулевой Z по-прежнему отклоняется с диагностикой, без зависания.
+Механизм и полный отчёт — [nonzero-z-confirmation-check.md](docs/nonzero-z-confirmation-check.md).
+
+Проверки 04.3: Debug/Release build и `all_qmllint` — PASS; confirmation — **29/29**,
+полный production CTest — **393/393** в каждой конфигурации. Адресные команды:
+`ctest --preset windows-debug -R ^AscConfirmation --output-on-failure` и
+`ctest --preset windows-release -R ^AscConfirmation --output-on-failure`.
+Статус 04.3 — **READY FOR REVIEW**; GUI подтверждения ещё отсутствует.
+
+Части 04.1–04.3 реализованы; задача 04 в целом не принята. FileDialog, QML consumer
+и диалог, финальная сквозная проверка относятся к 04.4.
 Save/Open и восстановление относятся к 05, явное построение и версии Density Map —
 к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
 
