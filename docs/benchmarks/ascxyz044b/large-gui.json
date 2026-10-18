@@ -1,0 +1,160 @@
+{
+    "afterProject": {
+        "bounds": [
+            0,
+            0,
+            3000,
+            1000
+        ],
+        "cacheId": "80a256fb-c135-4ffc-86b0-f7045da52ba5",
+        "cachePath": "C:/Users/Egor31/AppData/Local/CADContour2D/projects/project-a047c35c-2c2a-4b72-ae25-bad2e78ad223-AmHTfA\\datasets/e38e1d57-62d6-43a5-8875-350e44a1d15f.pc2dcache",
+        "canRedo": false,
+        "canUndo": false,
+        "cell": 1,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "41984566",
+        "sourceBytes": "1029576096",
+        "sourceLines": "41984566"
+    },
+    "applicationAcceptObservedMs": 69881.2271,
+    "beforeProject": {
+        "hasProject": false
+    },
+    "canImportAtCompletion": false,
+    "cancellationRequestedMs": -1,
+    "cleanupWarning": false,
+    "gui": true,
+    "guiTimerGapsOver100Ms": "1",
+    "guiTimerGapsOver50Ms": "2",
+    "guiTimerOutliersOver50Ms": [
+        {
+            "gapMs": 357.0221000000001,
+            "observedMs": 810.1189,
+            "operationActive": true,
+            "phase": 0
+        },
+        {
+            "gapMs": 71.00960000000487,
+            "observedMs": 69954.7326,
+            "operationActive": true,
+            "phase": 4
+        }
+    ],
+    "guiTimerTicks": "6802",
+    "importResources": {
+        "logicalReadBytes": "2717104812",
+        "logicalReadOperations": "111378",
+        "logicalWriteBytes": "2692990524",
+        "logicalWriteOperations": "81226",
+        "nativeApiOrSampleFailure": false,
+        "processLifetimePeakPagefileUsageBytes": "245174272",
+        "processLifetimePeakWorkingSetBytes": "233697280",
+        "remainingNewFiles": "1",
+        "sampleCount": "583",
+        "sampleIntervalMs": 100,
+        "sampledPeakNewFilesEofBytes": "2685656976",
+        "sampledPeakPrivateBytes": "244715520",
+        "sampledPeakWorkingSetBytes": "233693184"
+    },
+    "importStartRequestedMs": 807.5125,
+    "importToNativeCompletionMs": 69178.0675,
+    "initialWindowDescendantObjects": 277,
+    "maxGuiTimerGapMs": 357.0221000000001,
+    "nativeCompletionJoinedObservedMs": 69985.58,
+    "operationStatus": 5,
+    "phaseTransitions": [
+        {
+            "observedMs": 810.0612,
+            "phase": 0
+        },
+        {
+            "observedMs": 1024.291,
+            "phase": 2
+        },
+        {
+            "observedMs": 43692.7764,
+            "phase": 3
+        },
+        {
+            "observedMs": 69876.8411,
+            "phase": 4
+        }
+    ],
+    "publicationDecision": 1,
+    "qt": "6.12.0",
+    "readyPublishedWorkerHookMs": 69868.1982,
+    "sampledPeakWindowDescendantObjects": 305,
+    "scenario": "complete",
+    "secondImportRejectedBusy": true,
+    "sourceBytes": "1029576096",
+    "sourcePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/large.xyz",
+    "status": "PASS",
+    "storageRoot": "C:/Users/Egor31/AppData/Local/CADContour2D/projects",
+    "tool": "import_acceptance",
+    "validation": {
+        "binary64ControlRecords": "72",
+        "bounds": [
+            0,
+            0,
+            3000,
+            1000
+        ],
+        "cacheBytes": "1010507776",
+        "cacheId": "80a256fb-c135-4ffc-86b0-f7045da52ba5",
+        "cachePath": "C:/Users/Egor31/AppData/Local/CADContour2D/projects/project-a047c35c-2c2a-4b72-ae25-bad2e78ad223-AmHTfA\\datasets/e38e1d57-62d6-43a5-8875-350e44a1d15f.pc2dcache",
+        "encoding": 1,
+        "formatVersion": 1,
+        "hasNonZeroZ": false,
+        "indexHeight": 2,
+        "pointCount": "41984566",
+        "scanAll": {
+            "indexPages": "0",
+            "pointPages": "15402",
+            "readBytes": "1009385472",
+            "returnedRecords": "41984566"
+        },
+        "scanAllMs": 13182.975,
+        "sourceOpened": false,
+        "spatialQueries": [
+            {
+                "indexPages": "2",
+                "ms": 3.5401,
+                "pointPages": "3",
+                "readBytes": "327680",
+                "returnedRecords": "11",
+                "sha256IdXy": "597bd4b8e89ee4a62b4bff91fd93ed0abeb950601986d515285ab4f68d6fef60"
+            },
+            {
+                "indexPages": "3",
+                "ms": 67.8982,
+                "pointPages": "76",
+                "readBytes": "5177344",
+                "returnedRecords": "28981",
+                "sha256IdXy": "05f1f9aee688ecc4c8986ad2e058313554e075aa2c10244a9f07a7efe6dab14f"
+            },
+            {
+                "indexPages": "7",
+                "ms": 38.3572,
+                "pointPages": "36",
+                "readBytes": "2818048",
+                "returnedRecords": "22857",
+                "sha256IdXy": "ea3802c19e30baf30ca236e6d6f4316ffb212b01b5ee3a19a440fa0aacc3c780"
+            }
+        ],
+        "status": "PASS",
+        "strictValidation": {
+            "indexPages": "17",
+            "pointPages": "15402",
+            "readBytes": "1010507776",
+            "returnedRecords": "41984566"
+        },
+        "strictValidationMs": 53722.0145,
+        "totalMs": 67017.3606
+    },
+    "warnings": [
+    ],
+    "workerDecisionObservedMs": 69881.4151,
+    "workerProductCleanupHookMs": 69881.4457
+}

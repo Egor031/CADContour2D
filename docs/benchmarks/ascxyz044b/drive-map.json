@@ -1,0 +1,16 @@
+[
+  {
+    "drive": "C",
+    "disk": 1,
+    "name": "KINGSTON SNV3S1000G",
+    "bus": "NVMe",
+    "free": 113137577984
+  },
+  {
+    "drive": "F",
+    "disk": 0,
+    "name": "TOSHIBA HDWD110",
+    "bus": "SATA",
+    "free": 305337872384
+  }
+]

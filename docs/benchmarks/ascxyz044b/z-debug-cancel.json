@@ -1,0 +1,120 @@
+{
+    "afterProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "667f3e97-9ccc-4d72-80c3-743cc21e2652",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/z-debug-storage/project-533f8e31-fc7b-484a-bbc1-7479610c861b-sztWmV\\datasets/7a5dbf88-59bf-43b8-9e63-37bb0b07fc81.pc2dcache",
+        "canRedo": true,
+        "canUndo": true,
+        "cell": 2,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "applicationAcceptObservedMs": -1,
+    "beforeProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "667f3e97-9ccc-4d72-80c3-743cc21e2652",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/z-debug-storage/project-533f8e31-fc7b-484a-bbc1-7479610c861b-sztWmV\\datasets/7a5dbf88-59bf-43b8-9e63-37bb0b07fc81.pc2dcache",
+        "canRedo": true,
+        "canUndo": true,
+        "cell": 2,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "canImportAtCompletion": true,
+    "cancelToNativeCompletionMs": 194.58859999999999,
+    "cancellationRequestedMs": 162.2715,
+    "cleanupWarning": false,
+    "gui": false,
+    "guiTimerGapsOver100Ms": "0",
+    "guiTimerGapsOver50Ms": "0",
+    "guiTimerOutliersOver50Ms": [
+    ],
+    "guiTimerTicks": "28",
+    "importResources": {
+        "logicalReadBytes": "24",
+        "logicalReadOperations": "2",
+        "logicalWriteBytes": "5416",
+        "logicalWriteOperations": "9",
+        "nativeApiOrSampleFailure": false,
+        "processLifetimePeakPagefileUsageBytes": "148017152",
+        "processLifetimePeakWorkingSetBytes": "176549888",
+        "remainingNewFiles": "0",
+        "sampleCount": "4",
+        "sampleIntervalMs": 100,
+        "sampledPeakNewFilesEofBytes": "0",
+        "sampledPeakPrivateBytes": "147484672",
+        "sampledPeakWorkingSetBytes": "176156672"
+    },
+    "importStartRequestedMs": 33.3034,
+    "importToNativeCompletionMs": 323.5567,
+    "initialWindowDescendantObjects": 0,
+    "maxGuiTimerGapMs": 40.689,
+    "nativeCompletionJoinedObservedMs": 356.8601,
+    "operationStatus": 6,
+    "phaseTransitions": [
+        {
+            "observedMs": 33.6544,
+            "phase": 0
+        },
+        {
+            "observedMs": 247.619,
+            "phase": 2
+        }
+    ],
+    "publicationDecision": 2,
+    "qt": "6.12.0",
+    "readyPublishedWorkerHookMs": 188.3694,
+    "retryProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "fcc5486d-3c3e-4a7a-bd58-6824db74817b",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/z-debug-storage/project-1d8cbb2a-7fe7-4428-8ccf-1ee2a0e997ef-JOgNsT\\datasets/a2702795-d944-40e2-9f0d-17fee95ce764.pc2dcache",
+        "canRedo": false,
+        "canUndo": false,
+        "cell": 1,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "2",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "retrySucceeded": true,
+    "sampledPeakWindowDescendantObjects": 0,
+    "scenario": "cancel-z",
+    "secondImportRejectedBusy": true,
+    "sourceBytes": "24",
+    "sourcePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/z.xyz",
+    "status": "PASS",
+    "storageRoot": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/z-debug-storage",
+    "tool": "import_acceptance",
+    "warnings": [
+    ],
+    "workerDecisionObservedMs": 247.861,
+    "workerPhaseAtCancellation": 2,
+    "workerProductCleanupHookMs": 247.8641,
+    "workerWaitingForZAtCancellation": true,
+    "zPhysicalLine": "3"
+}

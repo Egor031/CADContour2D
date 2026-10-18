@@ -1,0 +1,40 @@
+{
+  "runId": "ascxyz-044b-20261018-f1f2b934",
+  "ssd": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934",
+  "hdd": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934",
+  "initialHead": "0453d2aed0b74c10f9fe99b7680fd3c76e03496a",
+  "os": {
+    "Caption": "Майкрософт Windows 11 Pro",
+    "Version": "10.0.26200",
+    "TotalVisibleMemorySize": 33455132,
+    "FreePhysicalMemory": 20553024
+  },
+  "cpu": {
+    "Name": "Intel(R) Xeon(R) CPU E5-2690 v4 @ 2.60GHz",
+    "NumberOfCores": 14,
+    "NumberOfLogicalProcessors": 28
+  },
+  "volumes": [
+    {
+      "DriveLetter": "F",
+      "FileSystemType": "NTFS",
+      "Size": 842916687872,
+      "SizeRemaining": 305439133696
+    },
+    {
+      "DriveLetter": "C",
+      "FileSystemType": "NTFS",
+      "Size": 999001419776,
+      "SizeRemaining": 116426670080
+    }
+  ],
+  "smallSource": "C:\\dev\\CADContour2D\\build\\audit\\rectangle-release.asc",
+  "smallSha256": "538684D0CB1130BE7F9441DB3FCF0A0E1289FD4704633ABED5A897EF188E41F8",
+  "expectedCount": 41984566,
+  "expectedSourceBytes": 1029576096,
+  "conservativeScratchBytes": 3358781664.0,
+  "conservativeCacheAndDescriptorsBytes": 1012476513.8077769,
+  "parserReserveBytes": 294912,
+  "interactiveMemoryBytes": 134217728,
+  "maxOpenFiles": 32
+}

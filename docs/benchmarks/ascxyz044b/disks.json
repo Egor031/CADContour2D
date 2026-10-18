@@ -1,0 +1,16 @@
+[
+  {
+    "DeviceId": "0",
+    "FriendlyName": "TOSHIBA HDWD110",
+    "MediaType": "HDD",
+    "BusType": "SATA",
+    "Size": 1000204886016
+  },
+  {
+    "DeviceId": "1",
+    "FriendlyName": "KINGSTON SNV3S1000G",
+    "MediaType": "SSD",
+    "BusType": "NVMe",
+    "Size": 1000204886016
+  }
+]

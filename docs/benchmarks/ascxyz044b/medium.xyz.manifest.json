@@ -1,0 +1,51 @@
+{
+    "boundingBox": {
+        "max": [
+            3000,
+            1000,
+            0
+        ],
+        "min": [
+            0,
+            0,
+            0
+        ]
+    },
+    "defects": [
+    ],
+    "direction": "Horizontal",
+    "generatorVersion": "0.4.0",
+    "geometry": {
+        "path": "../../tests/fixtures/synthetic/performance/large_plate.geometry.json",
+        "sha256": "18aa6ebd093d21676fd3c4fab7121b65e9b8648c2a1fbcfcf8858c40525ad2d1"
+    },
+    "lineStep": 1,
+    "manifestVersion": 1,
+    "maxLineLength": 200,
+    "output": "medium.xyz",
+    "outputFormat": "xyz",
+    "outputSha256": "2826e64b54211ab051e8c62ca37415d70d6e631d2bd5115429285d8d98274b60",
+    "passes": [
+        {
+            "continuationShift": {
+                "longitudinal": 0,
+                "transverse": 0
+            },
+            "direction": "Horizontal",
+            "lineOffset": 0,
+            "longitudinalShift": 0,
+            "pointCount": 4202892,
+            "region": null,
+            "transverseShift": 0
+        }
+    ],
+    "pointCount": 4202892,
+    "pointStep": 0.7,
+    "rng": "mt19937_64/splitmix64-seeds/top53-v1",
+    "scan": {
+        "path": "medium.scan.json",
+        "sha256": "0aee2231ad316dc2c5c476a9771adcd3608f24d3b74a1f0ef58b1ea2e006053a"
+    },
+    "seed": 2001,
+    "units": "mm"
+}

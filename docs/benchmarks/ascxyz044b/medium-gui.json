@@ -1,0 +1,146 @@
+{
+    "afterProject": {
+        "bounds": [
+            0,
+            0,
+            3000,
+            1000
+        ],
+        "cacheId": "33441670-64f0-4259-94bb-0fa40045a388",
+        "cachePath": "C:/Users/Egor31/AppData/Local/CADContour2D/projects/project-db3921c8-2163-4d48-a909-7533620c1dd7-XGzFaD\\datasets/1daf2bfd-0474-46f5-a394-e3c284678846.pc2dcache",
+        "canRedo": false,
+        "canUndo": false,
+        "cell": 1,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "4202892",
+        "sourceBytes": "103065900",
+        "sourceLines": "4202892"
+    },
+    "applicationAcceptObservedMs": 8762.8594,
+    "beforeProject": {
+        "hasProject": false
+    },
+    "canImportAtCompletion": false,
+    "cancellationRequestedMs": -1,
+    "cleanupWarning": false,
+    "gui": true,
+    "guiTimerGapsOver100Ms": "1",
+    "guiTimerGapsOver50Ms": "1",
+    "guiTimerTicks": "809",
+    "importResources": {
+        "logicalReadBytes": "272240667",
+        "logicalReadOperations": "12312",
+        "logicalWriteBytes": "269720271",
+        "logicalWriteOperations": "8206",
+        "nativeApiOrSampleFailure": false,
+        "processLifetimePeakPagefileUsageBytes": "234102784",
+        "processLifetimePeakWorkingSetBytes": "230694912",
+        "remainingNewFiles": "1",
+        "sampleCount": "76",
+        "sampleIntervalMs": 100,
+        "sampledPeakNewFilesEofBytes": "267420864",
+        "sampledPeakPrivateBytes": "233517056",
+        "sampledPeakWorkingSetBytes": "230256640"
+    },
+    "importStartRequestedMs": 778.2788,
+    "importToNativeCompletionMs": 8091.590200000001,
+    "initialWindowDescendantObjects": 277,
+    "maxGuiTimerGapMs": 350.6542,
+    "nativeCompletionJoinedObservedMs": 8869.869,
+    "operationStatus": 5,
+    "phaseTransitions": [
+        {
+            "observedMs": 783.6921,
+            "phase": 0
+        },
+        {
+            "observedMs": 994.1791,
+            "phase": 2
+        },
+        {
+            "observedMs": 5484.2194,
+            "phase": 3
+        },
+        {
+            "observedMs": 8759.3749,
+            "phase": 4
+        }
+    ],
+    "publicationDecision": 1,
+    "qt": "6.12.0",
+    "readyPublishedWorkerHookMs": 8672.3228,
+    "sampledPeakWindowDescendantObjects": 304,
+    "scenario": "complete",
+    "secondImportRejectedBusy": true,
+    "sourceBytes": "103065900",
+    "sourcePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/medium.xyz",
+    "status": "PASS",
+    "storageRoot": "C:/Users/Egor31/AppData/Local/CADContour2D/projects",
+    "tool": "import_acceptance",
+    "validation": {
+        "binary64ControlRecords": "72",
+        "bounds": [
+            0,
+            0,
+            3000,
+            1000
+        ],
+        "cacheBytes": "101261312",
+        "cacheId": "33441670-64f0-4259-94bb-0fa40045a388",
+        "cachePath": "C:/Users/Egor31/AppData/Local/CADContour2D/projects/project-db3921c8-2163-4d48-a909-7533620c1dd7-XGzFaD\\datasets/1daf2bfd-0474-46f5-a394-e3c284678846.pc2dcache",
+        "encoding": 1,
+        "formatVersion": 1,
+        "hasNonZeroZ": false,
+        "indexHeight": 2,
+        "pointCount": "4202892",
+        "scanAll": {
+            "indexPages": "0",
+            "pointPages": "1542",
+            "readBytes": "101056512",
+            "returnedRecords": "4202892"
+        },
+        "scanAllMs": 1395.1553,
+        "sourceOpened": false,
+        "spatialQueries": [
+            {
+                "indexPages": "2",
+                "ms": 2.8715,
+                "pointPages": "2",
+                "readBytes": "262144",
+                "returnedRecords": "2",
+                "sha256IdXy": "dd0b81f39a210d9c4dc02fb2fb093e512edcf32e92821bb23c03f4a98c641135"
+            },
+            {
+                "indexPages": "2",
+                "ms": 20.8592,
+                "pointPages": "24",
+                "readBytes": "1703936",
+                "returnedRecords": "2985",
+                "sha256IdXy": "a18b10fee24b45f374232ab77687de3ea21d6168d255dcc198fc2ccfdd38b60b"
+            },
+            {
+                "indexPages": "3",
+                "ms": 15.3254,
+                "pointPages": "16",
+                "readBytes": "1245184",
+                "returnedRecords": "2330",
+                "sha256IdXy": "9bf56885d1f4d8995f16fb9d13dd75d6f19a9846ad0c1789fbe98da93033bd0a"
+            }
+        ],
+        "status": "PASS",
+        "strictValidation": {
+            "indexPages": "3",
+            "pointPages": "1542",
+            "readBytes": "101261312",
+            "returnedRecords": "4202892"
+        },
+        "strictValidationMs": 6507.7908,
+        "totalMs": 7946.9954
+    },
+    "warnings": [
+    ],
+    "workerDecisionObservedMs": 8763.0767,
+    "workerProductCleanupHookMs": 8763.1352
+}

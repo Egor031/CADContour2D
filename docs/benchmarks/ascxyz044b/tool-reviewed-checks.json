@@ -1,0 +1,25 @@
+{
+  "status": "PASS",
+  "debugZ": "PASS",
+  "releaseZ": "PASS",
+  "debugBusyProbe": true,
+  "releaseBusyProbe": true,
+  "malformedInputExpectedStatus": "FAIL",
+  "malformedInputExpectedExitCode": 1,
+  "malformedInputCode": "ParseError",
+  "malformedInputHasProject": false,
+  "roots": [
+    {
+      "root": "reviewed-z-debug-storage",
+      "remainingEntries": 0
+    },
+    {
+      "root": "reviewed-z-release-storage",
+      "remainingEntries": 0
+    },
+    {
+      "root": "reviewed-input-failure-storage",
+      "remainingEntries": 0
+    }
+  ]
+}

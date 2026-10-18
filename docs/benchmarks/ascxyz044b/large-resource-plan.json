@@ -1,0 +1,15 @@
+{
+  "points": "41984566",
+  "pointPages": "15402",
+  "indexPages": "17",
+  "cacheBytes": "1010507776",
+  "descriptorBoundBytes": "986816",
+  "conservativeTwoGenerationScratchBytes": "3358798048",
+  "ownedDiskUpperBoundBytes": "4370292640",
+  "sourceBytes": "1029576096",
+  "interactiveMemoryBytes": "134217728",
+  "interactiveMaxOpenFiles": 32,
+  "parserArraysBytes": 229376,
+  "parserReserveBytes": 294912,
+  "notes": "Disk bound uses two full 40-byte scratch generations plus headers for <=512 runs, final pages and descriptors. Expected 13 initial runs at 128 MiB; no intermediate generation needed."
+}

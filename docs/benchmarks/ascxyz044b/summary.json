@@ -1,0 +1,249 @@
+{
+  "runs": [
+    {
+      "run": "medium-gui",
+      "elapsedMs": 8091.590200000001,
+      "peakWorkingSetMiB": 220.0078125,
+      "sampledPrivateMiB": 222.69921875,
+      "newFilesEofPeakBytes": "267420864",
+      "logicalReadBytes": "272240667",
+      "logicalWriteBytes": "269720271",
+      "targetCacheBytes": "101261312",
+      "status": "PASS"
+    },
+    {
+      "run": "large-gui",
+      "elapsedMs": 69178.0675,
+      "peakWorkingSetMiB": 222.87109375,
+      "sampledPrivateMiB": 233.37890625,
+      "newFilesEofPeakBytes": "2685656976",
+      "logicalReadBytes": "2717104812",
+      "logicalWriteBytes": "2692990524",
+      "targetCacheBytes": "1010507776",
+      "status": "PASS"
+    },
+    {
+      "run": "hdd-gui",
+      "elapsedMs": 8085.655000000001,
+      "peakWorkingSetMiB": 216.47265625,
+      "sampledPrivateMiB": 223.05859375,
+      "newFilesEofPeakBytes": "265058208",
+      "logicalReadBytes": "272230760",
+      "logicalWriteBytes": "269720080",
+      "targetCacheBytes": "101261312",
+      "status": "PASS"
+    },
+    {
+      "run": "medium-cancel-parsing",
+      "elapsedMs": 329.2984,
+      "peakWorkingSetMiB": 154.9921875,
+      "sampledPrivateMiB": 140.25,
+      "newFilesEofPeakBytes": "0",
+      "logicalReadBytes": "983040",
+      "logicalWriteBytes": "5638",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 220.1343
+    },
+    {
+      "run": "medium-cancel-cache",
+      "elapsedMs": 4589.7573,
+      "peakWorkingSetMiB": 154.96484375,
+      "sampledPrivateMiB": 140.4765625,
+      "newFilesEofPeakBytes": "133611272",
+      "logicalReadBytes": "103065900",
+      "logicalWriteBytes": "133618547",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 219.44190000000071
+    },
+    {
+      "run": "medium-shutdown-cache",
+      "elapsedMs": 4479.752,
+      "peakWorkingSetMiB": 154.9765625,
+      "sampledPrivateMiB": 140.234375,
+      "newFilesEofPeakBytes": "133611152",
+      "logicalReadBytes": "103065900",
+      "logicalWriteBytes": "133618147",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 218.1302999999998
+    },
+    {
+      "run": "medium-gui-shutdown",
+      "elapsedMs": 4584.9422,
+      "peakWorkingSetMiB": 220.90234375,
+      "sampledPrivateMiB": 223.1953125,
+      "newFilesEofPeakBytes": "133611272",
+      "logicalReadBytes": "103277361",
+      "logicalWriteBytes": "133758570",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 109.55070000000069
+    },
+    {
+      "run": "hdd-cancel-cache",
+      "elapsedMs": 4378.0076,
+      "peakWorkingSetMiB": 154.9765625,
+      "sampledPrivateMiB": 140.484375,
+      "newFilesEofPeakBytes": "133611552",
+      "logicalReadBytes": "103065900",
+      "logicalWriteBytes": "133618757",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 219.03790000000026
+    },
+    {
+      "run": "z-release-cancel",
+      "elapsedMs": 209.47299999999998,
+      "peakWorkingSetMiB": 154.703125,
+      "sampledPrivateMiB": 12.4765625,
+      "newFilesEofPeakBytes": "0",
+      "logicalReadBytes": "24",
+      "logicalWriteBytes": "5383",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 140.0113
+    },
+    {
+      "run": "z-debug-cancel",
+      "elapsedMs": 323.5567,
+      "peakWorkingSetMiB": 168.37109375,
+      "sampledPrivateMiB": 140.65234375,
+      "newFilesEofPeakBytes": "0",
+      "logicalReadBytes": "24",
+      "logicalWriteBytes": "5416",
+      "targetCacheBytes": "0",
+      "status": "PASS",
+      "cancelToNativeCompletionMs": 194.58859999999999
+    }
+  ],
+  "sampling": {
+    "medium-gui": {
+      "count": 76,
+      "nominalSleepMs": 100,
+      "medianIntervalMs": 119.8109999999997,
+      "maxIntervalMs": 127.28400000000056
+    },
+    "large-gui": {
+      "count": 583,
+      "nominalSleepMs": 100,
+      "medianIntervalMs": 120.17500000000018,
+      "maxIntervalMs": 427.68099999999686
+    },
+    "hdd-gui": {
+      "count": 81,
+      "nominalSleepMs": 100,
+      "medianIntervalMs": 102.2170000000001,
+      "maxIntervalMs": 673.5790000000006
+    }
+  },
+  "acceptedCaches": [
+    {
+      "path": "C:\\Users\\Egor31\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Local\\CADContour2D\\projects\\project-0d8e02f5-6795-4efc-94bd-b0dcb27d7ad6-AXAGIY\\datasets\\0a922de9-780d-48e3-89ad-5a0f9b67e6c1.pc2dcache",
+      "bytes": "139264",
+      "sha256": "b9db105cd7bf70ddf094841c49451cee9602c2a32fd8f10e6388d8f4365dcf1f",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\Users\\Egor31\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Local\\CADContour2D\\projects\\project-14b2e59e-3391-4022-a8ef-6fac8617dca1-bvOtYs\\datasets\\da35a8ca-2924-4ae7-bc8d-5dbc1b722f13.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "1d62d0283a0190464fe98e7393ab567196c31856a189e453c4d4f1b57b44da3c",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\Users\\Egor31\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Local\\CADContour2D\\projects\\project-a047c35c-2c2a-4b72-ae25-bad2e78ad223-AmHTfA\\datasets\\e38e1d57-62d6-43a5-8875-350e44a1d15f.pc2dcache",
+      "bytes": "1010507776",
+      "sha256": "f6ff1a3d23ca9815df2dcbfdc186e587caa25d2130e80918bd494a2d7b43ed58",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\Users\\Egor31\\AppData\\Local\\Packages\\OpenAI.Codex_2p2nqsd0c76g0\\LocalCache\\Local\\CADContour2D\\projects\\project-db3921c8-2163-4d48-a909-7533620c1dd7-XGzFaD\\datasets\\1daf2bfd-0474-46f5-a394-e3c284678846.pc2dcache",
+      "bytes": "101261312",
+      "sha256": "f54747d241068a7ba68921bdebee43e5505bcedf499edb151ed777f024e3d50a",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\cancel-cache-storage\\project-189d395a-111f-4feb-8359-14b65422e27a-RyGZiz\\datasets\\5b4d15d5-704b-424e-af72-d71da3662217.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "e21114a4a930da363ab51013ae24462d2eb0990aee406803ac55edaf85b42ffb",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\cancel-cache-storage\\project-bb9fa4b2-1d33-457d-bb61-239a77097831-lOGSMd\\datasets\\a4a89140-08c6-4352-8841-b98554c52c87.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "842c790668a6fccfbc0f2d9d7aeba7ec191216c65eba55980c5f90a3a79f61c4",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\cancel-parsing-storage\\project-0095643d-c715-42da-8b8e-4aa816005230-BnihOR\\datasets\\3fcf8c2e-3bb4-4b6b-859c-ed26f6d764c7.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "f1d3643a5ac8a70bb810a9df9e67ca641d15c2fc7a7020b5a27ac7d760b1e324",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\cancel-parsing-storage\\project-127a25d1-707c-412c-be05-6fad067fad9e-pJvHYN\\datasets\\ffc240b6-44f5-4ac2-9b1d-d3814909f016.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "863d65d81573b11f1477caae22e02f93ead3b538632ae4a4135b77eb4f182e02",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\gui-shutdown-storage\\project-e8eaaaa0-cbe6-40e8-992d-f0ffc2bb02c1-TLLmIE\\datasets\\950c36f2-b398-497b-a1ef-7536c043721c.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "9e8067d5870c8f539de195783a8b74545737fb857e44a0ac27f53373692fb24f",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\shutdown-cache-storage\\project-5285a420-dfd7-4ddf-b150-bb8c351f093d-qDDIXV\\datasets\\7ce019eb-dc23-4d51-827c-ceecd8235f5f.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "39e7caf924b6a8db379de9038b495c001de42a4b636d46f2b4196ce232e251a3",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\z-debug-storage\\project-1d8cbb2a-7fe7-4428-8ccf-1ee2a0e997ef-JOgNsT\\datasets\\a2702795-d944-40e2-9f0d-17fee95ce764.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "fa3b708d787b0e5a5442447d26379f232af3ad743aa81b2ac2adb3cc664b5746",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\z-debug-storage\\project-533f8e31-fc7b-484a-bbc1-7479610c861b-sztWmV\\datasets\\7a5dbf88-59bf-43b8-9e63-37bb0b07fc81.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "ce3d05631b980b4adbc5d1711333a1a1ffcd5aa9ea2c24196337d09edb0c5675",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\z-release-storage\\project-b96eb777-9134-448e-9b4e-6dc99c682ed7-WRAwBB\\datasets\\fbaefbfc-2cab-4dda-a525-5dd87fba24e3.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "2e91a89882d4c7e89cc09a1c2ce330b4dacd38fcf4688da4a35d06c711951dd7",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\z-release-storage\\project-e5abfc5d-5e6e-456c-bcd6-0c7b58f804f9-URtLAl\\datasets\\ff0e7c38-3591-424d-9c9c-756d0a35be2f.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "e5976a977daaf578699974a0288e728797194e6034b62ccea2f6690c0f476420",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934\\cancel-storage\\project-0646c81e-51be-475a-b8fd-da713573f492-ItgYUW\\datasets\\34945713-408c-4b92-b703-d84aec7b3c02.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "eebcf7ca34ff6dcce36d88ca7d3a95b3c7d7d45cc7206b6efae5f5932dbbe937",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934\\cancel-storage\\project-bccfd03d-73f0-4304-93e7-4f06177e4fa2-cwXipH\\datasets\\233cb57d-b8e7-4e34-aab3-8711b8b8f4d1.pc2dcache",
+      "bytes": "2170880",
+      "sha256": "f2c7150b2f29618ae16ee67a58fb4e7b30141ca9678ffcd0f1c0fa2c44dbd9bb",
+      "acceptedPersistentCache": true
+    },
+    {
+      "path": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934\\complete-storage\\project-3437e2f3-c737-4483-bc95-a218caddab08-ctkYlu\\datasets\\af19aeb0-d0c3-42f7-88fc-1509650bb011.pc2dcache",
+      "bytes": "101261312",
+      "sha256": "1994b123fae2185077a37ae0f1710d99df2dee6e045963e1b0fe6c3a6666e0f3",
+      "acceptedPersistentCache": true
+    }
+  ],
+  "ssdRunRoot": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934",
+  "ssdRunRootBytes": "1156662777",
+  "hddRunRoot": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934",
+  "hddRunRootBytes": "105603098"
+}

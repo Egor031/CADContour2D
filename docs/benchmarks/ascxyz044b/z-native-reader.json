@@ -1,0 +1,68 @@
+{
+    "gui": false,
+    "qt": "6.12.0",
+    "scenario": "complete",
+    "status": "PASS",
+    "storageRoot": "C:/Users/Egor31/AppData/Local/CADContour2D/projects",
+    "tool": "import_acceptance",
+    "validation": {
+        "binary64ControlRecords": "3",
+        "bounds": [
+            1,
+            2,
+            5,
+            6
+        ],
+        "cacheBytes": "139264",
+        "cacheId": "38f87ec5-4dd8-4537-8caa-a2d4e90c30f8",
+        "cachePath": "C:\\Users\\Egor31\\AppData\\Local\\CADContour2D\\projects\\project-0d8e02f5-6795-4efc-94bd-b0dcb27d7ad6-AXAGIY\\datasets\\0a922de9-780d-48e3-89ad-5a0f9b67e6c1.pc2dcache",
+        "encoding": 1,
+        "formatVersion": 1,
+        "hasNonZeroZ": true,
+        "indexHeight": 1,
+        "pointCount": "3",
+        "scanAll": {
+            "indexPages": "0",
+            "pointPages": "1",
+            "readBytes": "65536",
+            "returnedRecords": "3"
+        },
+        "scanAllMs": 0.6051,
+        "sourceOpened": false,
+        "spatialQueries": [
+            {
+                "indexPages": "1",
+                "ms": 0.5812,
+                "pointPages": "0",
+                "readBytes": "65536",
+                "returnedRecords": "0",
+                "sha256IdXy": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            {
+                "indexPages": "1",
+                "ms": 0.5789,
+                "pointPages": "0",
+                "readBytes": "65536",
+                "returnedRecords": "0",
+                "sha256IdXy": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            {
+                "indexPages": "1",
+                "ms": 1.1422,
+                "pointPages": "1",
+                "readBytes": "131072",
+                "returnedRecords": "3",
+                "sha256IdXy": "8c8d93ce7d53f41db69033c7a06739a76bfae0182a99a65096c52f0f80761082"
+            }
+        ],
+        "status": "PASS",
+        "strictValidation": {
+            "indexPages": "1",
+            "pointPages": "1",
+            "readBytes": "139264",
+            "returnedRecords": "3"
+        },
+        "strictValidationMs": 56.1771,
+        "totalMs": 80.3781
+    }
+}

@@ -568,6 +568,18 @@ import/metadata, replacement, Z и закрытие. Полный отчёт, к
 Доказательства, команды и ограничения native smoke —
 [asc-xyz-gui-review-fixes.md](docs/asc-xyz-gui-review-fixes.md).
 
+04.4B проверила native GUI E2E, cancellation/shutdown, безопасные resource failures
+и один большой Release import: **41 984 566 точек**, **69.18 с** до native completion/join,
+Peak Working Set **222.9 MiB**, итоговый cache **1 010 507 776 байт**.
+Полная Reader validation/ID coverage и независимые X/Y bit controls — PASS.
+Целевой Writer/Sorter-прогон на HDD также прошёл; OS cache не сбрасывался,
+logical I/O не считается physical traffic. Debug/Release build, `all_qmllint`
+и production CTest — **452/452** в каждой конфигурации.
+Production-код не менялся. Отчёт A–J, методика, точные результаты и ограничения —
+[asc-xyz-e2e-performance-check.md](docs/asc-xyz-e2e-performance-check.md).
+Opt-in инструмент доступен при `CADCONTOUR2D_BUILD_TOOLS=ON`:
+[import_acceptance](tools/import_acceptance/README.md); большие workloads не входят в CTest.
+
 Проверенные команды после стандартной CMD-инициализации из Build:
 
 ```bat
@@ -577,9 +589,8 @@ ctest --preset windows-debug -L production --output-on-failure
 ctest --preset windows-release -L production --output-on-failure
 ```
 
-Части 04.1–04.3 и 04.4A реализованы; **04.4A — FIXED — READY FOR INDEPENDENT VERIFICATION**,
-задача 04 в целом не принята. Повторная проверка GUI fixes, большие HDD/UNC прогоны и финальная сквозная приёмка
-остаются в **04.4B** и отдельно выполняемых ревью.
+Части 04.1–04.4B выполнены; **задача 04 — READY FOR INDEPENDENT REVIEW**.
+Задача 04 не принята: финальное независимое ревью выполняется отдельно.
 Save/Open и восстановление относятся к 05, явное построение и версии Density Map —
 к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
 

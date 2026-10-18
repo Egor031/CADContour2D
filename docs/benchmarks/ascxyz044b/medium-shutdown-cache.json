@@ -1,0 +1,102 @@
+{
+    "afterProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "6f5fbbcb-3bf5-4b65-84c9-900c9f6b64cb",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/shutdown-cache-storage/project-5285a420-dfd7-4ddf-b150-bb8c351f093d-qDDIXV\\datasets/7ce019eb-dc23-4d51-827c-ceecd8235f5f.pc2dcache",
+        "canRedo": true,
+        "canUndo": true,
+        "cell": 2,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "applicationAcceptObservedMs": -1,
+    "beforeProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "6f5fbbcb-3bf5-4b65-84c9-900c9f6b64cb",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/shutdown-cache-storage/project-5285a420-dfd7-4ddf-b150-bb8c351f093d-qDDIXV\\datasets/7ce019eb-dc23-4d51-827c-ceecd8235f5f.pc2dcache",
+        "canRedo": true,
+        "canUndo": true,
+        "cell": 2,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "canImportAtCompletion": false,
+    "cancelToNativeCompletionMs": 218.1302999999998,
+    "cancellationRequestedMs": 4267.051,
+    "cleanupWarning": false,
+    "gui": false,
+    "guiTimerGapsOver100Ms": "0",
+    "guiTimerGapsOver50Ms": "0",
+    "guiTimerOutliersOver50Ms": [
+    ],
+    "guiTimerTicks": "448",
+    "importResources": {
+        "logicalReadBytes": "103065900",
+        "logicalReadOperations": "1575",
+        "logicalWriteBytes": "133618147",
+        "logicalWriteOperations": "3275",
+        "nativeApiOrSampleFailure": false,
+        "processLifetimePeakPagefileUsageBytes": "147324928",
+        "processLifetimePeakWorkingSetBytes": "162504704",
+        "remainingNewFiles": "0",
+        "sampleCount": "43",
+        "sampleIntervalMs": 100,
+        "sampledPeakNewFilesEofBytes": "133611152",
+        "sampledPeakPrivateBytes": "147046400",
+        "sampledPeakWorkingSetBytes": "162246656"
+    },
+    "importStartRequestedMs": 5.4293,
+    "importToNativeCompletionMs": 4479.752,
+    "initialWindowDescendantObjects": 0,
+    "maxGuiTimerGapMs": 12.338799999999992,
+    "nativeCompletionJoinedObservedMs": 4485.1813,
+    "operationStatus": 6,
+    "phaseTransitions": [
+        {
+            "observedMs": 5.5613,
+            "phase": 0
+        },
+        {
+            "observedMs": 110.863,
+            "phase": 2
+        },
+        {
+            "observedMs": 4266.9505,
+            "phase": 3
+        }
+    ],
+    "publicationDecision": 2,
+    "qt": "6.12.0",
+    "readyPublishedWorkerHookMs": 4389.2114,
+    "sampledPeakWindowDescendantObjects": 0,
+    "scenario": "shutdown-cache",
+    "secondImportRejectedBusy": true,
+    "sourceBytes": "103065900",
+    "sourcePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/medium.xyz",
+    "status": "PASS",
+    "storageRoot": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/shutdown-cache-storage",
+    "tool": "import_acceptance",
+    "warnings": [
+    ],
+    "workerDecisionObservedMs": 4389.2118,
+    "workerPhaseAtCancellation": 3,
+    "workerProductCleanupHookMs": 4389.2122
+}

@@ -1,0 +1,59 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "root": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\cancel-parsing-storage",
+      "projectDirectories": 2,
+      "expectedAcceptedDirectories": 2,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\cancel-cache-storage",
+      "projectDirectories": 2,
+      "expectedAcceptedDirectories": 2,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\shutdown-cache-storage",
+      "projectDirectories": 1,
+      "expectedAcceptedDirectories": 1,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\gui-shutdown-storage",
+      "projectDirectories": 1,
+      "expectedAcceptedDirectories": 1,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\z-release-storage",
+      "projectDirectories": 2,
+      "expectedAcceptedDirectories": 2,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "C:\\dev\\CADContour2D\\build\\ascxyz-044b-20261018-f1f2b934\\z-debug-storage",
+      "projectDirectories": 2,
+      "expectedAcceptedDirectories": 2,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934\\complete-storage",
+      "projectDirectories": 1,
+      "expectedAcceptedDirectories": 1,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "F:\\CADContour2D-benchmark\\ascxyz-044b-20261018-f1f2b934\\cancel-storage",
+      "projectDirectories": 2,
+      "expectedAcceptedDirectories": 2,
+      "scratchDirectories": 0
+    },
+    {
+      "root": "C:\\Users\\Egor31\\AppData\\Local\\CADContour2D\\projects",
+      "projectDirectories": 4,
+      "expectedAcceptedDirectories": 4,
+      "scratchDirectories": 0
+    }
+  ]
+}

@@ -180,8 +180,8 @@ benchmark-проверки описаны в [README](../README.md#project-statu
 
 ### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
 
-**Статус: 04.1–04.3 реализованы; 04.4A завершена — READY FOR REVIEW.
-Вся задача 04 не принята; целевое GUI-ревью и сквозная нагрузочная приёмка 04.4B ещё предстоят.**
+**Статус: 04.1–04.4B выполнены — READY FOR INDEPENDENT REVIEW.
+Задача 04 не принята; финальное независимое ревью предстоит отдельно.**
 
 04.1 предоставляет `io::parseAscXyz` и `io::importAscXyz`, bounded buffers/batches,
 direct binary64 conversion, structured source diagnostics, синхронный единственный
@@ -216,8 +216,18 @@ Debug/Release production — **431/431** в каждой конфигураци�
 Windows GUI smoke проверен отдельно от offscreen integration tests.
 Реализация, команды, найденные и исправленные дефекты и ограничения —
 [asc-xyz-gui-check.md](asc-xyz-gui-check.md).
-04.4B остаётся отдельным этапом: large-file/HDD/UNC/end-to-end нагрузочная матрица
-и окончательная сквозная приёмка. В 04.4A эти прогоны не выполнялись.
+Замечания R1–R3 исправлены и прошли повторное независимое ревью; 21 regression
+дополнила production набор до 452 tests. Исправления —
+[asc-xyz-gui-review-fixes.md](asc-xyz-gui-review-fixes.md).
+
+04.4B проверила native GUI E2E, medium cancellation/shutdown, один большой Release
+import 41 984 566 точек с измерением RAM/time/logical I/O и полной Reader validation,
+целевой HDD Writer/Sorter и controlled failures. Debug/Release production — 452/452,
+build и QML lint — PASS. Production-код не менялся; нагрузки остаются opt-in.
+Результаты synthetic datasets не обобщаются на все реальные scans; UNC server,
+cold-cache/physical disk traffic и worst-case blocking I/O не проверялись.
+Отчёт A–J и воспроизводимые данные —
+[asc-xyz-e2e-performance-check.md](asc-xyz-e2e-performance-check.md).
 
 Создание пустого `ProjectState` командой `newProject()` было корректным результатом принятой задачи 01. В задаче 04 команда «Новый проект» начинает выбор ASC/XYZ, а проект создаётся и принимается только после успешного импорта; это новое поведение не меняет исходных обязательств и приёмки задачи 01.
 

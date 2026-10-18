@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "debugWaitingZCancel": "PASS",
+  "releaseWaitingZCancel": "PASS",
+  "missingBaselineExpectedStatus": "FAIL",
+  "missingBaselineExpectedExitCode": 1,
+  "roots": [
+    {
+      "root": "build\\ascxyz-044b-20261018-f1f2b934\\checked-z-debug-storage",
+      "remainingEntries": 0
+    },
+    {
+      "root": "build\\ascxyz-044b-20261018-f1f2b934\\checked-z-release-storage",
+      "remainingEntries": 0
+    },
+    {
+      "root": "build\\ascxyz-044b-20261018-f1f2b934\\checked-setup-failure-storage",
+      "remainingEntries": 0
+    }
+  ]
+}

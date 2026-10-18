@@ -1,0 +1,122 @@
+{
+    "afterProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "bbcd58c1-4cb9-481e-918a-53bb968329ed",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/cancel-cache-storage/project-bb9fa4b2-1d33-457d-bb61-239a77097831-lOGSMd\\datasets/a4a89140-08c6-4352-8841-b98554c52c87.pc2dcache",
+        "canRedo": true,
+        "canUndo": true,
+        "cell": 2,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "applicationAcceptObservedMs": -1,
+    "beforeProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "bbcd58c1-4cb9-481e-918a-53bb968329ed",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/cancel-cache-storage/project-bb9fa4b2-1d33-457d-bb61-239a77097831-lOGSMd\\datasets/a4a89140-08c6-4352-8841-b98554c52c87.pc2dcache",
+        "canRedo": true,
+        "canUndo": true,
+        "cell": 2,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "1",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "canImportAtCompletion": true,
+    "cancelToNativeCompletionMs": 219.44190000000071,
+    "cancellationRequestedMs": 4377.6275,
+    "cleanupWarning": false,
+    "gui": false,
+    "guiTimerGapsOver100Ms": "0",
+    "guiTimerGapsOver50Ms": "0",
+    "guiTimerOutliersOver50Ms": [
+    ],
+    "guiTimerTicks": "459",
+    "importResources": {
+        "logicalReadBytes": "103065900",
+        "logicalReadOperations": "1575",
+        "logicalWriteBytes": "133618547",
+        "logicalWriteOperations": "3276",
+        "nativeApiOrSampleFailure": false,
+        "processLifetimePeakPagefileUsageBytes": "147300352",
+        "processLifetimePeakWorkingSetBytes": "162492416",
+        "remainingNewFiles": "0",
+        "sampleCount": "45",
+        "sampleIntervalMs": 100,
+        "sampledPeakNewFilesEofBytes": "133611272",
+        "sampledPeakPrivateBytes": "147300352",
+        "sampledPeakWorkingSetBytes": "162304000"
+    },
+    "importStartRequestedMs": 7.3121,
+    "importToNativeCompletionMs": 4589.7573,
+    "initialWindowDescendantObjects": 0,
+    "maxGuiTimerGapMs": 11.056100000000015,
+    "nativeCompletionJoinedObservedMs": 4597.0694,
+    "operationStatus": 6,
+    "phaseTransitions": [
+        {
+            "observedMs": 7.4929,
+            "phase": 0
+        },
+        {
+            "observedMs": 116.659,
+            "phase": 2
+        },
+        {
+            "observedMs": 4377.3611,
+            "phase": 3
+        }
+    ],
+    "publicationDecision": 2,
+    "qt": "6.12.0",
+    "readyPublishedWorkerHookMs": 4460.982,
+    "retryProject": {
+        "bounds": [
+            0,
+            0,
+            100,
+            60
+        ],
+        "cacheId": "a6cc61aa-8ab8-4136-a995-e3e65ca27795",
+        "cachePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/cancel-cache-storage/project-189d395a-111f-4feb-8359-14b65422e27a-RyGZiz\\datasets/5b4d15d5-704b-424e-af72-d71da3662217.pc2dcache",
+        "canRedo": false,
+        "canUndo": false,
+        "cell": 1,
+        "hasNonZeroZ": false,
+        "hasProject": true,
+        "identity": "2",
+        "pointCount": "87230",
+        "sourceBytes": "1896098",
+        "sourceLines": "87230"
+    },
+    "retrySucceeded": true,
+    "sampledPeakWindowDescendantObjects": 0,
+    "scenario": "cancel-cache",
+    "secondImportRejectedBusy": true,
+    "sourceBytes": "103065900",
+    "sourcePath": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/medium.xyz",
+    "status": "PASS",
+    "storageRoot": "C:/dev/CADContour2D/build/ascxyz-044b-20261018-f1f2b934/cancel-cache-storage",
+    "tool": "import_acceptance",
+    "warnings": [
+    ],
+    "workerDecisionObservedMs": 4486.8148,
+    "workerPhaseAtCancellation": 3,
+    "workerProductCleanupHookMs": 4486.8152
+}

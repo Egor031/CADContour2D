@@ -1,0 +1,10 @@
+[
+  {
+    "Path": "C:\\dev\\CADContour2D\\tests\\fixtures\\synthetic\\performance\\large_plate.geometry.json",
+    "Hash": "18AA6EBD093D21676FD3C4FAB7121B65E9B8648C2A1FBCFCF8858C40525AD2D1"
+  },
+  {
+    "Path": "C:\\dev\\CADContour2D\\tests\\fixtures\\synthetic\\performance\\clean_horizontal.scan.json",
+    "Hash": "A6CBB3F7F8C7CC41BE3273C8AFE7A6F6037AD2721E3425D788D01424ABE17158"
+  }
+]
