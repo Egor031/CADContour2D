@@ -87,6 +87,7 @@ ProjectController::ProjectController(QString storageRoot, QObject *parent)
         emit operationChanged();
     });
     connect(&runner_, &OperationRunner::released, this, &ProjectController::finishOperation);
+    connect(&runner_, &OperationRunner::saveFinished, this, &ProjectController::processSaveReceipt);
 }
 
 ProjectController::~ProjectController()
@@ -102,6 +103,82 @@ ProjectController::~ProjectController()
 const ProjectState *ProjectController::project() const noexcept
 {
     return session_ ? &session_->state : nullptr;
+}
+
+bool ProjectController::isDirty() const noexcept
+{
+    return session_ && (!session_->saved || !persistence::matchesSavedContent(session_->state, *session_->saved));
+}
+const persistence::SavedProject *ProjectController::savedProject() const noexcept
+{
+    return session_ ? session_->saved.get() : nullptr;
+}
+const persistence::SavedProject *ProjectController::unconfirmedSave() const noexcept
+{
+    return session_ ? session_->unconfirmed.get() : nullptr;
+}
+
+CommandResult ProjectController::saveProject(SaveRequest request) { return startSave(std::move(request), false); }
+CommandResult ProjectController::saveProjectAs(SaveRequest request) { return startSave(std::move(request), true); }
+
+CommandResult ProjectController::startSave(SaveRequest request, bool saveAs)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (runner_.busy()) return CommandResult::rejected(CommandError::Busy);
+    if (session_->unconfirmed) return CommandResult::rejected(CommandError::UnsafeState);
+    if (!session_->state.dataset()) return CommandResult::rejected(CommandError::InvalidValue);
+    if (request.manifestPath.isEmpty()) {
+        if (saveAs || !session_->saved) return CommandResult::rejected(CommandError::InvalidValue);
+        request.manifestPath = session_->saved->manifestPath;
+    }
+    try {
+        auto snapshot = persistence::captureSnapshot(session_->state, QUuid::createUuid(), QUuid::createUuid());
+        if (!snapshot) return CommandResult::rejected(CommandError::InvalidValue);
+        persistence::SaveInput input{std::move(snapshot.value()), *session_->state.dataset(),
+            std::move(request.manifestPath), session_->saved, saveAs, request.limits};
+        auto work = [input = std::move(input), prepare = savePrepare_]
+            (const OperationSnapshot &, const WorkerControl &control) mutable -> WorkerOutcome {
+            control.report({OperationPhase::Preparing, 0, std::nullopt});
+            persistence::SaveCallbacks callbacks{[&control] { return control.cancelled(); },
+                [&control](std::uint64_t completed, std::uint64_t total) {
+                    control.report({OperationPhase::Computing, completed, total});
+                }};
+            auto result = prepare ? prepare(std::move(input), std::move(callbacks))
+                : persistence::SaveTransaction::prepare(std::move(input), std::move(callbacks));
+            if (!result) {
+                if (result.error().code == persistence::SaveErrorCode::Cancelled) return WorkerOutcome::cancelled();
+                auto failure = OperationFailure::make(FailureReason::SaveFailed, OperationPhase::Preparing,
+                                                      result.error().detail.data());
+                failure.saveError = result.error();
+                return WorkerOutcome::failed(failure);
+            }
+            control.report({OperationPhase::Finalizing, 0, std::nullopt});
+            return WorkerOutcome::success(std::move(result.value()));
+        };
+        return startWork(std::move(work), OperationKind::Save);
+    } catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
+}
+
+void ProjectController::processSaveReceipt(OperationId id,
+    std::shared_ptr<const persistence::SavedProject> prepared, persistence::SaveCommitResult receipt)
+{
+    if (id != operation_.id || !operation_.active || operation_.kind != OperationKind::Save
+        || operation_.decision != PublicationDecision::Accept || !session_
+        || snapshot_.contextEpoch != contextEpoch_ || !snapshot_.projectContext
+        || snapshot_.projectContext->projectIdentity != session_->state.runtimeIdentity()) return;
+    CommandScope guard(*this);
+    if (receipt.publication == persistence::SavePublication::Persisted) {
+        // All allocations and path construction were completed before permission.
+        session_->state.bindDataset(prepared->content.location);
+        session_->saved = std::move(prepared);
+        emit stateChanged();
+    } else if (receipt.publication == persistence::SavePublication::Uncertain) {
+        session_->unconfirmed = std::move(prepared);
+    }
 }
 
 CommandResult ProjectController::checkEntry() const noexcept
@@ -128,6 +205,9 @@ CommandResult ProjectController::closeProject()
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected)
         return entry;
+    if (operation_.active && operation_.kind == OperationKind::Save
+        && operation_.decision == PublicationDecision::Accept)
+        return CommandResult::rejected(CommandError::Busy);
     if (!session_ && (!operation_.active || operation_.decision != PublicationDecision::Pending))
         return CommandResult::noChange();
     if (contextEpoch_ == std::numeric_limits<std::uint64_t>::max())
@@ -156,7 +236,7 @@ CommandResult ProjectController::setCell(double value)
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::HistoryExhausted);
     auto command = std::make_unique<SetCellCommand>(session_->state, value);
     CommandScope guard(*this);
-    invalidateOperation();
+    if (operation_.kind != OperationKind::Save) invalidateOperation();
     session_->history.push(command.release()); // QUndoStack owns the command and calls redo().
     emit stateChanged();
     return result;
@@ -177,7 +257,7 @@ CommandResult ProjectController::moveHistory(bool undo)
     if (session_->state.inputRevision() == std::numeric_limits<std::uint64_t>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
     CommandScope guard(*this);
-    invalidateOperation();
+    if (operation_.kind != OperationKind::Save) invalidateOperation();
     if (undo)
         session_->history.undo();
     else
@@ -355,10 +435,13 @@ void ProjectController::invalidateOperation()
 bool ProjectController::applicable(OperationId id) const noexcept
 {
     const auto current = session_ ? std::optional(session_->state.operationStamp()) : std::nullopt;
+    const bool sameContext = snapshot_.kind == OperationKind::Save
+        ? current && snapshot_.projectContext && current->projectIdentity == snapshot_.projectContext->projectIdentity
+        : snapshot_.projectContext == current;
     return shutdown_ == ShutdownState::Open && operation_.active
         && id == operation_.id && operation_.decision == PublicationDecision::Pending
         && !operation_.publicationRevoked && !operation_.cancellationRequested
-        && snapshot_.contextEpoch == contextEpoch_ && snapshot_.projectContext == current
+        && snapshot_.contextEpoch == contextEpoch_ && sameContext
         && (snapshot_.kind != OperationKind::Import || !snapshot_.projectContext
             || snapshot_.replacementConfirmed);
 }
@@ -423,13 +506,20 @@ void ProjectController::processReady(OperationId id)
         ~DecisionGuard() { runner.decide(id, PublicationDecision::Discard); }
     } decisionGuard{runner_, id};
     const auto &outcome = lease.outcome();
-    operation_.workerStatus = outcome.status;
+    if (operation_.kind != OperationKind::Save || outcome.status != WorkerStatus::Succeeded)
+        operation_.workerStatus = outcome.status;
     if (outcome.status == WorkerStatus::Failed)
         operation_.failure = outcome.failure;
     bool committed = false;
     if (outcome.status == WorkerStatus::Succeeded && applicable(id)) {
         try {
-            if (operation_.kind == OperationKind::Import) {
+            if (operation_.kind == OperationKind::Save) {
+                if (!outcome.save || outcome.imported || outcome.product)
+                    throw std::invalid_argument("expected prepared save transaction");
+                committed = lease.accept(&operation_, [](void *data) noexcept {
+                    static_cast<OperationState *>(data)->decision = PublicationDecision::Accept;
+                }); // permission only; baseline and binding await the persisted receipt
+            } else if (operation_.kind == OperationKind::Import) {
                 if (!outcome.imported || outcome.product)
                     throw std::invalid_argument("expected import product");
                 auto candidate = prepareImport(*outcome.imported);
@@ -499,7 +589,8 @@ void ProjectController::processReady(OperationId id)
     }
     if (committed) {
         operationDiagnostic("accept", operation_, operationClock_.elapsed());
-        emit stateChanged(); // observer delivery is outside fallible candidate preparation
+        if (operation_.kind != OperationKind::Save)
+            emit stateChanged(); // save content/binding only changes on persisted receipt
     }
     if (operation_.decision == PublicationDecision::Pending) {
         operation_.decision = PublicationDecision::Discard;
@@ -523,7 +614,8 @@ void ProjectController::finishOperation(OperationId id, WorkerStatus status, Ope
     operation_.active = false;
     if (operation_.decision == PublicationDecision::Pending)
         operation_.decision = PublicationDecision::Discard;
-    operation_.status = operation_.decision == PublicationDecision::Accept ? OperationStatus::Succeeded
+    operation_.status = operation_.decision == PublicationDecision::Accept
+        && (operation_.kind != OperationKind::Save || status == WorkerStatus::Succeeded) ? OperationStatus::Succeeded
         : operation_.failure ? OperationStatus::Failed
         : operation_.cancellationRequested || status == WorkerStatus::Cancelled ? OperationStatus::Cancelled
         : OperationStatus::Discarded;

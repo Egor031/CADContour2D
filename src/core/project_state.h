@@ -40,6 +40,8 @@ public:
     static bool isValidCell(double value) noexcept;
     CommandResult checkCellChange(double value) const noexcept;
     CommandResult changeCell(double value) noexcept;
+    // Storage relocation preserves domain content, runtime stamps and Undo references.
+    void bindDataset(std::shared_ptr<const DatasetLocation> location) noexcept;
 
 private:
     friend class ProjectStateTestAccess;

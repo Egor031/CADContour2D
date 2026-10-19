@@ -61,8 +61,8 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 В новом проекте выбранный `cell` начинается с 1 мм без наследования прежнего значения. Это изменяемый пользователем параметр последующего явного построения Density Map; импорт не требует `cell` и карту не строит. Изменение выбранного `cell` не меняет существующие карты; каждая версия хранит собственные параметры построения. Автоматическая рекомендация `cell` — потенциальная тема исследования без выбранного алгоритма и утверждённой необходимости, не зависимость задач 04 или 06.
 
 GUI выбора ASC/XYZ, подтверждения замены/Z и карточка dataset реализованы в 04.4A.
-Save/Open `.pc2dproj`, восстановление параметров и частично доступного
-состояния при отсутствующем или повреждённом cache — отдельная задача 05; обычная
+В 05.2 реализованы C++ Save/Save As `.pc2dproj`; GUI сохранения, Open, восстановление
+параметров и частично доступного состояния — оставшиеся части задачи 05; обычная
 работа после импорта не требует исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
 
@@ -466,7 +466,8 @@ build\windows-release\operation_probe.exe
 существенных неподтверждённых рисков — 0; обязательных исправлений нет.
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
 В задаче 05 принят этап 05.1 — Persistence Foundation; задача 05 целиком не завершена.
-05.2–05.5 не начаты; пользовательские Save/Open/Recovery пока не реализованы.
+05.2 — **READY FOR INDEPENDENT REVIEW**; Open/Recovery и GUI Save/Open (05.3–05.5)
+не начаты. [Отчёт Save / Save As](docs/reports/task-05/save-implementation.md).
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -624,7 +625,7 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 независимого ревью, исправления H1/H2 и повторной независимой проверки.
 H1/H2 — FIXED, итог ревью — **05.1 — READY FOR ACCEPTANCE**; новых блокирующих
 дефектов нет. [Итоги и границы принятия](docs/reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
-Задача 05 целиком не завершена; 05.2–05.5 — NOT STARTED.
+Задача 05 целиком не завершена; 05.3–05.5 — NOT STARTED. Реализация 05.2 описана ниже.
 
 По результатам уже выполненной повторной независимой проверки сборки Debug/Release
 и `all_qmllint` — PASS; итоговый production CTest в каждой конфигурации —
@@ -640,4 +641,47 @@ cmake --build --preset windows-release --target all all_qmllint --parallel 4
 ctest --preset windows-debug -L production --output-on-failure
 ctest --preset windows-release -L production --output-on-failure
 ```
+
+### Save / Save As — 05.2
+
+C++ `ProjectController::saveProject(SaveRequest)` сохраняет импортированный проект,
+`saveProject()` повторяет сохранение, `saveProjectAs(SaveRequest)` переносит активный
+storage в другой каталог после успешной публикации. Manifest v1 публикуется атомарно
+после завершённого dataset; обычный повторный Save не копирует cache и не читает source.
+Конфликты защищены кооперативным directory lock и проверкой ожидаемого snapshotId.
+Разрешение commit отделено от подтверждённого результата, cancellation/shutdown
+сохраняют опубликованные файлы. Dirty сравнивает persistent content с saved baseline;
+изменения cell во время Save и Undo/Redo не теряются, history не очищается.
+
+Save As с эквивалентным текущему path не делает копию. Другое имя manifest в том же
+directory отклоняется явно. При Uncertain commit baseline не меняется, evidence
+сохраняется, следующий Save требует проверки через последующее Open. GUI сохранения,
+Open, Autosave/Recovery не входят в 05.2. Архитектура и границы —
+[§28.1](docs/architecture.md#281-явные-save--save-as-052),
+технический отчёт A–I — [save-implementation.md](docs/reports/task-05/save-implementation.md).
+
+Проверенные targets включают `save_tests` и дочерний `save_crash_probe`.
+Отдельный набор: `ctest --preset windows-debug -R ^SaveApplication --output-on-failure`
+или `windows-release`. Он также входит в полный `-L production`.
+Финальные Debug/Release build и `all_qmllint` — PASS; полный production в каждой
+конфигурации — **524 passed / 0 failed / 1 skipped** из 525, включая **44 Save tests**.
+Единственный SKIP — прежний file-symlink test без Windows privilege (1314), junction
+и C:↔D: Save As проверены. Известная гонка setup TLS-теста исправлена барьером
+фактического входа helper; ограниченные серии по 12 Debug/Release повторов прошли.
+Финальные команды после штатной инициализации среды остаются:
+
+```bat
+cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+cmake --build --preset windows-release --target all all_qmllint --parallel 4
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+Opt-in [save_acceptance](tools/save_acceptance/README.md) сравнил первый/повторный
+Save на synthetic caches 1 млн и 42 млн points. У 42 млн: 1 010 900 992 bytes,
+30.53 s первый Save и 0.53 s repeat; repeat — 0 copies и 22.7 KB logical read.
+Sampled working set около 12 MiB у обоих размеров. Методику, точные числа и
+ограничения OS cache/измерений см. в отчёте; большой прогон предшествовал последнему
+усилению публикации нового manifest (copy/readback не менялись), после него повторён
+resource smoke на 1 млн points. Benchmark не включён в CTest.
 

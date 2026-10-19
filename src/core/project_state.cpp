@@ -26,6 +26,11 @@ bool ProjectState::isValidCell(double value) noexcept
     return std::isfinite(value) && value > 0.0;
 }
 
+void ProjectState::bindDataset(std::shared_ptr<const DatasetLocation> location) noexcept
+{
+    if (dataset_) dataset_->location = std::move(location);
+}
+
 CommandResult ProjectState::checkCellChange(double value) const noexcept
 {
     if (!isValidCell(value))

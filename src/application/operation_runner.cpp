@@ -189,7 +189,9 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         } else {
             outcome = control.cancelled() ? WorkerOutcome::cancelled() : work(snapshot, control);
         }
-        if (outcome.status == WorkerStatus::Succeeded && (bool(outcome.product) == bool(outcome.imported)))
+        const auto products = int(bool(outcome.product)) + int(bool(outcome.imported)) + int(bool(outcome.save));
+        if (outcome.status == WorkerStatus::Succeeded && (products != 1
+            || (snapshot.kind == OperationKind::Save) != bool(outcome.save)))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
         if (outcome.status == WorkerStatus::Succeeded && outcome.imported && !validImportTransport(*outcome.imported))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
@@ -207,6 +209,8 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         context->outcome.product = std::move(outcome.product);
         if (outcome.imported)
             context->outcome.imported = outcome.imported->ready;
+        if (outcome.save)
+            context->outcome.save = outcome.save->prepared();
         context->ready = true;
         if (context->zRequest) { // also clear a request if a test hook/worker threw
             context->zRequest.reset();
@@ -247,6 +251,24 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         outcome.imported->directory->setAutoRemove(false);
         outcome.imported->data.cache.releaseToOwner();
     }
+    if (decision == PublicationDecision::Accept && outcome.save) {
+        // Accept is permission only. File I/O runs here, outside the decision mutex.
+        const auto receipt = outcome.save->commit();
+        std::lock_guard lock(context->mutex);
+        context->saveReceipt = receipt;
+        context->cleanupWarning = context->cleanupWarning || receipt.cleanupWarning;
+        if (receipt.publication != persistence::SavePublication::Persisted) {
+            context->outcome.status = WorkerStatus::Failed;
+            auto failure = OperationFailure::make(FailureReason::SaveFailed, OperationPhase::Finalizing);
+            failure.saveError = receipt.error;
+            if (receipt.error) {
+                failure.detail = receipt.error->detail;
+                failure.systemCode = receipt.error->systemCode;
+            }
+            context->outcome.failure = failure;
+        }
+    }
+    outcome.save.reset();
     outcome.imported.reset();
     // Product destruction and all scratch/capture cleanup run outside the mutex, on worker.
     context->outcome.product.reset();
@@ -399,6 +421,8 @@ void OperationRunner::poll()
     timer_.stop();
     thread_.reset(); // both native completion and Qt join confirmed before destruction
     context_.reset();
+    if (context->saveReceipt)
+        emit saveFinished(id, context->outcome.save, *context->saveReceipt);
     emit released(id, status, failure, warning);
 }
 

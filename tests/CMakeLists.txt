@@ -10,6 +10,20 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(save_tests operation_test_main.cpp save_tests.cpp)
+set_target_properties(save_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(save_tests PRIVATE cadcontour_application GTest::gtest)
+target_compile_options(save_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+add_executable(save_crash_probe save_crash_probe.cpp)
+set_target_properties(save_crash_probe PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(save_crash_probe PRIVATE cadcontour_application)
+target_compile_options(save_crash_probe PRIVATE /W4 /permissive- /fp:precise /utf-8)
+target_compile_definitions(save_tests PRIVATE SAVE_CRASH_PROBE_EXE="$<TARGET_FILE:save_crash_probe>"
+    SAVE_TEST_WORKSPACE="${CMAKE_BINARY_DIR}")
+add_dependencies(save_tests save_crash_probe)
+gtest_discover_tests(save_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX SaveApplication.
+    PROPERTIES LABELS production TIMEOUT 90)
+
 add_executable(persistence_tests persistence_tests.cpp)
 set_target_properties(persistence_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(persistence_tests PRIVATE cadcontour_persistence GTest::gtest_main)

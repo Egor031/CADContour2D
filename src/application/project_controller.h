@@ -13,6 +13,11 @@
 
 namespace cadcontour {
 
+struct SaveRequest {
+    QString manifestPath; // first Save and Save As require an absolute path
+    persistence::ManifestLimits limits{4ULL << 20, 4096, 32};
+};
+
 class ProjectController : public QObject {
     Q_OBJECT
 
@@ -34,6 +39,11 @@ public:
 
     CommandResult newProject();
     CommandResult importAscXyz(ImportRequest request);
+    CommandResult saveProject(SaveRequest request = {});
+    CommandResult saveProjectAs(SaveRequest request);
+    bool isDirty() const noexcept;
+    const persistence::SavedProject *savedProject() const noexcept;
+    const persistence::SavedProject *unconfirmedSave() const noexcept;
     // UI captures this before file selection; startImport rechecks it before launching.
     std::optional<ImportContext> importContext() const noexcept;
     CommandResult closeProject();
@@ -53,6 +63,7 @@ signals:
 private:
     friend class ProjectControllerTestAccess;
     friend class OperationTestAccess;
+    friend class SaveTestAccess;
     class CommandScope;
     // Reverse destruction order: undo commands disappear before their referenced state.
     // DatasetLocation retains accepted files across session/controller destruction.
@@ -60,6 +71,8 @@ private:
         explicit ProjectSession(ProjectState value) : state(std::move(value)) {}
         ProjectState state;
         QUndoStack history;
+        std::shared_ptr<const persistence::SavedProject> saved;
+        std::shared_ptr<const persistence::SavedProject> unconfirmed;
     };
     struct VerificationState {
         std::uint64_t generation = 0;
@@ -73,6 +86,9 @@ private:
                                 std::function<void(VerificationState &)> finalize = {});
     CommandResult startWork(OperationWork work, OperationKind kind, bool replacementConfirmed = false);
     CommandResult startImport(ImportRequest request, io::ZHandler handler);
+    CommandResult startSave(SaveRequest request, bool saveAs);
+    void processSaveReceipt(OperationId id, std::shared_ptr<const persistence::SavedProject> prepared,
+                            persistence::SaveCommitResult receipt);
     std::unique_ptr<ProjectSession> prepareImport(const ImportReadyProduct &product);
     void invalidateOperation();
     bool applicable(OperationId id) const noexcept;
@@ -88,6 +104,8 @@ private:
     std::uint64_t contextEpoch_ = 0;
     // Internal fault seam; tests can cancel/invalidate or fail during preparation.
     std::function<void()> prepareImportHook_;
+    std::function<persistence::SaveResult<std::unique_ptr<persistence::SaveTransaction>>(
+        persistence::SaveInput, persistence::SaveCallbacks)> savePrepare_;
     std::uint64_t lastIdentity_ = 0;
     bool executing_ = false;
     OperationRunner runner_;

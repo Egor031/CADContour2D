@@ -1,0 +1,5 @@
+add_executable(save_acceptance main.cpp)
+set_target_properties(save_acceptance PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(save_acceptance PRIVATE cadcontour_application Psapi)
+target_include_directories(save_acceptance PRIVATE ../../tests)
+target_compile_options(save_acceptance PRIVATE /W4 /permissive- /fp:precise /utf-8)

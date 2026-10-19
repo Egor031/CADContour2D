@@ -1,9 +1,10 @@
-# Project Manifest v1 — Persistence Foundation 05.1
+# Project Manifest v1
 
 ## Статус и область
 
 Реализованы metadata snapshot, UTF-8 JSON codec на Qt Core и безопасное разрешение
-project-owned paths. Это основа хранения, а не пользовательские Save/Open.
+project-owned paths. В 05.2 добавлены C++ Save/Save As с атомарной публикацией;
+пользовательский GUI и Open ещё не реализованы.
 Binary Point Cache v1 не изменён. Несовместимое расширение manifest, включая новые
 семантические поля или dataset kinds, требует увеличения `version` и явной поддержки
 codec; миграции и молчаливое игнорирование неизвестного содержимого отсутствуют.
@@ -164,12 +165,42 @@ canonical location как доверенную границу. Каждый су
 `shared_ptr<const DatasetLocation>` (storage identity, directory, relative path).
 ProjectSession не дублирует расположение. Будущие worker/Undo владельцы удерживают эту
 ссылку; Save может подготовить новый binding и атомарно заменить current reference,
-при этом старые snapshots продолжают удерживать прежнее расположение. Само переключение
-не реализовано. Логическая CacheId не меняется при переносе тех же immutable bytes.
+при этом старые snapshots продолжают удерживать прежнее расположение. В 05.2 binding
+переключается после persisted receipt, без замены текущего cell/Undo history.
+Логическая CacheId не меняется при переносе тех же immutable bytes.
 
 DatasetLocation ничего не удаляет, даже при уничтожении последней ссылки. Принятые
 AppData и будущие project-owned файлы сохраняются после Close, замены, очистки Undo и
 уничтожения controller. Scratch/PendingCache/QTemporaryDir до Accept принадлежат
 создавшему worker и сохраняют прежние cleanup правила. Неопределённые файлы не удаляются.
-Save/Recovery persistent reachability и GC не реализованы; принятую retention policy
+Recovery persistent reachability и GC не реализованы; принятую retention policy
 нельзя заменить удалением по одному лишь shared_ptr reference count.
+
+## Гарантии публикации Save / Save As (05.2)
+
+Схема v1 не изменена. Явное сохранение публикует manifest только после завершения
+нужного dataset. Первый Save/Save As создаёт новый storageId и потоковую копию
+cache без изменения CacheId; обычный Save использует существующий dataset и меняет
+только manifest/snapshotId. Старые физические bindings и каталоги сохраняются.
+
+Весь canonical project directory защищён кооперативным `.pc2d-save.lock`.
+Повторный Save проверяет ожидаемый snapshotId и digest прежнего manifest под lock
+непосредственно перед atomic QSaveFile replacement commit с direct-write fallback=false.
+Новый manifest публикуется same-directory QTemporaryFile::rename без overwrite,
+включая случай появления неизвестного файла после финальной проверки.
+Новый target/другие manifests/чужой data directory не перезаписываются. Save As
+с эквивалентным текущему path переиспользует storage; другое имя в том же каталоге
+возвращает Conflict. Не использующие lock процессы не получают полной изоляции.
+
+Copy проверяется envelope/layout, точным размером, потоковым SHA-256 readback и
+page checksums. Повторный Save проверяет наблюдаемую file identity/times и envelope
+без scanAll/strict validate. Handles удерживаются до исхода публикации, path/reparse
+checks повторяются перед I/O. Ограничения внешнего изменения из §Storage сохраняются.
+
+После dataset rename файл удерживается консервативно даже при ошибке/отмене Save.
+Только подтверждённый commit меняет application binding/baseline. При Uncertain
+сохраняются prepared path/IDs/digest и datasets, baseline остаётся прежним.
+Авария после commit до receipt не удаляет dataset: фактический manifest является
+источником истины для последующего Open. Возможны staging/orphan leftovers; GC и
+абсолютные гарантии при power loss отсутствуют. Протокол —
+[architecture.md, §28.1](architecture.md#281-явные-save--save-as-052).

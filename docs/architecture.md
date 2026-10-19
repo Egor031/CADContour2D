@@ -919,6 +919,10 @@ Progress передаётся через ограниченный mailbox пос
 
 Cancellation кооперативна и не использует принудительное завершение потока. Запрос отмены немедленно и необратимо отзывает право публикации; проверка worker на checkpoint определяет лишь скорость остановки. Изменение relevant inputs, смена/закрытие проекта и reset также отзывают это право. No-op и отклонённая команда не инвалидируют входы. Worker success, cancellation, failure и application discard различаются; commit и полное завершение потока — разные события.
 
+Для явного Save действует контракт §28.1: cell/Undo/Redo не инвалидируют захваченный
+snapshot. До permission Cancel/Close/Shutdown отзывают право commit; после permission
+файловый результат обязательно дожидаются, Cancel возвращает NoChange, Close/замена — Busy.
+
 Z-confirmation — отдельное ожидание до Ready, не PublicationDecision. Request,
 ответ и cancellation flag изменяются под одним mutex с predicate condition variable.
 Worker просыпается при решении, cancellation, Discard или отзыве запроса;
@@ -1102,7 +1106,7 @@ directory и относительным dataset path; ProjectSession больш�
 последней ссылки не удаляет принятые файлы: Close, замена и очистка history безопасны,
 допускается накопление caches. До Accept cleanup по-прежнему принадлежит worker
 PendingCache/QTemporaryDir; irreversible gate и worker finalization не изменены.
-Save/Open/Recovery и автоматическая GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
+Save/Save As реализованы в 05.2 (§28.1); Open/Recovery и автоматическая GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
 files; автоматического scavenger нет.
 
 `ProjectState` остаётся Qt-независимой domain model без I/O. Его постоянный `ProjectId`
@@ -1126,14 +1130,88 @@ cache и не запускает вычисления. Отсутствие/не
 до DOM; bounded device reader проверяет размер до чтения. Это admission policy metadata,
 не фиксированный лимит количества будущих версий и не обещание peak RSS.
 
-Save 05.2 должен сначала подготовить полностью завершённые immutable файлы без
-overwrite, затем опубликовать manifest. Для переключения session можно подготовить
-новый DatasetLocation и заменить current reference после успеха; старые holders
-удерживают прежний binding. В 05.1 этот протокол и переключение не реализованы.
+Save 05.2 сначала подготавливает полностью завершённые immutable файлы без overwrite,
+затем публикует manifest. Новый DatasetLocation подготовлен до permission, current
+reference заменяется после подтверждённого успеха; старые holders удерживают прежний binding.
 
 Канонический перечень восстанавливаемого состояния определён в [requirements.md, §32](requirements.md#32-сохранение-проекта). Он включает выбранные параметры будущего построения (в том числе `cell`), все версии Density Map с их собственными параметрами и Rough-состояниями и активную версию, HoleGroup обоих этапов и ручные удаления точек reduced cloud независимо от способа хранения. При открытии восстанавливается сохранённый выбранный `cell`; начальное 1 мм относится к новому проекту через импорт. Связи версии с PNG, metadata, source cache и Rough-состоянием восстанавливаются согласованно; история Undo не сериализуется. Детальные layout и схемы определяются при реализации. Различаются версия persistent format (§30) и идентичность результата (§15).
 
-Опубликованный project save ссылается только на полностью записанные согласованные project-owned datasets. Неудачная запись сохраняет предыдущее корректное сохранение. Конкретный протокол записи не фиксируется.
+Опубликованный project save ссылается только на полностью записанные согласованные project-owned datasets. Неудачная запись сохраняет предыдущее корректное сохранение. Реализованный протокол записи описан в §28.1.
+
+---
+
+### 28.1. Явные Save / Save As (05.2)
+
+C++ API controller: `saveProject(SaveRequest)` и `saveProjectAs(SaveRequest)`.
+Первый Save требует абсолютного `.pc2dproj` path; повторный Save может использовать
+известный path без аргумента. Save As в тот же canonical directory с эквивалентным
+именем выполняет metadata-only Save. Другое имя в том же directory — Conflict:
+автоматическое переименование и второй manifest одного storage не поддерживаются.
+Новый каталог получает новый storageId; ProjectId/CacheId сохраняются, каждый
+опубликованный snapshotId новый. Uncertain commit запрещает следующий Save в этом
+сеансе до проверки через последующее Open.
+
+Протокол отличается от вычислительных операций §25:
+
+```text
+owner: capture metadata + retain dataset binding
+worker: directory lock + source lease → bounded copy (если требуется)
+        → completed immutable dataset → staged manifest + prepared binding/baseline
+owner: Ready lease → session applicability → irrevocable publication permission
+worker: final filesystem/conflict checks → atomic manifest commit → fixed-size receipt
+        → release file resources → native completion / Qt join
+owner: persisted receipt → noexcept binding/baseline exchange → terminal notification
+```
+
+Import сохраняет прежний Accept с немедленным noexcept обменом state/history.
+Для Save Accept означает только permission: он не меняет baseline и не объявляет
+Succeeded. Commit исполняется в worker без controller/context mutex. До permission
+действует cancellation; после него shutdown ждёт исход и native join. Destructor
+drain не требует доставки receipt; опубликованный manifest остаётся источником
+истины для будущего Open, даже если приложение не обработало receipt.
+
+Save applicability проверяет OperationId, runtime session identity/context epoch,
+Open и отсутствие отмены, но не input revision. Более поздние cell/Undo/Redo остаются
+в текущем ProjectState. Receipt меняет только физический binding и saved baseline;
+он не заменяет текущее содержимое snapshot, не очищает историю и не вызывает setClean.
+Dirty сравнивает ProjectId, cell, source metadata, CacheId, count/bounds/Z с фактически
+сохранённым содержимым. Runtime revisions, paths физической копии, storage/snapshot
+IDs и history сами по себе не являются dirty. Импортированный проект без baseline dirty.
+
+`cadcontour_persistence` владеет файловой транзакцией; application слой — запуском,
+gate, session binding и baseline. Ready содержит shared immutable metadata;
+QSaveFile/QTemporaryFile, QLockFile и handles остаются в worker. Необходимые application allocations
+завершаются до permission. Save errors содержат code, phase, native system code и
+bounded diagnostic; файловые ошибки не показывают dialogs.
+
+Блокировка `.pc2d-save.lock` кооперативна и действует на весь canonical directory.
+Новый target не заменяет существующий файл и отклоняет другие `.pc2dproj`/готовый
+`data`. При повторном Save непосредственно перед commit под тем же lock сверяются
+ожидаемые ProjectId/storageId/snapshotId и SHA-256 manifest. Повторяются path/reparse
+checks; directory handles запрещают rename/delete удерживаемых каталогов, dataset
+handles запрещают write/delete до конца операции. Это не защита от произвольного
+стороннего процесса, writable mapping, hard-link/ancestor alias или аппаратного отказа.
+
+Первый Save/Save As копируют cache блоками 64 KiB, сверяют размер, SHA-256 source/copy,
+v1 envelope и page checksums при readback; index/ID validation и пересчёт не выполняются.
+Обычный Save проверяет file identity (volume/file ID, size, last-write/change times),
+header/footer checksums, completion/layout и metadata. Полного scan/validate нет;
+повреждение середины файла без изменения наблюдаемой identity/timestamps этой
+проверкой не обнаруживается. Source ASC/XYZ не читается.
+
+Dataset rename не перезаписывает существующий файл. С этого момента dataset
+консервативно удерживается даже при отмене/ошибке manifest или потере receipt; GC нет.
+Unpublished temporary files принадлежат worker guards. Новый manifest публикуется
+same-directory QTemporaryFile::rename без overwrite: даже файл, созданный сторонним
+процессом после последней проверки, сохраняется. Обычная замена известного manifest
+использует QSaveFile с отключённым direct-write fallback. Неуспешный/бросивший
+replacement commit классифицируется Uncertain: baseline
+и current binding не меняются, prepared path/IDs/digest доступны через unconfirmedSave,
+данные сохраняются для проверки фактического manifest. Ошибка необязательных
+post-commit receipt/cleanup hooks оставляет Persisted и отдельный cleanupWarning.
+Crash может оставить staging/orphan files; абсолютная power-loss durability не обещается.
+
+Реализация, проверки и ограничения — [отчёт 05.2](reports/task-05/save-implementation.md).
 
 ---
 

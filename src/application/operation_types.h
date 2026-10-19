@@ -2,6 +2,7 @@
 
 #include "core/project_state.h"
 #include "io/asc_xyz_importer.h"
+#include "persistence/save_transaction.h"
 
 #include <QTemporaryDir>
 #include <QUuid>
@@ -32,8 +33,8 @@ enum class OperationStatus { Idle, Starting, Running, Cancelling, Finishing,
 enum class ShutdownState { Open, Closing, Ready };
 enum class FailureCategory { InvalidInput, ResourceUnavailable, ExecutionFailure };
 enum class FailureReason { PreparationFailed, LaunchFailed, NativeObservationFailed, OutOfMemory, StandardException,
-                           UnknownException, InvalidProduct, PublicationFailed, ImportFailed, CandidatePreparationFailed };
-enum class OperationKind { Verification, Import };
+                           UnknownException, InvalidProduct, PublicationFailed, ImportFailed, CandidatePreparationFailed, SaveFailed };
+enum class OperationKind { Verification, Import, Save };
 
 struct OperationFailure {
     FailureCategory category = FailureCategory::ExecutionFailure;
@@ -42,6 +43,7 @@ struct OperationFailure {
     std::array<char, 192> detail{};
     std::optional<std::uint32_t> systemCode;
     std::optional<cache::Error> importError; // preserves parser/cache category, phase and source location
+    std::optional<persistence::SaveError> saveError;
     static OperationFailure make(FailureReason reason, OperationPhase phase,
                                  const char *detail = nullptr) noexcept;
 };
@@ -95,8 +97,10 @@ struct WorkerOutcome {
     OperationFailure failure;
     std::unique_ptr<VerificationProduct> product;
     std::unique_ptr<WorkerImportProduct> imported;
+    std::unique_ptr<persistence::SaveTransaction> save;
     static WorkerOutcome success(std::unique_ptr<VerificationProduct> product) noexcept;
     static WorkerOutcome success(std::unique_ptr<WorkerImportProduct> product) noexcept;
+    static WorkerOutcome success(std::unique_ptr<persistence::SaveTransaction> product) noexcept;
     static WorkerOutcome success(std::nullptr_t) noexcept { return success(std::unique_ptr<VerificationProduct>{}); }
     static WorkerOutcome cancelled() noexcept;
     static WorkerOutcome failed(OperationFailure failure) noexcept;
@@ -108,6 +112,7 @@ struct ReadyOutcome {
     OperationFailure failure;
     std::unique_ptr<VerificationProduct> product;
     std::optional<ImportReadyProduct> imported;
+    std::shared_ptr<const persistence::SavedProject> save;
 };
 
 struct OperationState {

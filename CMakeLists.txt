@@ -39,6 +39,7 @@ target_compile_options(cadcontour_cache PRIVATE /W4 /permissive- /fp:precise /ut
 add_library(cadcontour_persistence STATIC
     src/persistence/project_manifest.h src/persistence/project_manifest.cpp
     src/persistence/project_storage.h src/persistence/project_storage.cpp
+    src/persistence/save_transaction.h src/persistence/save_transaction.cpp
 )
 set_target_properties(cadcontour_persistence PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_persistence PUBLIC cadcontour_cache)
@@ -60,7 +61,7 @@ add_library(cadcontour_application STATIC
     src/application/operation_diagnostics.h src/application/operation_diagnostics.cpp
     src/application/import_operation.h src/application/import_operation.cpp
 )
-target_link_libraries(cadcontour_application PUBLIC cadcontour_core cadcontour_io Qt6::Core Qt6::Gui)
+target_link_libraries(cadcontour_application PUBLIC cadcontour_core cadcontour_io cadcontour_persistence Qt6::Core Qt6::Gui)
 target_link_libraries(cadcontour_application PRIVATE spdlog::spdlog_header_only)
 target_compile_definitions(cadcontour_application PRIVATE SPDLOG_WCHAR_FILENAMES)
 target_compile_options(cadcontour_application PRIVATE /W4 /permissive- /fp:precise /utf-8)
@@ -89,6 +90,7 @@ if(CADCONTOUR2D_BUILD_TOOLS)
     add_subdirectory(tools/synthetic_cloud_generator)
     add_subdirectory(tools/cache_benchmark)
     add_subdirectory(tools/import_acceptance)
+    add_subdirectory(tools/save_acceptance)
 endif()
 if(BUILD_TESTING)
     add_subdirectory(tests)

@@ -37,6 +37,7 @@ struct OperationContext {
     bool cleanupWarning = false;
     PublicationDecision decision = PublicationDecision::Pending;
     ReadyOutcome outcome;
+    std::optional<persistence::SaveCommitResult> saveReceipt;
 };
 } // namespace detail
 
@@ -101,6 +102,9 @@ signals:
     void ready(cadcontour::OperationId id);
     void nonZeroZConfirmationChanged(cadcontour::OperationId id);
     void observationFailed(cadcontour::OperationId id, quint32 systemCode);
+    void saveFinished(cadcontour::OperationId id,
+                      std::shared_ptr<const cadcontour::persistence::SavedProject> prepared,
+                      cadcontour::persistence::SaveCommitResult receipt);
     void released(cadcontour::OperationId id, cadcontour::WorkerStatus status,
                   cadcontour::OperationFailure failure, bool cleanupWarning);
 private:

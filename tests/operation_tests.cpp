@@ -794,7 +794,7 @@ TEST(Operations, NativeHandleRemainsValidThroughJoinAndClosesWithRaiiOwner)
 
 TEST(Operations, DestructorWaitsForNativeTlsEvenWhenQtWaitZeroReportsFinished)
 {
-    Event nativeCleanup, allowCleanup;
+    Event nativeCleanup, allowCleanup, helperEntered;
     std::atomic<bool> tlsComplete{false};
     struct ExitBarrier {
         Event &entered;
@@ -811,13 +811,16 @@ TEST(Operations, DestructorWaitsForNativeTlsEvenWhenQtWaitZeroReportsFinished)
     });
     const auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(*controller));
     EXPECT_TRUE(waitContext(context, false));
-    // Start helper before TLS cleanup takes the Windows loader lock.
+    // Wait for actual entry: CreateThread can return before DLL_THREAD_ATTACH.
+    // TLS cleanup must not take the loader lock while the helper still needs it.
     std::thread releaseCleanup([&] {
+        helperEntered.set();
         nativeCleanup.wait();
         while (!context->cancellation.load(std::memory_order_acquire))
             std::this_thread::yield();
         allowCleanup.set(); // destructor shutdown is now executing; no GUI event delivery
     });
+    helperEntered.wait();
     OperationTestAccess::ready(*controller, controller->operation().id);
     nativeCleanup.wait();
     EXPECT_FALSE(tlsComplete.load());

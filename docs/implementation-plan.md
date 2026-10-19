@@ -256,7 +256,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
-| 05.2 | Save / Save As | NOT STARTED |
+| 05.2 | Save / Save As | READY FOR INDEPENDENT REVIEW |
 | 05.3 | Open и частичная доступность | NOT STARTED |
 | 05.4 | Autosave / Recovery | NOT STARTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
@@ -272,7 +272,9 @@ Foundation — [итоги независимой проверки и грани
 project-owned paths и shared immutable physical binding без автоматического удаления.
 Формат — [project-manifest-format.md](project-manifest-format.md), реализация,
 проверки и ограничения — [отчёт 05.1](reports/task-05/persistence-foundation.md).
-Пользовательских Save/Open, копирования cache, recovery или GUI-интеграции нет.
+В 05.2 реализованы C++ Save/Save As, copy/atomic publication, saved baseline и dirty
+tracking; текущие проверки и ограничения — [отчёт 05.2](reports/task-05/save-implementation.md).
+Open, recovery и GUI-интеграция Save остаются задачами 05.3–05.5.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.
@@ -281,7 +283,7 @@ project-owned paths и shared immutable physical binding без автомати
 - **Результат:** импортированный проект открывается без исходного ASC/XYZ.
 - **Проверка:** round-trip с восстановлением сохранённого выбранного `cell`, перенос project directory, недоступный source, неизвестная версия, отсутствующий/повреждённый cache и частично доступный проект, прерывание записи по фазам; сохранность последнего explicit save и предыдущего recovery.
 - **Критерий завершения:** опубликованное состояние не ссылается на частичные datasets; отказ сохранения не уничтожает последнее корректное сохранение.
-- **Открытые решения:** протокол Save/Save As и публикации файлов, Open/partial availability, recovery triggers и lifecycle. Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
+- **Открытые решения:** Open/partial availability, recovery triggers и lifecycle. Протокол Save/Save As определён в [architecture.md, §28.1](architecture.md#281-явные-save--save-as-052). Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
 
 Далее каждая задача расширяет сериализацию **своих** данных. В 06–10 Save/Open и recovery охватывают все версии с независимыми правками; очистка истории и runtime-буферов не удаляет сохранённые версии, автоматического ограничения их количества нет. Persistence не откладывается отдельным большим этапом до конца.
 

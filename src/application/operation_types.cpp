@@ -52,4 +52,12 @@ WorkerOutcome WorkerOutcome::failed(OperationFailure failure) noexcept
     return result;
 }
 
+WorkerOutcome WorkerOutcome::success(std::unique_ptr<persistence::SaveTransaction> product) noexcept
+{
+    WorkerOutcome result;
+    result.status = WorkerStatus::Succeeded;
+    result.save = std::move(product);
+    return result;
+}
+
 } // namespace cadcontour
