@@ -21,14 +21,14 @@ CMake 3.30.5, Ninja 1.12.1, C++20. Окружение — предоставле
 Repository/executables: `C:\dev\CADContour2D` и
 `build\windows-debug|windows-release`. C: — NVMe SSD KINGSTON SNV3S1000G;
 F: — SATA HDD TOSHIBA HDWD110, NTFS. Сопоставление drive→disk и MediaType сохранено
-в [drive-map.json](benchmarks/ascxyz044b/drive-map.json) и [disks.json](benchmarks/ascxyz044b/disks.json).
+в [drive-map.json](../../benchmarks/ascxyz044b/drive-map.json) и [disks.json](../../benchmarks/ascxyz044b/disks.json).
 
 Qt сообщает штатный storage `C:\Users\Egor31\AppData\Local\CADContour2D\projects`.
 В данной среде его resolved path:
 `C:\Users\Egor31\AppData\Local\Packages\OpenAI.Codex_2p2nqsd0c76g0\LocalCache\Local\CADContour2D\projects`.
 Logical/resolved paths указывают на тот же file identity; это подтверждено
 `Path.resolve()`/`os.path.samefile()`, а не предположением о размещении.
-Оба на C:. [Storage resolution](benchmarks/ascxyz044b/storage-resolution.json)
+Оба на C:. [Storage resolution](../../benchmarks/ascxyz044b/storage-resolution.json)
 содержит конкретный большой cache. Explicit storage в build/F: не перенаправлялся.
 
 ## B. Test Plan and Preflight
@@ -63,8 +63,8 @@ SHA-256:
 Large size/count/hash совпали с историческим case и новым manifest. Фактически
 проверены generator version 0.4.0, hashes обоих входов, physical line count и
 72 детерминированных control records. Source hashes повторно проверены после
-испытаний — неизменны. Копии [manifest](benchmarks/ascxyz044b/large.xyz.manifest.json),
-[oracle](benchmarks/ascxyz044b/large-oracle.json) и [post hashes](benchmarks/ascxyz044b/source-hashes-after.json)
+испытаний — неизменны. Копии [manifest](../../benchmarks/ascxyz044b/large.xyz.manifest.json),
+[oracle](../../benchmarks/ascxyz044b/large-oracle.json) и [post hashes](../../benchmarks/ascxyz044b/source-hashes-after.json)
 сохраняют исходный path context. Для measured medium.scan.json локальный attribute
 отключает EOL normalization: его байты и hash совпадают с manifest также в Git blob.
 Generation больших данных не входит в import time:
@@ -77,7 +77,7 @@ GUI profile: 128 MiB controlled working memory, 32 owned file handles; worker
 Точное значение snapshot T каждого запуска не экспортируется. Parser arrays —
 229 376 bytes; reserve 294 912 + 16×source-path-length. Остаток передаётся Writer.
 Writer reserve и sorter capacities определяются действующими формулами
-[Point Cache](point-cache-format.md#совместный-ресурсный-бюджет), без массива N точек.
+[Point Cache](../../point-cache-format.md#совместный-ресурсный-бюджет), без массива N точек.
 
 Для N=41 984 566:
 
@@ -99,8 +99,8 @@ Source, scratch, cache и validation scratch совместно безопасн
 
 Validation отдельно имеет total limits 128 MiB/8 GiB/32, Reader open/scans —
 1 MiB/one handle. Её scratch расположен рядом с report на C:, даже при cache на F:.
-План/начальное место сохранены в [resource plan](benchmarks/ascxyz044b/large-resource-plan.json)
-и [free-before-large](benchmarks/ascxyz044b/free-before-large.json).
+План/начальное место сохранены в [resource plan](../../benchmarks/ascxyz044b/large-resource-plan.json)
+и [free-before-large](../../benchmarks/ascxyz044b/free-before-large.json).
 
 ## C. End-to-End Verification
 
@@ -142,7 +142,7 @@ presentation state. Это также проверяют существующи�
 
 ## D. Large Import Correctness
 
-[Large raw result](benchmarks/ascxyz044b/large-gui.json):
+[Large raw result](../../benchmarks/ascxyz044b/large-gui.json):
 
 | Поле | Source / accepted state / Reader |
 |---|---|
@@ -179,7 +179,7 @@ Reader после GUI shutdown получает только cache path и bound
 не открывает; source QFile уже закрыт worker. После завершения процесса cache
 остался и потоково хэширован: SHA-256
 `f6ff1a3d23ca9815df2dcbfdc186e587caa25d2130e80918bd494a2d7b43ed58`.
-Физический путь и hashes остальных принятых файлов — в [inventory](benchmarks/ascxyz044b/summary.json).
+Физический путь и hashes остальных принятых файлов — в [inventory](../../benchmarks/ascxyz044b/summary.json).
 Save/Open .pc2dproj для этой проверки не требовался.
 
 ## E. Performance Measurements
@@ -213,7 +213,7 @@ Lifetime counters cancelled runs также включают более ранн
 Номинальный sample sleep=100 ms + работа: observed median/max intervals
 119.811/127.284 ms medium, 120.175/427.681 ms large, 102.217/673.579 ms HDD.
 Короткий private/disk peak мог быть пропущен. Три полных CSV сохранены рядом с
-[summary](benchmarks/ascxyz044b/summary.json).
+[summary](../../benchmarks/ascxyz044b/summary.json).
 
 EOF high-water — sampled lower bound логических длин новых owned files, не NTFS
 allocated clusters. Обход файлов неатомарен и добавляет погрешность на переходах;
@@ -277,7 +277,7 @@ remaining new files=0, cleanupWarning=false, publication Discard.
 | Z-wait Cancel, Debug | 3 points | 194.589 | То же |
 
 Raw memory/I/O/disk/timing всех этих прогонов — в
-[summary](benchmarks/ascxyz044b/summary.json) и отдельных JSON. Input N не является
+[summary](../../benchmarks/ascxyz044b/summary.json) и отдельных JSON. Input N не является
 измерением числа обработанных records при отмене; оно не экспортируется.
 Нулевой sampled EOF peak короткого run не означает отсутствие temporary files.
 
@@ -289,11 +289,11 @@ observation 219.442 ms. Это разделяет cooperative stop, cleanup и o
 в верхнюю практическую оценку latency. Блокирующий OS read не обязан отменяться мгновенно.
 
 Четыре baseline caches длительных cancel/shutdown дополнительно прошли strict
-Reader/bit controls после отмены — [preserved results](benchmarks/ascxyz044b/preserved-medium-cancel-cache.json).
+Reader/bit controls после отмены — [preserved results](../../benchmarks/ascxyz044b/preserved-medium-cancel-cache.json).
 Native first cache также сохранил SHA-256. Принятые targets остаются после
 Close/Shutdown; unaccepted attempts очищает worker. Ready/Discard, late publication,
 lease/native lifetime проверены существующими deterministic regressions.
-Отдельная [проверка каталогов](benchmarks/ascxyz044b/cleanup-check.json) подтвердила
+Отдельная [проверка каталогов](../../benchmarks/ascxyz044b/cleanup-check.json) подтвердила
 ровно 17 ожидаемых accepted project directories и отсутствие scratch directories
 во всех новых storage roots; новых пустых unaccepted attempts в штатном storage нет.
 
@@ -324,7 +324,7 @@ generic failure transport и фактический cancel/retry дополня�
 R1–R3 regressions и весь прежний набор сохранены. Parser, Writer/Sorter, format v1,
 threading, consumer protocol, ResourceLimits и atomic Accept не перерабатывались.
 
-Добавлен ограниченный opt-in [import_acceptance](../tools/import_acceptance/README.md)
+Добавлен ограниченный opt-in [import_acceptance](../../../tools/import_acceptance/README.md)
 и source oracle, без новых third-party dependencies и CTest workloads.
 Runner hooks только фиксируют время, не останавливают worker. В процессе проверки
 самого инструмента исправлены modal --help (используется parse/helpText в console)
@@ -349,9 +349,9 @@ operation, cache, parser и project regressions. CTest timeout/assertions не �
 в Debug/Release; production/test code при этом не менялся. Финальная версия helper
 дополнительно прошла NoProject Z-cancel в обеих конфигурациях и expected missing-baseline
 failure (exit=1/status=FAIL, без попыток/данных) —
-[tool checks](benchmarks/ascxyz044b/tool-final-checks.json). Финальные NoProject Z/Busy
+[tool checks](../../benchmarks/ascxyz044b/tool-final-checks.json). Финальные NoProject Z/Busy
 checks и expected ParseError без false success/retained attempts также прошли —
-[reviewed checks](benchmarks/ascxyz044b/tool-reviewed-checks.json). Полные нагрузки после
+[reviewed checks](../../benchmarks/ascxyz044b/tool-reviewed-checks.json). Полные нагрузки после
 этих изменений lifetime/setup/probe инструментального кода не повторялись;
 production libraries, clocks, sampler и вычислительный pipeline остались прежними.
 
@@ -383,7 +383,7 @@ z-debug-storage/z-release-storage и соответствующий executable.
 Existing cache validation выполнялась через `--cache` с original small/z oracle,
 новым report path; native GUI отдельно запускался CADContour2D.exe.
 CLI help проверен; independent Python conversion согласована с 37 goldens
-и 219 сохранёнными source controls — [check](benchmarks/ascxyz044b/oracle-conversion-check.json).
+и 219 сохранёнными source controls — [check](../../benchmarks/ascxyz044b/oracle-conversion-check.json).
 
 Logs в run root: final-debug/release-build.log, final-debug/release-ctest.log,
 final-debug/release-tool-build.log и отдельные run logs. Известное optional
@@ -412,7 +412,7 @@ Source same-size rewrite с сохранённым mtime имеет прежне
 
 Абсолютные SSD/HDD roots указаны в B, resolved default storage — в A.
 Полные пути, размеры и SHA-256 всех **17 принятых caches**, включая small/baseline/retry,
-содержит [inventory](benchmarks/ascxyz044b/summary.json). Они намеренно остаются,
+содержит [inventory](../../benchmarks/ascxyz044b/summary.json). Они намеренно остаются,
 не являются abandoned worker results. SSD run root ≈1.157 GB; HDD root ≈105.6 MB
 на момент inventory. Копии compact JSON/manifests и три CSV закоммичены;
 большие XYZ/cache и локальные build/run logs в Git не входят.

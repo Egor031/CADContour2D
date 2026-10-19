@@ -1,6 +1,6 @@
 ## 1. Отправная точка плана
 
-Ниже сохранён исторический снимок на момент составления плана. Текущее состояние после принятия задач 01–02 и фактически выполненные проверки приведены в [README.md](../README.md#project-status).
+Ниже сохранён исторический снимок на момент составления плана. Текущее состояние после принятия задач 01–04 и фактически выполненные проверки приведены в [README.md](../README.md#project-status).
 
 **На момент составления плана основная программа находилась на стадии проверенного каркаса; реализация её рабочего workflow ещё не была начата.** Это соответствовало тогдашнему Project Status в [README.md](../README.md) и исходникам.
 
@@ -34,7 +34,7 @@ Debug/Release, lint, запуск приложения и проверки ге�
 
 1. Форматы cache/project, spatial index и reduced storage ещё не выбраны.
 2. Многие rough/precise методы имеют статус Open decision.
-3. Исторические NX DXF fixtures не подтверждают совместимость будущего exporter: это экспорт **из NX**, а требуется проверить импорт **в NX**. Их исторический статус описан в [отчёте](nx-dxf-fixture-analysis.md).
+3. Исторические NX DXF fixtures не подтверждают совместимость будущего exporter: это экспорт **из NX**, а требуется проверить импорт **в NX**. Их исторический статус описан в [отчёте](research/nx-dxf-fixture-analysis.md).
 
 ## 2. Предлагаемая стратегия реализации
 
@@ -127,7 +127,7 @@ Debug/Release configure/build и QML lint успешны; после испра�
 
 Визуальная приёмка — **VERIFIED**: первоначальный независимый ревьюер осмотрел основное приложение и `operation_probe`, сценарии A–H и размеры 400×380, 680×600, 1000×700. После исправления R1 выполнен ограниченный GUI smoke Release `operation_probe`; полный визуальный осмотр A–H не повторялся. Закрытие активной операции после R1 подтверждено native QML tests и `--auto close` / `--auto quit` в обеих конфигурациях.
 
-Пользователь согласовал локальный Windows-guard после воспроизведения преждевременного true от Qt 6.12.0 `wait(0)` во время C++ TLS cleanup. Реальный независимый HANDLE, WAIT_TIMEOUT/FAILED retention, DuplicateHandle failure/fallback, RAII close и destructor native wait проверены в Debug/Release; отдельный reproducer сохранён — [thread-completion-check.md](thread-completion-check.md). Постоянная недоступность системного подтверждения может удерживать Closing/destructor ради сохранности ресурсов.
+Пользователь согласовал локальный Windows-guard после воспроизведения преждевременного true от Qt 6.12.0 `wait(0)` во время C++ TLS cleanup. Реальный независимый HANDLE, WAIT_TIMEOUT/FAILED retention, DuplicateHandle failure/fallback, RAII close и destructor native wait проверены в Debug/Release; отдельный reproducer сохранён — [thread-completion-check.md](reports/task-02/thread-completion-check.md). Постоянная недоступность системного подтверждения может удерживать Closing/destructor ради сохранности ресурсов.
 
 - **Цель:** установить общий контракт выполнения до подключения большого I/O.
 - **Содержание:** snapshot/immutable inputs, progress, cancellation, structured completion, проверка принадлежности проекту и применимому состоянию входов; учитывать целевую версию при подключении Rough Stage. Безопасность публикации по ревизиям не подменяет проверку совместимости сохранённых результатов. Централизованная диагностика. GUI показывает ход операции и доступные действия.
@@ -156,10 +156,10 @@ CacheWriter упаковывает поток в point pages и строит pac
 Реализованы CacheReader, bounded scanAll, общий DFS для scanBox/scanBoxes и строгая
 validation произвольного файла с внешней проверкой уникальности/полноты ID.
 Реальный Writer → Reader round-trip высоты 2 и ранние измерения spatial I/O —
-в [cache-reader-check.md](cache-reader-check.md). Приёмка 5/5: crash/ownership
+в [cache-reader-check.md](reports/task-03/cache-reader-check.md). Приёмка 5/5: crash/ownership
 регрессия, глобальная Morton validation, 42 млн records при 8/128 MiB,
 HDD/source-order сравнение и измеренные ресурсы — в
-[cache-performance-report.md](cache-performance-report.md). Изменений byte layout
+[cache-performance-report.md](reports/task-03/cache-performance-report.md). Изменений byte layout
 не потребовалось. Задача принята пользователем после независимого комплексного
 ревью: **PASS WITH COMMENTS**, без подтверждённых дефектов P0–P2. Единственное
 замечание R2/P3 относилось к устаревшему перечню Open decisions в algorithms.md,
@@ -180,13 +180,19 @@ benchmark-проверки описаны в [README](../README.md#project-statu
 
 ### 04. Потоковый ASC/XYZ import и первый сквозной сценарий
 
-**Статус: 04.1–04.4B выполнены — READY FOR INDEPENDENT REVIEW.
-Задача 04 не принята; финальное независимое ревью предстоит отдельно.**
+**Задача 04 — ПРИНЯТА (ACCEPTED).** Части **04.1, 04.2, 04.3, 04.4A и 04.4B**
+завершены и приняты. Финальное независимое ревью всей задачи:
+**REVIEW PASSED — TASK 04 ACCEPTABLE**. Проверенный HEAD:
+`a227f3865f5bbd3068eb7e8eb95febc3e2ce241d`.
+Подтверждённых дефектов P0–P3 — **0**, существенных неподтверждённых рисков — **0**;
+обязательных исправлений перед следующей задачей нет.
+Решение от 2026-10-19 и ключевые проверки — в [записи о принятии](reports/task-04/acceptance.md).
+Исторические результаты реализации приведены ниже и в отчётах.
 
 04.1 предоставляет `io::parseAscXyz` и `io::importAscXyz`, bounded buffers/batches,
 direct binary64 conversion, structured source diagnostics, синхронный единственный
 Z Continue/Cancel и RAII `PendingCache`. Проверки и ограничения —
-[asc-xyz-import-check.md](asc-xyz-import-check.md).
+[asc-xyz-import-check.md](reports/task-04/asc-xyz-import-check.md).
 
 Утверждённая политика: пустые строки разрешены и учитываются в физической нумерации;
 непустые требуют ровно три token, ошибочные записи и лишние поля не пропускаются;
@@ -199,7 +205,7 @@ noexcept commit с необратимым Accept, постоянный изол�
 import diagnostics. Production запускается без проекта; legacy controller New
 отклоняется, GUI-команда выбора файла подключена в 04.4A. Ненулевой Z без решения не принимается.
 Технический отчёт и фактические проверки —
-[asc-xyz-application-check.md](asc-xyz-application-check.md).
+[asc-xyz-application-check.md](reports/task-04/asc-xyz-application-check.md).
 04.3 реализует межпоточный Z request через OperationContext, синхронный ZHandler
 и condition variable; controller получает запрос и принимает Continue/Cancel.
 Cancel/invalidation/shutdown снимают ожидание; UUID защищает от старого ответа,
@@ -207,7 +213,7 @@ Cancel/invalidation/shutdown снимают ожидание; UUID защища�
 lifetime QObject. Без consumer ненулевой Z безопасно отклоняется с диагностикой.
 Headless tests используют реальные worker/parser/cache и управляемые barriers.
 Механизм, доказательство синхронизации и проверки —
-[nonzero-z-confirmation-check.md](nonzero-z-confirmation-check.md).
+[nonzero-z-confirmation-check.md](reports/task-04/nonzero-z-confirmation-check.md).
 04.4A подключает нативный FileDialog, стартовое предложение и «Новый проект»,
 контекстное подтверждение замены, ViewModel consumer и настоящий QML Z-dialog,
 карточку принятого dataset, рабочий resource profile и честный phase progress.
@@ -215,10 +221,10 @@ Headless tests используют реальные worker/parser/cache и уп
 Debug/Release production — **431/431** в каждой конфигурации, сборка и QML lint — PASS.
 Windows GUI smoke проверен отдельно от offscreen integration tests.
 Реализация, команды, найденные и исправленные дефекты и ограничения —
-[asc-xyz-gui-check.md](asc-xyz-gui-check.md).
+[asc-xyz-gui-check.md](reports/task-04/asc-xyz-gui-check.md).
 Замечания R1–R3 исправлены и прошли повторное независимое ревью; 21 regression
 дополнила production набор до 452 tests. Исправления —
-[asc-xyz-gui-review-fixes.md](asc-xyz-gui-review-fixes.md).
+[asc-xyz-gui-review-fixes.md](reports/task-04/asc-xyz-gui-review-fixes.md).
 
 04.4B проверила native GUI E2E, medium cancellation/shutdown, один большой Release
 import 41 984 566 точек с измерением RAM/time/logical I/O и полной Reader validation,
@@ -227,7 +233,7 @@ build и QML lint — PASS. Production-код не менялся; нагруз�
 Результаты synthetic datasets не обобщаются на все реальные scans; UNC server,
 cold-cache/physical disk traffic и worst-case blocking I/O не проверялись.
 Отчёт A–J и воспроизводимые данные —
-[asc-xyz-e2e-performance-check.md](asc-xyz-e2e-performance-check.md).
+[asc-xyz-e2e-performance-check.md](reports/task-04/asc-xyz-e2e-performance-check.md).
 
 Создание пустого `ProjectState` командой `newProject()` было корректным результатом принятой задачи 01. В задаче 04 команда «Новый проект» начинает выбор ASC/XYZ, а проект создаётся и принимается только после успешного импорта; это новое поведение не меняет исходных обязательств и приёмки задачи 01.
 
@@ -244,6 +250,8 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 Основание: [requirements.md, §§4–6](requirements.md#4-входные-данные), [algorithms.md, §5](algorithms.md#5-импорт-ascxyz).
 
 ### 05. Save/Open и базовый Autosave/Recovery
+
+**Статус: следующий этап; реализация не начата.**
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.
@@ -526,10 +534,10 @@ Performance-нормативы пока отсутствуют. Для их оп
 
 ## 8. Первый рекомендуемый шаг
 
-**Исходный первый шаг плана — задача 01: минимальная C++ модель проекта, команды и общая координатная основа. Задачи 01–03 приняты (ACCEPTED).**
+**Исходный первый шаг плана — задача 01: минимальная C++ модель проекта, команды и общая координатная основа. Задачи 01–04 приняты (ACCEPTED).**
 
 Её объём следует ограничить единственным владельцем состояния, реальными параметрами, project/result identity, structured errors, проверяемыми coordinate conversions и тонкой связью с QML. Для версий Density Map здесь нужна лишь совместимая основа идентичности и ссылок, с разделением ревизий worker и совместимости результатов. Реализация многоверсионного хранилища, его persistence и переключения относится к 05–10. Не требуется заранее реализовывать полную CAD-модель или все будущие подсистемы.
 
 Она создаёт основу для следующей задачи — безопасных workers — и предотвращает распределение состояния между будущими GUI-панелями. Первый проверяемый результат: интерфейс отображает C++ state, parameter edit/Undo работают, а domain tests запускаются без GUI.
 
-При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статусы последующей реализации задач 01–03 указаны выше.
+При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статусы последующей реализации задач 01–04 указаны выше.

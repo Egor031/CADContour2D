@@ -145,14 +145,14 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 | Документ | Назначение |
 |---|---|
+| [Индекс документации](docs/README.md) | Навигация по основным документам, инструментам, исследованиям, отчётам и benchmark evidence |
 | [AGENTS.md](AGENTS.md) | Правила работы Codex |
 | [requirements.md](docs/requirements.md) | Требования, ограничения и пользовательское поведение |
 | [architecture.md](docs/architecture.md) | Подсистемы, зависимости, состояние и persistence |
 | [algorithms.md](docs/algorithms.md) | Вычислительные контракты, Current approach и Open decisions |
 | [point-cache-format.md](docs/point-cache-format.md) | Binary layout v1, sort, Writer/Reader, spatial queries и validation задачи 03 (5/5) |
-| [cache-reader-check.md](docs/cache-reader-check.md) | Проверки Reader, ресурсная модель и ранние измерения spatial I/O |
+| [implementation-plan.md](docs/implementation-plan.md) | План реализации, границы задач и актуальные статусы |
 | [synthetic-cloud-generator.md](docs/tools/synthetic-cloud-generator.md) | Каноническая спецификация вспомогательного генератора: Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest; DXF/NX не являются его входом |
-| [nx-dxf-fixture-analysis.md](docs/nx-dxf-fixture-analysis.md) | Исторический фактический анализ экспорта NX; не контракт генератора |
 
 ## Build / Run / Tests
 
@@ -343,7 +343,7 @@ Writer: 2 786 009 records, 1023 point pages, 3 index pages, файл 67 248 128 
 Локальная область/полоса/union прочитали 2/32/7 point pages вместо 1023;
 эталонные ID и биты координат совпали. Рабочие массивы Reader — 245 440 байт,
 один handle и два traversal frames. Детальные результаты и ограничения измерений —
-в [cache-reader-check.md](docs/cache-reader-check.md). Новый C++ собран с `/W4`
+в [cache-reader-check.md](docs/reports/task-03/cache-reader-check.md). Новый C++ собран с `/W4`
 без предупреждений; configure сохраняет известные Qt diagnostics.
 
 На этапе 4/5 HDD, peak RSS и гигабайтная матрица ещё не проверялись;
@@ -363,7 +363,7 @@ Working Set к концу validation — 19.5/139.5 MiB. Local query читае�
 2672 point pages source-order baseline. OS cache не сбрасывался; это first-pass/
 warm measurements, без обещания cold-cache latency или power-loss durability.
 Полный отчёт, resource/I/O tables, baseline tradeoffs и raw JSON —
-[cache-performance-report.md](docs/cache-performance-report.md).
+[cache-performance-report.md](docs/reports/task-03/cache-performance-report.md).
 
 В обеих конфигурациях выполнены configure/build изменённых targets, затем
 `ctest --preset windows-debug -L production --output-on-failure` и аналогичная
@@ -405,8 +405,8 @@ Production запускается без проекта и в 04.4A предла
 Создание пустого проекта из production недоступно. Программный C++ API
 `ProjectController::importAscXyz(ImportRequest)` работает в фоне и принимает новый
 проект только после успеха. Подробности API и проверок —
-[отчёт GUI 04.4A](docs/asc-xyz-gui-check.md) и
-[отчёт 04.2](docs/asc-xyz-application-check.md). Это запуск из установленного Qt kit,
+[отчёт GUI 04.4A](docs/reports/task-04/asc-xyz-gui-check.md) и
+[отчёт 04.2](docs/reports/task-04/asc-xyz-application-check.md). Это запуск из установленного Qt kit,
 не deployment package. Приведённые ниже сценарии приёмки задач 01–02 описывают
 исторически проверенный каркас; их cell/Undo/verification-инварианты сохранены
 в тестах с отдельным friend fixture, отсутствующим в production executable.
@@ -454,11 +454,18 @@ build\windows-release\operation_probe.exe
 - При сборке OpenCV его CMake detection не распознаёт `MSVC_VERSION=1951` и сообщает `Cannot set OpenCV_RUNTIME`. vcpkg собрал x64 библиотеки с `/MD` и `/MDd`; link и dependency smoke test прошли в Release и Debug. Также есть предупреждения стороннего OpenCV о старых CMake policies и metadata `OPENCV_BUILD_INFO_STR`.
 - Встроенный загрузчик vcpkg получил SSL error 35 для Eigen и fmt. Официальные архивы загружены системным curl в download cache и проверены по SHA-512 из port recipes; проверка TLS и хэшей не отключалась. Это ограничение загрузки в текущем сетевом окружении, не ошибка компиляции.
 - В задаче 02 MSVC сообщает C4702 внутри стороннего `fmt/base.h` при сборке header-only spdlog; compile/link, smoke и runtime прошли в Debug/Release.
-- Расхождение Qt 6.12.0 `wait(0)` с полным завершением C++ TLS воспроизведено и покрыто независимым Windows-guard. Подробности и повторяемая проверка — [thread-completion-check.md](docs/thread-completion-check.md).
+- Расхождение Qt 6.12.0 `wait(0)` с полным завершением C++ TLS воспроизведено и покрыто независимым Windows-guard. Подробности и повторяемая проверка — [thread-completion-check.md](docs/reports/task-02/thread-completion-check.md).
 
 ## Project Status
 
-**Задача 01: ACCEPTED. Задача 02: ACCEPTED. Задача 03: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задачи 01–04: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+
+Задача 04 принята 2026-10-19 после финального независимого ревью:
+**REVIEW PASSED — TASK 04 ACCEPTABLE** на HEAD
+`a227f3865f5bbd3068eb7e8eb95febc3e2ce241d`. Подтверждённых дефектов P0–P3 и
+существенных неподтверждённых рисков — 0; обязательных исправлений нет.
+Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
+Следующий этап — задача 05 (Save/Open и восстановление); реализация не начата.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -481,9 +488,9 @@ build\windows-release\operation_probe.exe
 
 Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
-Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/cache-performance-report.md). Интеграция с application state реализована в 04.2. **Статус задачи 03: ACCEPTED**, все пять частей реализации завершены.
+Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/reports/task-03/cache-performance-report.md). Интеграция с application state реализована в 04.2. **Статус задачи 03: ACCEPTED**, все пять частей реализации завершены.
 
-Задача 03 принята пользователем после независимого комплексного ревью: **PASS WITH COMMENTS**, без подтверждённых дефектов P0–P2. Единственное замечание R2/P3 относилось к устаревшему перечню Open decisions в [algorithms.md, §45](docs/algorithms.md#45-указатель-основных-open-decisions) и устранено. В ходе завершённого ревью ранее повторены Debug/Release production (**298/298**), cache integration (**1/1**) и benchmark regression (**7/7**) в каждой конфигурации; исходные результаты и команды — в разделах выше и [историческом отчёте](docs/cache-performance-report.md#исправление-r1p2-после-независимого-ревью). При оформлении принятия сборки, тесты и нагрузочные измерения не повторялись; ранее описанные ограничения производительности, ресурсов и сохранности данных сохраняются.
+Задача 03 принята пользователем после независимого комплексного ревью: **PASS WITH COMMENTS**, без подтверждённых дефектов P0–P2. Единственное замечание R2/P3 относилось к устаревшему перечню Open decisions в [algorithms.md, §45](docs/algorithms.md#45-указатель-основных-open-decisions) и устранено. В ходе завершённого ревью ранее повторены Debug/Release production (**298/298**), cache integration (**1/1**) и benchmark regression (**7/7**) в каждой конфигурации; исходные результаты и команды — в разделах выше и [историческом отчёте](docs/reports/task-03/cache-performance-report.md#исправление-r1p2-после-независимого-ревью). При оформлении принятия сборки, тесты и нагрузочные измерения не повторялись; ранее описанные ограничения производительности, ресурсов и сохранности данных сохраняются.
 
 В 04.1 реализованы headless `cadcontour_io`: потоковый ASC/XYZ parser и
 `io::importAscXyz` → существующий CacheWriter → RAII `PendingCache`.
@@ -491,19 +498,19 @@ build\windows-release\operation_probe.exe
 failures и cancellation возвращают structured error. Прямое binary64 conversion
 проверяется независимыми рациональными golden pairs; единственный Z Continue/Cancel
 пока синхронный. Формат Point Cache v1 и application/GUI не менялись.
-Интерфейсы, проверки и ограничения — [отчёт 04.1](docs/asc-xyz-import-check.md).
+Интерфейсы, проверки и ограничения — [отчёт 04.1](docs/reports/task-04/asc-xyz-import-check.md).
 
 Первоначальные проверки 04.1 в Debug и Release: сборка и `all_qmllint` — PASS, production CTest —
 **337/337 PASS** (включая **39 новых** parser/importer и **166 cache** cases),
 отдельный `-L cache_integration` — **1/1 PASS**. Только новый набор запускается
 `ctest --preset windows-debug -R ^AscXyz --output-on-failure` или с
-`windows-release`. Вся задача 04 этим не объявляется принятой.
+`windows-release`. Это исторические проверки только 04.1; итоговая приёмка всей задачи 04 приведена ниже.
 
 После независимого ревью подтверждены и исправлены R1/R2: fallback при bad_alloc
 использует static diagnostic без conversion/truncation; parser принимает только
 non-sequential binary QIODevice (обычный QFile/QBuffer) с начальной позицией 0.
 Sequential sources отклоняются до чтения. Доказательства, адресные tests и границы
-проверки OOM — [отчёт исправлений](docs/asc-xyz-review-fixes.md).
+проверки OOM — [отчёт исправлений](docs/reports/task-04/asc-xyz-review-fixes.md).
 Повторные Debug/Release проверки: сборка и QML lint — PASS, ASC/XYZ — **42/42**
 (включая 3 regression cases), production — **340/340**, cache integration — **1/1**
 в каждой конфигурации.
@@ -518,14 +525,14 @@ identity, `cell = 1 мм` и пустую историю. Source после ус
 Принятые caches сохраняются в AppLocalDataLocation даже после Close/Shutdown;
 до 05 допускается их накопление без manifest/GC. Ненулевой Z в production пока
 безопасно отклоняется, без молчаливого Continue. Подробный технический отчёт —
-[asc-xyz-application-check.md](docs/asc-xyz-application-check.md).
+[asc-xyz-application-check.md](docs/reports/task-04/asc-xyz-application-check.md).
 
 Проверки 04.2 в Debug и Release: сборка и `all_qmllint` — PASS, новые application
 import tests — **22/22**, полная production CTest — **364/364** в каждой конфигурации
 (включая ASC/XYZ **42**, cache **166**, operation **51**, QML **14** cases).
 Адресный запуск: `ctest --preset windows-debug -R ^AscApplication --output-on-failure`
 либо с `windows-release`. Dev probe `--auto replace` — PASS в обеих конфигурациях.
-Статус 04.2 — **READY FOR INDEPENDENT REVIEW**.
+Исторический статус реализации 04.2 — **READY FOR INDEPENDENT REVIEW**; часть принята в составе задачи 04.
 
 В 04.3 реализовано межпоточное подтверждение ненулевого Z: worker публикует
 единственный типизированный запрос и ждёт Continue/Cancel через condition variable.
@@ -533,7 +540,7 @@ Controller предоставляет регистрацию consumer, pending r
 защищённый ответ с OperationId/UUID. Cancel, invalidation, Close и shutdown снимают
 ожидание; Continue сохраняет отдельный Ready/Accept gate. Без зарегистрированного
 consumer ненулевой Z по-прежнему отклоняется с диагностикой, без зависания.
-Механизм и полный отчёт — [nonzero-z-confirmation-check.md](docs/nonzero-z-confirmation-check.md).
+Механизм и полный отчёт — [nonzero-z-confirmation-check.md](docs/reports/task-04/nonzero-z-confirmation-check.md).
 
 Проверки 04.3: Debug/Release build и `all_qmllint` — PASS; confirmation — **29/29**,
 полный production CTest — **393/393** в каждой конфигурации. Адресные команды:
@@ -559,14 +566,14 @@ Progress показывает реальные укрупнённые фазы �
 cases и **30 Z-confirmation** cases с новой регрессией пробуждения без polling.
 Windows GUI smoke проверен отдельно: native selection/cancel, Unicode/spaces,
 import/metadata, replacement, Z и закрытие. Полный отчёт, команды и ограничения —
-[asc-xyz-gui-check.md](docs/asc-xyz-gui-check.md).
+[asc-xyz-gui-check.md](docs/reports/task-04/asc-xyz-gui-check.md).
 
 Замечания независимого ревью 04.4A R1–R3 воспроизведены и исправлены: безопасные
 продолжения ViewModel, повторная проверка выбора перед FileDialog и startup,
 привязанный ко времени жизни окна. Добавлен 21 regression case; Debug/Release build,
 `all_qmllint` и полный production CTest — **452/452** в каждой конфигурации.
 Доказательства, команды и ограничения native smoke —
-[asc-xyz-gui-review-fixes.md](docs/asc-xyz-gui-review-fixes.md).
+[asc-xyz-gui-review-fixes.md](docs/reports/task-04/asc-xyz-gui-review-fixes.md).
 
 04.4B проверила native GUI E2E, cancellation/shutdown, безопасные resource failures
 и один большой Release import: **41 984 566 точек**, **69.18 с** до native completion/join,
@@ -576,7 +583,7 @@ Peak Working Set **222.9 MiB**, итоговый cache **1 010 507 776 байт*
 logical I/O не считается physical traffic. Debug/Release build, `all_qmllint`
 и production CTest — **452/452** в каждой конфигурации.
 Production-код не менялся. Отчёт A–J, методика, точные результаты и ограничения —
-[asc-xyz-e2e-performance-check.md](docs/asc-xyz-e2e-performance-check.md).
+[asc-xyz-e2e-performance-check.md](docs/reports/task-04/asc-xyz-e2e-performance-check.md).
 Opt-in инструмент доступен при `CADCONTOUR2D_BUILD_TOOLS=ON`:
 [import_acceptance](tools/import_acceptance/README.md); большие workloads не входят в CTest.
 
@@ -589,8 +596,14 @@ ctest --preset windows-debug -L production --output-on-failure
 ctest --preset windows-release -L production --output-on-failure
 ```
 
-Части 04.1–04.4B выполнены; **задача 04 — READY FOR INDEPENDENT REVIEW**.
-Задача 04 не принята: финальное независимое ревью выполняется отдельно.
-Save/Open и восстановление относятся к 05, явное построение и версии Density Map —
-к 06. Статусы ACCEPTED и результаты приёмки задач 01–03 сохраняются.
+Части 04.1–04.4B завершены и приняты; **задача 04 — ПРИНЯТА (ACCEPTED)**.
+Финальное независимое ревью — **REVIEW PASSED — TASK 04 ACCEPTABLE**.
+По предоставленному результату ревью: Debug/Release production CTest — **452/452 PASS**,
+cache integration — **1/1 PASS** в обеих конфигурациях, GUI/UI — **58/58 PASS**,
+QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
+При документационном закрытии сборки, тесты и нагрузки не повторялись.
+[Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
+и ограничения. Следующая задача 05 (Save/Open и восстановление) не начата;
+явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
+приёмки задач 01–03 сохраняются.
 

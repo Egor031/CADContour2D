@@ -524,7 +524,7 @@ CacheReader со spatial queries и строгой полной validation. Read
 read-only handle; время жизни immutable dataset обеспечивает внешний владелец.
 Полная validation дополнительно проверяет канонический порядок Morton128/RecordId
 с O(1) состояния. Большой round-trip, ресурсные profiles, HDD queries и crash
-lifecycle проверены: [cache-performance-report.md](cache-performance-report.md).
+lifecycle проверены: [cache-performance-report.md](reports/task-03/cache-performance-report.md).
 Application dataset lifecycle реализован в 04.2 по §§9, 13, 25; Save/Open остаётся
 задаче 05. Все пять частей
 задачи 03 завершены; задача принята пользователем (**ACCEPTED**) после независимого
@@ -652,9 +652,9 @@ Explicit limits headless callers сохраняются. Неизвестный/
 BuildingCache; application добавляет Preparing/Finalizing, Z-wait и terminal outcome.
 Сортировка, индекс и sealing объединены в BuildingCache. Total неизвестен, GUI
 использует indeterminate без вымышленных процентов. Mailbox и threading не менялись.
-Большие сквозные прогоны остаются в 04.4B. Подробности — [04.4A](asc-xyz-gui-check.md),
-[04.1](asc-xyz-import-check.md),
-[04.2](asc-xyz-application-check.md), [04.3](nonzero-z-confirmation-check.md).
+Большие сквозные прогоны остаются в 04.4B. Подробности — [04.4A](reports/task-04/asc-xyz-gui-check.md),
+[04.1](reports/task-04/asc-xyz-import-check.md),
+[04.2](reports/task-04/asc-xyz-application-check.md), [04.3](reports/task-04/nonzero-z-confirmation-check.md).
 
 ---
 
@@ -669,7 +669,7 @@ external sort при построении и одним packed DFS при зап
 source-order pages и тем же BBox index, в том числе на HDD, подтвердило полезную
 выборочность с измеренной ценой построения. Layout/каноничность определены в
 [point-cache-format.md](point-cache-format.md), измерения и ограничения — в
-[cache-performance-report.md](cache-performance-report.md). Это не утверждение
+[cache-performance-report.md](reports/task-03/cache-performance-report.md). Это не утверждение
 универсального выигрыша для каждого распределения или полного scanAll.
 
 Приоритетом является последовательный и локализованный I/O, подходящий для HDD и медленных файловых систем.
@@ -1031,7 +1031,7 @@ Background worker не должен произвольно изменять QML 
 
 На Windows освобождение execution context и QThread, terminal notification и новый запуск требуют одновременно полного завершения системного потока и успешного Qt join. Независимый real thread HANDLE получается через DuplicateHandle в worker и закрывается RAII-владельцем. Только `WAIT_OBJECT_0` от WaitForSingleObject подтверждает завершение; TIMEOUT/FAILED удерживают ресурсы. При отказе DuplicateHandle вычисление не начинается и возвращается structured failure с системным кодом. Worker не выходит из handshake без независимого handle; application layer может получить его через OpenThread для этого ещё живого потока. Отказ получения/ожидания удерживает Busy и диагностируется; аварийный destructor также не освобождает неподтверждённые ресурсы и может ждать, пока системное наблюдение недоступно. Это не повторный запуск операции.
 
-Guard добавлен после воспроизведённого расхождения установленного Qt 6.12.0 с обещанием `wait()` на Windows: `wait(0)` возвращает true при заблокированном C++ TLS destructor. Основание и отдельные Debug/Release reproducer/regression tests — [thread-completion-check.md](thread-completion-check.md).
+Guard добавлен после воспроизведённого расхождения установленного Qt 6.12.0 с обещанием `wait()` на Windows: `wait(0)` возвращает true при заблокированном C++ TLS destructor. Основание и отдельные Debug/Release reproducer/regression tests — [thread-completion-check.md](reports/task-02/thread-completion-check.md).
 
 Штатное закрытие проходит Open → Closing → Ready. Кнопка закрытия, системное закрытие окна и application Quit используют одну процедуру: запрет новых команд, отзыв публикации, cooperative cancel, Discard + notify. GUI продолжает обрабатывать события до native completion/join, затем закрывает окно и завершает event loop. Повторное закрытие идемпотентно. Destructor fallback выполняет тот же Discard/notify и join до уничтожения project/history/adapter/context, без `processEvents()` и без зависимости от queued callbacks; неожиданный выход из event loop может блокировать destructor до безопасного завершения.
 

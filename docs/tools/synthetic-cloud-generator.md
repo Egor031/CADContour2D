@@ -22,7 +22,7 @@ Geometry JSON является каноническим ground truth. Scan Scena
 
 DXF не является входом генератора. NX import, DXF parser, чтение HEADER/TABLES/BLOCKS/OBJECTS и сборка контуров из DXF не требуются. POLYLINE/LWPOLYLINE, ELLIPSE, SPLINE/BSpline и INSERT не поддерживаются как вход генератора или его ground-truth primitives.
 
-Решение отказаться от NX DXF принято после [исторического анализа fixtures](../nx-dxf-fixture-analysis.md): их содержимое имеет признаки экспорта проекции и отличается от ожидаемой геометрии. Происхождение конкретных эллипсов по DXF не доказано; это не основание расширять первую версию. DXF остаётся будущим транспортным выходом основной программы для NX по [requirements.md, §34](../requirements.md#34-экспорт-dxf).
+Решение отказаться от NX DXF принято после [исторического анализа fixtures](../research/nx-dxf-fixture-analysis.md): их содержимое имеет признаки экспорта проекции и отличается от ожидаемой геометрии. Происхождение конкретных эллипсов по DXF не доказано; это не основание расширять первую версию. DXF остаётся будущим транспортным выходом основной программы для NX по [requirements.md, §34](../requirements.md#34-экспорт-dxf).
 
 ## 2. Два независимых входа
 
@@ -296,7 +296,7 @@ Generated XYZ/ASC, manifests и временные measurements хранятся
 
 Clean datasets используются для базовых алгоритмических тестов; artifact datasets — для проверки пользовательского workflow и устойчивости обработки. CADContour2D не обязан автоматически классифицировать synthetic artifacts как ошибки сканирования. Без контекста детали решение остаётся за пользователем: он может вручную удалить или исправить проблемные данные, построить свой контур либо пересканировать деталь, если scan слишком плохой. Synthetic data не заменяют representative real scans.
 
-Существующие [NX DXF fixtures](../../tests/fixtures/dxf/nx/) сохраняются без изменений. Они не являются основным положительным ground truth генератора. Возможное применение как negative/diagnostic fixtures решается отдельно, не требует DXF reader в generator.
+Исторический набор NX DXF fixtures (`tests/fixtures/dxf/nx/`) не включён в текущий репозиторий; результаты его анализа сохранены в [историческом отчёте](../research/nx-dxf-fixture-analysis.md). Они не являются основным положительным ground truth генератора. Возможное применение как negative/diagnostic fixtures решается отдельно, не требует DXF reader в generator.
 
 Исходники инструмента отделены от production application в `tools/synthetic_cloud_generator/`. README инструмента описывает проверенные команды, поддерживаемый этап, reproducibility и ограничения. Основной README CADContour2D содержит краткий контракт и ссылку на эту спецификацию.
 

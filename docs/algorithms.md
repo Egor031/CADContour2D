@@ -258,7 +258,7 @@ Continue продолжает с текущей позиции, Cancel возв�
 RecordId, Morton128 sorting и cache metadata остаются ответственностью cache pipeline.
 Независимые golden pairs построены точной рациональной арифметикой с integer
 round-to-nearest/ties-to-even, включая midpoint и normal/subnormal boundary.
-Подробности реализации и проверок — [asc-xyz-import-check.md](asc-xyz-import-check.md).
+Подробности реализации и проверок — [asc-xyz-import-check.md](reports/task-04/asc-xyz-import-check.md).
 
 Использование дорогостоящего parsing-подхода с большим количеством временных строк или потоковых объектов на каждую точку следует избегать, если измерения подтверждают существенные затраты.
 
@@ -1525,7 +1525,7 @@ packed BBox hierarchy. Полная validation проверяет глобаль
 `(Morton128, RecordId)` с O(1) дополнительного состояния, помимо прежней строгой
 проверки ID внешней сортировкой. Выборочность и цена построения сопоставлены с
 source-order baseline на controlled synthetic measurements/HDD;
-[результаты и ограничения](cache-performance-report.md). Это решение о хранении
+[результаты и ограничения](reports/task-03/cache-performance-report.md). Это решение о хранении
 и доступе, не подтверждение rough/precise методов на реальных scans.
 
 Алгоритмы проектируются для:

@@ -1,8 +1,10 @@
 # Анализ DXF fixtures Siemens NX
 
-> **Статус: исторический фактический отчёт.** Fixtures были исследованы; результаты ниже сохранены без пересмотра первоначального анализа. После анализа принято последующее решение отказаться от NX DXF как входа Synthetic Point Cloud Generator и использовать Geometry JSON + Scan Scenario JSON. Актуальные нормативные контракты находятся в [requirements.md, §24](requirements.md#24-точная-геометрия) и [спецификации генератора](tools/synthetic-cloud-generator.md). Упоминания ожидания новых NX эталонов и прежнего состояния документации ниже относятся к моменту первоначального анализа. Старые DXF не являются основным положительным ground truth генератора; их возможное использование как negative/diagnostic fixtures решается отдельно. DXF остаётся будущим выходом CADContour2D для NX; ELLIPSE не поддерживается в первой версии.
+> **Статус: исторический фактический отчёт.** Fixtures были исследованы; результаты ниже сохранены без пересмотра первоначального анализа. После анализа принято последующее решение отказаться от NX DXF как входа Synthetic Point Cloud Generator и использовать Geometry JSON + Scan Scenario JSON. Актуальные нормативные контракты находятся в [requirements.md, §24](../requirements.md#24-точная-геометрия) и [спецификации генератора](../tools/synthetic-cloud-generator.md). Упоминания ожидания новых NX эталонов и прежнего состояния документации ниже относятся к моменту первоначального анализа. Старые DXF не являются основным положительным ground truth генератора; их возможное использование как negative/diagnostic fixtures решается отдельно. DXF остаётся будущим выходом CADContour2D для NX; ELLIPSE не поддерживается в первой версии.
 
-Дата анализа: 2026-10-08. Исследованы фактические ASCII DXF из [tests/fixtures/dxf/nx](../tests/fixtures/dxf/nx/), включая HEADER, TABLES, BLOCKS, ENTITIES и OBJECTS. Код приложения, генератора и exporter не изменялся; fixtures не изменялись.
+Дата анализа: 2026-10-08. Исследованы фактические ASCII DXF из `tests/fixtures/dxf/nx/`, включая HEADER, TABLES, BLOCKS, ENTITIES и OBJECTS. Код приложения, генератора и exporter не изменялся; fixtures не изменялись.
+
+> Доступность при реорганизации документации 2026-10-19: исторический набор `tests/fixtures/dxf/nx/` отсутствует в текущем репозитории. Имена файлов и пути ниже описывают исходный набор исследования; ссылки на отсутствующие fixtures заменены текстом. Результаты анализа сохранены.
 
 ## Решение и границы вывода
 
@@ -26,10 +28,10 @@
 
 | Файл | LINE | ARC | CIRCLE | ELLIPSE | POINT | LWPOLYLINE / POLYLINE | SPLINE | INSERT |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| [rectangle.dxf](../tests/fixtures/dxf/nx/rectangle.dxf) | 4 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
-| [circle.dxf](../tests/fixtures/dxf/nx/circle.dxf) | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 |
-| [arc.dxf](../tests/fixtures/dxf/nx/arc.dxf) | 6 | 0 | 0 | 2 | 1 | 0 | 0 | 0 |
-| [model.dxf](../tests/fixtures/dxf/nx/model.dxf) | 12 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
+| `rectangle.dxf` | 4 | 0 | 0 | 0 | 1 | 0 | 0 | 0 |
+| `circle.dxf` | 0 | 0 | 0 | 1 | 1 | 0 | 0 | 0 |
+| `arc.dxf` | 6 | 0 | 0 | 2 | 1 | 0 | 0 | 0 |
+| `model.dxf` | 12 | 0 | 0 | 4 | 0 | 0 | 0 | 0 |
 
 Других типов entity в ENTITIES нет. В частности, отсутствуют TEXT/MTEXT, DIMENSION, HATCH, SOLID и другие геометрические/аннотационные entities.
 
@@ -135,7 +137,7 @@ P(t) = C + A*cos(t) + B*sin(t)
 
 ## Документация
 
-Добавлен только этот отчёт. По указанию пользователя [README](../README.md), [requirements](requirements.md), [architecture](architecture.md), [algorithms](algorithms.md) и [спецификация генератора](tools/synthetic-cloud-generator.md) оставлены без изменений до подготовки новых эталонов.
+Добавлен только этот отчёт. По указанию пользователя [README](../../README.md), [requirements](../requirements.md), [architecture](../architecture.md), [algorithms](../algorithms.md) и [спецификация генератора](../tools/synthetic-cloud-generator.md) оставлены без изменений до подготовки новых эталонов.
 
 В них остаются прежние несогласованные с решением пользователя упоминания, которые нельзя считать подтверждённой возможностью первой версии:
 

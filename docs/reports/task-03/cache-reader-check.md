@@ -23,7 +23,7 @@ file primitives, sorter, Writer и связанные tests/CMake.
 
 Формат v1, Writer и Morton sorting не изменялись. Алгоритм packed DFS, доказательство
 coverage/уникальности ID и точные budgets описаны в
-[point-cache-format.md](point-cache-format.md#cachereader-и-полная-validation-45).
+[point-cache-format.md](../../point-cache-format.md#cachereader-и-полная-validation-45).
 Ни GUI, ни project/application state не затронуты.
 
 ## C. Correctness

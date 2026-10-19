@@ -102,5 +102,5 @@ Six-decimal generator output does not cover arbitrary source precision.
 Unchanged production numeric tests separately cover 6/9/12/15 places, finite
 extrema, subnormals, signed zero and rounding boundaries.
 
-See [04.4B results](../../docs/asc-xyz-e2e-performance-check.md) for actual
+See [04.4B results](../../docs/reports/task-04/asc-xyz-e2e-performance-check.md) for actual
 measurements, commands, storage placement and retained artifacts.

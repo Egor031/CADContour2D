@@ -6,7 +6,7 @@
 (5/5), статус задачи — **ACCEPTED**. Byte layout,
 encoding, checksums, packed hierarchy и канонический порядок определены этим
 документом. Нагрузочная матрица и сравнение с source-order baseline — в
-[cache-performance-report.md](cache-performance-report.md). Несовместимое изменение
+[cache-performance-report.md](reports/task-03/cache-performance-report.md). Несовместимое изменение
 требует нового version identifier и согласованного обновления документа, codec
 и тестов. Опубликованных версий и миграций пока нет. Принятие задачи пользователем
 после независимого ревью зафиксировано в [плане реализации](implementation-plan.md#03-persistent-point-cache-и-пространственный-доступ).
@@ -15,7 +15,7 @@ encoding, checksums, packed hierarchy и канонический порядок
 типы, codec отдельных элементов, проверяемый layout, точный файловый I/O и протокол
 публикации файла, streaming ingest/external sort, CacheWriter, packed BBox hierarchy
 и PendingCache, CacheReader со spatial queries и полной validation. Интеграция
-с project state реализована в 04.2 — [ownership report](asc-xyz-application-check.md).
+с project state реализована в 04.2 — [ownership report](reports/task-04/asc-xyz-application-check.md).
 Небольшие файлы базовых файловых тестов имеют собственную
 тестовую сигнатуру и не являются datasets.
 
@@ -145,8 +145,8 @@ BBox конечный и упорядоченный: minX ≤ maxX, minY ≤ max
 Для непустого: kind = 1, pageCount > 0, root < pageCount, 1 ≤ height ≤ pageCount.
 Поля описывают packed BBox hierarchy, построенную по Morton-порядку sorter.
 Построение описано ниже; ранняя проверка выборочности I/O описана в
-[cache-reader-check.md](cache-reader-check.md); нагрузочная приёмка и решение по
-Morton/BBox — в [cache-performance-report.md](cache-performance-report.md).
+[cache-reader-check.md](reports/task-03/cache-reader-check.md); нагрузочная приёмка и решение по
+Morton/BBox — в [cache-performance-report.md](reports/task-03/cache-performance-report.md).
 
 ## Point/index page
 
@@ -436,7 +436,7 @@ checked sum исходных записей. Повторять проходы �
 Сравнение с теми же pages/index в исходном порядке подтвердило полезную выборочность
 при измеренной цене внешней сортировки, включая HDD. Методика, стоимость повторных
 запросов и ограничения first-pass/warm измерений — в
-[cache-performance-report.md](cache-performance-report.md).
+[cache-performance-report.md](reports/task-03/cache-performance-report.md).
 
 ### Совместный ресурсный бюджет
 
@@ -657,9 +657,9 @@ Dataset во всех случаях открыт только для чтени
 Cancellation проверяется на границах страниц/children/batches и внутри external
 sort, а также перед success; гарантированной latency синхронного I/O нет.
 
-Проверки и ранние измерения: [cache-reader-check.md](cache-reader-check.md).
+Проверки и ранние измерения: [cache-reader-check.md](reports/task-03/cache-reader-check.md).
 Большие datasets, process memory, disk/handle/I/O observations, crash lifecycle
-и итоговое обоснование v1: [cache-performance-report.md](cache-performance-report.md).
+и итоговое обоснование v1: [cache-performance-report.md](reports/task-03/cache-performance-report.md).
 
 ## Что ещё не реализовано
 

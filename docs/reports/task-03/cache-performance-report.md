@@ -230,7 +230,7 @@ Reader/query buffers при этом одинаковы. В отдельном 1
 На 1.2 млн records каждый файл — 28 975 104 bytes, 441 point page, height=1.
 Все семь классов queries/полная validation/побитовый oracle прошли на каждом
 распределении. Ниже local query (медиана трёх passes); полный набор и разброс —
-в [raw JSON reports](benchmarks/cache05).
+в [raw JSON reports](../../benchmarks/cache05).
 
 | Распределение | Build Morton / baseline, s | Validation, s | Local point pages Morton / baseline | Local ms Morton / baseline |
 |---|---:|---:|---:|---:|
