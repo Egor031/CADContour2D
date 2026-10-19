@@ -458,14 +458,15 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**Задачи 01–04: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задачи 01–04 и этап 05.1: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 Задача 04 принята 2026-10-19 после финального независимого ревью:
 **REVIEW PASSED — TASK 04 ACCEPTABLE** на HEAD
 `a227f3865f5bbd3068eb7e8eb95febc3e2ce241d`. Подтверждённых дефектов P0–P3 и
 существенных неподтверждённых рисков — 0; обязательных исправлений нет.
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
-Следующий этап — задача 05 (Save/Open и восстановление); реализация не начата.
+В задаче 05 принят этап 05.1 — Persistence Foundation; задача 05 целиком не завершена.
+05.2–05.5 не начаты; пользовательские Save/Open/Recovery пока не реализованы.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -603,8 +604,8 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. В задаче 05 реализована только 05.1 (Persistence Foundation),
-ожидающая повторной проверки исправлений H1/H2; пользовательские Save/Open и восстановление ещё не реализованы;
+и ограничения. В задаче 05 принята только 05.1 (Persistence Foundation);
+пользовательские Save/Open и восстановление ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -619,14 +620,17 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 
 Точная схема и ограничения — [Project Manifest v1](docs/project-manifest-format.md),
 результаты проверок — [отчёт 05.1](docs/reports/task-05/persistence-foundation.md).
-После независимого ревью `80eff06` исправлены H1/H2 в lexical JSON validation:
-неизвестные escapes/raw control bytes и malformed version numbers отклоняются до Qt.
-Воспроизведение до исправления и регрессия — в [дополнении к отчёту](docs/reports/task-05/persistence-foundation.md#h1-h2-review-fixes).
-Статус исправлений: **H1/H2 FIXED — READY FOR VERIFICATION**; 05.1 ещё не принята,
-задача 05 целиком не завершена.
+**05.1 — ACCEPTED**, принята пользователем 2026-10-19 на commit `408757c` после
+независимого ревью, исправления H1/H2 и повторной независимой проверки.
+H1/H2 — FIXED, итог ревью — **05.1 — READY FOR ACCEPTANCE**; новых блокирующих
+дефектов нет. [Итоги и границы принятия](docs/reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
+Задача 05 целиком не завершена; 05.2–05.5 — NOT STARTED.
 
-Проверены полные Debug/Release сборки и `all_qmllint`, затем production CTest:
-в каждой конфигурации **480 passed, 0 failed, 1 skipped** из 481. Пропущен только
+По результатам уже выполненной повторной независимой проверки сборки Debug/Release
+и `all_qmllint` — PASS; итоговый production CTest в каждой конфигурации —
+**480 passed, 0 failed, 1 skipped** из 481. Первый неуспешный Debug-прогон сохранён
+в [наблюдении по Operations-тесту](docs/reports/task-05/persistence-foundation.md#operations-test-observation).
+При документальном закрытии сборки и тесты не повторялись. Пропущен только
 file-symlink test: Windows error 1314, права создания symlink недоступны;
 реальный junction escape проверен. Точные команды в стандартной CMD-среде выше:
 

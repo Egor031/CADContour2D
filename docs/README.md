@@ -54,7 +54,8 @@
 
 ### Task 05
 
-- [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md) — manifest, paths, retention и проверки; ожидает независимого ревью.
+- [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md#independent-verification-and-acceptance) — **ACCEPTED** после независимой проверки исправлений H1/H2; вся задача 05 не завершена, 05.2–05.5 — NOT STARTED.
+- [Наблюдение по Operations-тесту](reports/task-05/persistence-foundation.md#operations-test-observation) — UNRESOLVED OBSERVATION / NOT CONFIRMED DEFECT.
 
 ## Benchmark evidence
 

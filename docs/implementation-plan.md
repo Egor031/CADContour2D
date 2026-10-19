@@ -251,8 +251,21 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1 (Persistence Foundation) реализована, ожидает независимого ревью.
-Вся задача 05 не завершена и не принята; 05.2–05.5 не реализованы.**
+**Статус: 05.1 — ACCEPTED. Вся задача 05 не завершена и не принята.**
+
+| Часть | Область | Статус |
+|---|---|---|
+| 05.1 | Persistence Foundation | ACCEPTED |
+| 05.2 | Save / Save As | NOT STARTED |
+| 05.3 | Open и частичная доступность | NOT STARTED |
+| 05.4 | Autosave / Recovery | NOT STARTED |
+| 05.5 | GUI и сквозная приёмка | NOT STARTED |
+
+05.1 принята пользователем на commit `408757c9e26b4369b065ba9ee315d48a70336773`:
+реализация завершена, независимое ревью выявило H1/H2, исправления повторно
+проверены независимым ревьюером. Оба замечания закрыты, новых блокирующих дефектов
+нет; подтверждены результаты Debug/Release. Принятие ограничено Persistence
+Foundation — [итоги независимой проверки и границы приёмки](reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
 
 05.1: persistent ProjectId, отдельный metadata snapshot, строгий UTF-8 JSON codec
 `.pc2dproj` v1, точные числовые строки, caller-selected resource budgets, portable
