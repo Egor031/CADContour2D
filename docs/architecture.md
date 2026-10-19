@@ -1084,25 +1084,52 @@ Application-команда сначала проверяет входы и во�
 ```text
 ProjectName/
 ├── ProjectName.pc2dproj
-└── cache/
-    ├── point cache
-    ├── spatial index
-    ├── density map versions
-    └── reduced cloud data
+└── data/<storageId>/datasets/<CacheId>.pc2dcache
 ```
 
-Точные имена файлов этим документом не фиксируются.
+Для реализованной 05.1 этот layout и точная UTF-8 JSON schema v1 определены в
+[project-manifest-format.md](project-manifest-format.md). Будущие dataset kinds
+расширяют версионированную схему без изменения базового механизма paths/retention.
 
 Промежуточный storage 04.2: `AppLocalDataLocation/projects/project-<storage UUID>-<unique>/`
 с `datasets/<attempt UUID>.pc2dcache` и отдельным временным `scratch-*`.
 Root можно переопределить в C++ для изолированных tests. Каталог попытки создаётся
 эксклюзивно, Writer не перезаписывает существующие файлы. CacheId из metadata,
-storage UUID, OperationId и runtime identity независимы. Domain reference хранит
-storage directory и относительный dataset path. PersistentStorage означает
-обязанность сохранять принятые файлы; его деструктор ничего не удаляет. До задачи 05
-допускается накопление принятых caches; manifest/Save/Open/Recovery и автоматическая
-GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
+storage UUID, OperationId и runtime identity независимы. В 05.1 единственный physical
+binding domain dataset — `shared_ptr<const DatasetLocation>` со storage identity,
+directory и относительным dataset path; ProjectSession больше не дублирует пути.
+Этот retention reference можно удерживать в snapshots workers/Undo. Уничтожение
+последней ссылки не удаляет принятые файлы: Close, замена и очистка history безопасны,
+допускается накопление caches. До Accept cleanup по-прежнему принадлежит worker
+PendingCache/QTemporaryDir; irreversible gate и worker finalization не изменены.
+Save/Open/Recovery и автоматическая GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
 files; автоматического scavenger нет.
+
+`ProjectState` остаётся Qt-независимой domain model без I/O. Его постоянный `ProjectId`
+(UUID bytes в RFC order) создаётся при подготовке import candidate до noexcept commit
+и публикуется только при Accept. Он не меняется от cell/Undo/Redo; ошибка или отмена
+не заменяет identity открытого проекта. Runtime identity/input revision остаются
+отдельными applicability tokens и не сериализуются.
+
+`cadcontour_persistence` (core/cache metadata + Qt Core) содержит отдельные
+ProjectSnapshot, JSON codec и path validation. Snapshot включает project/storage/snapshot
+identities, mm, выбранный cell, справочные source metadata, descriptor Point Cache v1
+и ссылку state на CacheId. Storage/snapshot IDs задаются вызывающим кодом; metadata
+projection не создаёт published save baseline. Uint64 и binary64 хранятся строками
+с точным round-trip, включая signed zero. Обязательные поля, типы, ranges, metadata,
+references и неизвестное содержимое проверяются строго. Несовместимое расширение
+требует новой версии, миграционная система не добавлена.
+
+Codec не открывает datasets, не вызывает CacheReader, validate/scanAll, не копирует
+cache и не запускает вычисления. Отсутствие/недоступность/повреждение dataset отделено
+от корректности manifest. Явные caller-selected bytes/tokens/depth budgets проверяются
+до DOM; bounded device reader проверяет размер до чтения. Это admission policy metadata,
+не фиксированный лимит количества будущих версий и не обещание peak RSS.
+
+Save 05.2 должен сначала подготовить полностью завершённые immutable файлы без
+overwrite, затем опубликовать manifest. Для переключения session можно подготовить
+новый DatasetLocation и заменить current reference после успеха; старые holders
+удерживают прежний binding. В 05.1 этот протокол и переключение не реализованы.
 
 Канонический перечень восстанавливаемого состояния определён в [requirements.md, §32](requirements.md#32-сохранение-проекта). Он включает выбранные параметры будущего построения (в том числе `cell`), все версии Density Map с их собственными параметрами и Rough-состояниями и активную версию, HoleGroup обоих этапов и ручные удаления точек reduced cloud независимо от способа хранения. При открытии восстанавливается сохранённый выбранный `cell`; начальное 1 мм относится к новому проекту через импорт. Связи версии с PNG, metadata, source cache и Rough-состоянием восстанавливаются согласованно; история Undo не сериализуется. Детальные layout и схемы определяются при реализации. Различаются версия persistent format (§30) и идентичность результата (§15).
 
@@ -1112,7 +1139,17 @@ files; автоматического scavenger нет.
 
 ## 29. Пути к данным
 
-Для файлов, принадлежащих проекту, предпочтительны относительные пути.
+Для project-owned datasets manifest v1 хранит относительные пути от каталога проекта.
+Проверяются absolute/UNC/drive-relative paths, traversal, Windows device names, ADS,
+неоднозначные components и Unicode. Отдельный resolver проверяет существующие parents
+и конечный файл через Win32 attributes и отклоняет все descendant reparse points,
+включая junction. Отсутствующий leaf допустим. Перенос всего project directory
+сохраняет references. Полный контракт и ограничения —
+[project-manifest-format.md](project-manifest-format.md#storage-пути-и-retention).
+
+Filesystem validation не является handle lease и не устраняет TOCTOU. Будущие файловые
+операции повторяют проверки непосредственно перед использованием и соблюдают
+протокол подготовки/публикации. Полная защита от внешнего изменения файлов не обещается.
 
 Исходный ASC/XYZ может храниться как внешняя ссылка.
 
@@ -1434,7 +1471,7 @@ Compression не требуется для v1; возможное дальней
 
 - **Density Map Versions:** политика повторного построения с теми же параметрами, представление идентичности/provenance и связей datasets, persistence layout и UI переключения; обязательные контракты — §§9, 15, 23, 27–28. Автоматическое восстановление Precise Stage не утверждено (§6.2).
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
-- **Project Serialization:** формат manifest/state-файла (§28). Предпочтительны существующие возможности Qt, если они удовлетворяют контракту.
+- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As, atomic publication, Open и partial availability остаются последующим частям задачи 05.
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.
 - **Autosave/Recovery:** период, триггеры, протокол записи и lifecycle (§31).
 - **Worker applicability:** механизм обеспечения инварианта §25.

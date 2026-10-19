@@ -12,9 +12,12 @@ ProjectState::ProjectState(std::uint64_t runtimeIdentity) : runtimeIdentity_(run
         throw std::invalid_argument("Project runtime identity must be nonzero");
 }
 
-ProjectState::ProjectState(std::uint64_t runtimeIdentity, ImportedDataset dataset)
+ProjectState::ProjectState(std::uint64_t runtimeIdentity, ProjectId projectId, ImportedDataset dataset)
     : ProjectState(runtimeIdentity)
 {
+    if (projectId.isNull())
+        throw std::invalid_argument("Project persistent identity must be nonzero");
+    projectId_ = projectId;
     dataset_.emplace(std::move(dataset));
 }
 

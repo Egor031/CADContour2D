@@ -10,6 +10,13 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(persistence_tests persistence_tests.cpp)
+set_target_properties(persistence_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(persistence_tests PRIVATE cadcontour_persistence GTest::gtest_main)
+target_compile_options(persistence_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+gtest_discover_tests(persistence_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX Persistence.
+    PROPERTIES LABELS production TIMEOUT 30)
+
 add_executable(asc_xyz_tests asc_xyz_parser_tests.cpp asc_xyz_importer_tests.cpp)
 set_target_properties(asc_xyz_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(asc_xyz_tests PRIVATE cadcontour_io GTest::gtest_main)
@@ -49,7 +56,7 @@ gtest_discover_tests(operation_tests DISCOVERY_MODE PRE_TEST PROPERTIES TIMEOUT 
 
 add_executable(import_application_tests operation_test_main.cpp import_application_tests.cpp)
 set_target_properties(import_application_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
-target_link_libraries(import_application_tests PRIVATE cadcontour_application GTest::gtest)
+target_link_libraries(import_application_tests PRIVATE cadcontour_application cadcontour_persistence GTest::gtest)
 target_compile_options(import_application_tests PRIVATE /W4 /permissive- /utf-8)
 gtest_discover_tests(import_application_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX AscApplication.
     PROPERTIES TIMEOUT 30 LABELS production)

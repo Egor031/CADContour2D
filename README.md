@@ -603,7 +603,33 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. Следующая задача 05 (Save/Open и восстановление) не начата;
+и ограничения. В задаче 05 реализована только 05.1 (Persistence Foundation),
+ожидающая независимого ревью; пользовательские Save/Open и восстановление ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
+
+### Persistence Foundation — 05.1
+
+Добавлен отдельный `cadcontour_persistence`: metadata snapshot, строгий UTF-8 JSON
+manifest `.pc2dproj` v1 с точным round-trip чисел, проверка переносимых dataset paths
+и Windows reparse points. Новый импорт получает постоянный ProjectId; cell и Undo/Redo
+его сохраняют. Shared immutable DatasetLocation удерживает физическое расположение
+без удаления принятых cache при Close/замене. Binary Point Cache v1, worker gate и GUI
+сохранены. Save/Save As, Open, копирование cache, autosave/recovery ещё не реализованы.
+
+Точная схема и ограничения — [Project Manifest v1](docs/project-manifest-format.md),
+результаты проверок — [отчёт 05.1](docs/reports/task-05/persistence-foundation.md).
+Статус части: **READY FOR INDEPENDENT REVIEW**; задача 05 целиком не завершена.
+
+Проверены полные Debug/Release сборки и `all_qmllint`, затем production CTest:
+в каждой конфигурации **474 passed, 0 failed, 1 skipped** из 475. Пропущен только
+file-symlink test: Windows error 1314, права создания symlink недоступны;
+реальный junction escape проверен. Точные команды в стандартной CMD-среде выше:
+
+```bat
+cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+cmake --build --preset windows-release --target all all_qmllint --parallel 4
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
 

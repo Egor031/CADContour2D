@@ -13,6 +13,7 @@
 | [Algorithms](algorithms.md) | Математические контракты, Required, Current approach и Open decisions |
 | [Implementation Plan](implementation-plan.md) | Последовательность реализации, границы задач и актуальные статусы |
 | [Persistent Point Cache Format](point-cache-format.md) | Binary layout v1, codec, Writer/Reader, spatial queries и validation |
+| [Project Manifest v1](project-manifest-format.md) | Строгая JSON schema, точные числа, metadata budgets, пути и retention 05.1 |
 
 План реализации не имеет приоритета над требованиями, архитектурой и алгоритмами.
 Обзор проекта и проверенные команды сборки — в [корневом README](../README.md).
@@ -50,6 +51,10 @@
 
 **Итог: [задача 04 принята (ACCEPTED)](reports/task-04/acceptance.md).**
 Промежуточные статусы и результаты внутри отчётов относятся ко времени их создания.
+
+### Task 05
+
+- [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md) — manifest, paths, retention и проверки; ожидает независимого ревью.
 
 ## Benchmark evidence
 

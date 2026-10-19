@@ -2,6 +2,7 @@
 
 #include "command_result.h"
 #include "imported_dataset.h"
+#include "project_id.h"
 
 #include <cstdint>
 #include <optional>
@@ -26,8 +27,9 @@ struct OperationStamp {
 class ProjectState {
 public:
     explicit ProjectState(std::uint64_t runtimeIdentity);
-    ProjectState(std::uint64_t runtimeIdentity, ImportedDataset dataset);
+    ProjectState(std::uint64_t runtimeIdentity, ProjectId projectId, ImportedDataset dataset);
     const ImportedDataset *dataset() const noexcept { return dataset_ ? &*dataset_ : nullptr; }
+    ProjectId projectId() const noexcept { return projectId_; }
 
     double cell() const noexcept { return cell_; }
     std::uint64_t runtimeIdentity() const noexcept { return runtimeIdentity_; }
@@ -42,6 +44,7 @@ public:
 private:
     friend class ProjectStateTestAccess;
     std::uint64_t runtimeIdentity_;
+    ProjectId projectId_;
     std::uint64_t inputRevision_ = 0;
     double cell_ = 1.0;
     std::optional<ImportedDataset> dataset_;

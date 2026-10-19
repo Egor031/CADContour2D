@@ -8,6 +8,7 @@
 #include <QUuid>
 
 #include <cassert>
+#include <cstring>
 #include <limits>
 #include <memory>
 
@@ -384,9 +385,8 @@ ProjectController::prepareImport(const ImportReadyProduct &product)
         throw std::overflow_error("project identity/context exhausted");
     ImportedDataset dataset;
     dataset.cacheId = m.id;
-    dataset.storageId = product.storageId.toStdString();
-    dataset.storageDirectory = directory.toStdWString();
-    dataset.relativeCachePath = relative.toStdWString();
+    dataset.location = std::make_shared<const DatasetLocation>(DatasetLocation{
+        product.storageId.toStdString(), directory.toStdWString(), relative.toStdWString()});
     dataset.sourcePath = product.sourcePath.toStdWString();
     dataset.sourceBytes = product.source.bytesRead;
     dataset.sourceLines = product.source.physicalLines;
@@ -394,8 +394,11 @@ ProjectController::prepareImport(const ImportReadyProduct &product)
     dataset.minimum = {m.bounds.minX, m.bounds.minY};
     dataset.maximum = {m.bounds.maxX, m.bounds.maxY};
     dataset.hasNonZeroZ = m.hasNonZeroZ;
-    auto candidate = std::make_unique<ProjectSession>(ProjectState(lastIdentity_ + 1, std::move(dataset)),
-        PersistentStorage{directory, relative});
+    ProjectId projectId;
+    const auto uuid = QUuid::createUuid().toRfc4122();
+    std::memcpy(projectId.bytes.data(), uuid.constData(), projectId.bytes.size());
+    auto candidate = std::make_unique<ProjectSession>(
+        ProjectState(lastIdentity_ + 1, projectId, std::move(dataset)));
     if (prepareImportHook_)
         prepareImportHook_();
     return candidate;

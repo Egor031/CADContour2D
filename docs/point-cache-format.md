@@ -663,6 +663,9 @@ sort, а также перед success; гарантированной latency �
 
 ## Что ещё не реализовано
 
-Project serialization, Density Map и Reduced Point Cloud пока не реализованы.
+Metadata serialization `.pc2dproj` v1 и retention binding реализованы в 05.1 —
+[project-manifest-format.md](project-manifest-format.md). Принятые cache не удаляются
+при исчезновении session/reference; до Accept cleanup остаётся у worker.
+Пользовательские Save/Open, Density Map и Reduced Point Cloud пока не реализованы.
 ASC/XYZ parser и application/OperationRunner integration выполнены в задаче 04,
 за пределами принятой задачи 03. Binary format v1 не менялся.

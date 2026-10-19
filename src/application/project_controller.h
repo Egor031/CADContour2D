@@ -55,16 +55,10 @@ private:
     friend class OperationTestAccess;
     class CommandScope;
     // Reverse destruction order: undo commands disappear before their referenced state.
-    // Storage retains accepted files across session/controller destruction (no GC before task 05).
-    struct PersistentStorage {
-        QString directory;
-        QString relativeCachePath;
-    };
+    // DatasetLocation retains accepted files across session/controller destruction.
     struct ProjectSession {
-        explicit ProjectSession(ProjectState value, PersistentStorage owner = {})
-            : state(std::move(value)), storage(std::move(owner)) {}
+        explicit ProjectSession(ProjectState value) : state(std::move(value)) {}
         ProjectState state;
-        PersistentStorage storage;
         QUndoStack history;
     };
     struct VerificationState {

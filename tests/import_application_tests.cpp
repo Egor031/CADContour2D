@@ -2,6 +2,7 @@
 #include "project_test_access.h"
 #include "cache_file_test_access.h"
 #include "cache/cache_reader.h"
+#include "persistence/project_manifest.h"
 
 #include <QDirIterator>
 #include <QFile>
@@ -89,7 +90,7 @@ TEST_F(ImportApplication, FirstImportMetadataHistoryAndCacheIndependentOfSource)
     EXPECT_EQ(dataset.sourceLines, 3);
     EXPECT_EQ(dataset.sourceBytes, 22);
     EXPECT_EQ(QString::fromStdWString(dataset.sourcePath.wstring()), source);
-    EXPECT_FALSE(dataset.relativeCachePath.is_absolute());
+    EXPECT_FALSE(dataset.location->relativeCachePath.is_absolute());
     auto reader = cache::CacheReader::open(cachePath(), limits);
     ASSERT_TRUE(reader);
     EXPECT_EQ(reader.value()->metadata().id, dataset.cacheId);
@@ -101,6 +102,59 @@ TEST_F(ImportApplication, FirstImportMetadataHistoryAndCacheIndependentOfSource)
     QDirIterator dirs(root, QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
     while (dirs.hasNext())
         EXPECT_FALSE(QFileInfo(dirs.next()).fileName().startsWith(QStringLiteral("scratch-")));
+}
+
+TEST_F(ImportApplication, PersistentIdentitySurvivesCellUndoRedoAndFailedReplacement)
+{
+    initial();
+    const auto id = controller.project()->projectId();
+    EXPECT_FALSE(id.isNull());
+    controller.setCell(0.125);
+    controller.undo();
+    controller.redo();
+    EXPECT_EQ(controller.project()->projectId(), id);
+    const auto snapshot = persistence::captureSnapshot(*controller.project(), QUuid::createUuid(), QUuid::createUuid());
+    ASSERT_TRUE(snapshot);
+    EXPECT_EQ(snapshot.value().projectId, id);
+    EXPECT_DOUBLE_EQ(snapshot.value().cell, 0.125);
+    const auto bytes = persistence::encodeManifest(snapshot.value(), {65536, 4096, 32});
+    ASSERT_TRUE(bytes);
+    EXPECT_FALSE(bytes.value().contains("runtimeIdentity"));
+    EXPECT_FALSE(bytes.value().contains("Revision"));
+    write("bad input\n");
+    controller.importAscXyz(request(true));
+    ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(controller.project()->projectId(), id);
+    EXPECT_TRUE(controller.canUndo());
+}
+
+TEST_F(ImportApplication, PersistentIdentityIsIndependentAcrossRuntimeInstancesAndReplacements)
+{
+    initial();
+    const auto first = controller.project()->projectId();
+    ProjectController other(root);
+    ASSERT_EQ(other.importAscXyz(request()).outcome, CommandOutcome::Applied);
+    ASSERT_TRUE(finish(other));
+    ASSERT_NE(other.project(), nullptr);
+    EXPECT_EQ(other.project()->runtimeIdentity(), controller.project()->runtimeIdentity());
+    EXPECT_NE(other.project()->projectId(), first);
+    controller.importAscXyz(request(true));
+    ASSERT_TRUE(finish(controller));
+    EXPECT_NE(controller.project()->projectId(), first);
+}
+
+TEST_F(ImportApplication, SharedPhysicalBindingRetainsOldFileAcrossReplacementAndClose)
+{
+    initial();
+    auto binding = controller.project()->dataset()->location;
+    const auto oldPath = QString::fromStdWString(binding->cachePath().wstring());
+    controller.importAscXyz(request(true));
+    ASSERT_TRUE(finish(controller));
+    EXPECT_NE(controller.project()->dataset()->location, binding);
+    EXPECT_EQ(QString::fromStdWString(binding->cachePath().wstring()), oldPath);
+    controller.closeProject();
+    binding.reset();
+    readCache(oldPath);
 }
 
 TEST_F(ImportApplication, ConfirmedReplacementResetsHistoryAndRetainsBothCaches)

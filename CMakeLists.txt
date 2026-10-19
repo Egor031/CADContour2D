@@ -16,7 +16,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 
 add_library(cadcontour_core STATIC
     src/core/project_state.h src/core/project_state.cpp
-    src/core/imported_dataset.h src/core/cache_id.h
+    src/core/imported_dataset.h src/core/cache_id.h src/core/project_id.h
     src/core/command_result.h src/core/coordinates.h src/core/coordinates.cpp
 )
 set_target_properties(cadcontour_core PROPERTIES AUTOMOC OFF AUTOUIC OFF)
@@ -35,6 +35,14 @@ add_library(cadcontour_cache STATIC
 set_target_properties(cadcontour_cache PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_cache PUBLIC cadcontour_core Qt6::Core)
 target_compile_options(cadcontour_cache PRIVATE /W4 /permissive- /fp:precise /utf-8)
+
+add_library(cadcontour_persistence STATIC
+    src/persistence/project_manifest.h src/persistence/project_manifest.cpp
+    src/persistence/project_storage.h src/persistence/project_storage.cpp
+)
+set_target_properties(cadcontour_persistence PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(cadcontour_persistence PUBLIC cadcontour_cache)
+target_compile_options(cadcontour_persistence PRIVATE /W4 /permissive- /fp:precise /utf-8)
 
 add_library(cadcontour_io STATIC
     src/io/asc_xyz_parser.h src/io/asc_xyz_parser.cpp
