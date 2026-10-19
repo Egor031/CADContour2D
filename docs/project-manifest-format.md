@@ -42,6 +42,15 @@ codec; миграции и молчаливое игнорирование не�
 Неизвестные поля на любом уровне, kinds, единицы и версии отклоняются.
 Отсутствующие поля не получают default values. `null` не заменяет обязательное поле.
 
+До передачи строк Qt parser проверяются как имена полей, так и значения. Разрешены
+только JSON escapes `\"`, `\\`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX`
+с ровно четырьмя hex digits. Escaped UTF-16 surrogates требуют корректной пары
+high/low; одиночные или перепутанные surrogates запрещены. Literal UTF-8 Unicode,
+включая supplementary characters, разрешён. Неподдерживаемый escape, незавершённая
+строка/escape и raw control byte U+0000–U+001F дают InvalidJson. Корректный escape
+не отменяет semantic validation: например, `\u0000` является корректным JSON escape,
+но NUL в source metadata по-прежнему даёт InvalidValue.
+
 UUID — ненулевая каноническая lowercase строка `8-4-4-4-12` без braces. Это непрозрачные
 128-битные значения; существующий CacheId не требует конкретных UUID version/variant.
 Новый `projectId` генерируется Qt при подготовке import candidate до publication gate.
@@ -66,6 +75,10 @@ Constructor domain state принимает явный `ProjectId`, чтобы �
 - `version` и `formatVersion` — unsigned integer JSON tokens без fraction/exponent;
   диапазон uint32, поддерживается 1. Raw tokens проверяются до Qt binary64 conversion:
   `1.00000000000000000001` не может округлиться в поддерживаемую версию 1.
+  Некорректная JSON number grammar (`1.`, `01`, `+1`, `.1`, `1e+`, `1.e0`) даёт
+  InvalidJson; корректные JSON numbers, недопустимые для unsigned integer version
+  (`1.0`, `1e0`, `-1`), дают NumericRange. Uint32 overflow проверяется по исходному
+  integer token до Qt; корректный integer неподдерживаемой версии даёт UnsupportedVersion.
 - Все `uint64_t` — десятичные строки без знака, exponent и ведущих нулей, кроме `0`.
 - Все значимые binary64 (`cell`, bounds) — десятичные строки с грамматикой
   `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?`.
@@ -94,8 +107,11 @@ CacheId, повторный descriptor и `../cache` — примеры недо
 Тестовый профиль 1 MiB / 4096 tokens / depth 32 не является production policy.
 
 Перед DOM проверяются фактические UTF-8 bytes, число tokens (включая property names,
-скалярные значения и открывающие containers), глубина и duplicate keys. Qt отдельно
-проверяет JSON grammar. Его собственные ограничения parser также действуют.
+скалярные значения и открывающие containers), глубина, string/number lexemes и
+duplicate keys. Raw numeric tokens проверяются по JSON decimal grammar также вне
+version fields, до проверки их semantic JSON-типа. Qt проверяет оставшуюся structural
+grammar и строит DOM; нового полноценного JSON parser нет. Его собственные ограничения
+также действуют.
 Память зависит от metadata, а не от числа точек; DOM и duplicate-key sets имеют
 накладные расходы. Это admission limits, не гарантия peak RSS; bad_alloc даёт
 ResourceExhausted. Encoder проверяет размер единственной неограниченной source string

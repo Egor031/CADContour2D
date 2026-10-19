@@ -61,6 +61,7 @@ QString decimal(double value)
     return QString::fromLatin1(buffer.data(), static_cast<qsizetype>(result.ptr - buffer.data()));
 }
 bool digit(char c) { return c >= '0' && c <= '9'; }
+bool numericStart(char c) { return digit(c) || c == '-' || c == '+' || c == '.'; }
 bool decimalSyntax(const QByteArray &s, bool integer)
 {
     qsizetype i = 0;
@@ -134,8 +135,56 @@ void version(const QJsonObject &o, const char *name)
     if (v != 1) fail(ErrorCode::UnsupportedVersion, QString::fromLatin1(name), QStringLiteral("Only version 1 is supported"));
 }
 
+unsigned unicodeEscape(const QByteArray &bytes, qsizetype &position)
+{
+    if (bytes.size() - position < 4)
+        fail(ErrorCode::InvalidJson, {}, QStringLiteral("Truncated Unicode escape"));
+    unsigned value = 0;
+    for (int n = 0; n < 4; ++n) {
+        const auto c = bytes[position++];
+        unsigned hex;
+        if (digit(c)) hex = c - '0';
+        else if (c >= 'a' && c <= 'f') hex = c - 'a' + 10;
+        else if (c >= 'A' && c <= 'F') hex = c - 'A' + 10;
+        else fail(ErrorCode::InvalidJson, {}, QStringLiteral("Invalid Unicode escape digit"));
+        value = (value << 4) | hex;
+    }
+    return value;
+}
+qsizetype stringEnd(const QByteArray &bytes, qsizetype start)
+{
+    auto position = start + 1;
+    while (position < bytes.size()) {
+        const auto c = static_cast<unsigned char>(bytes[position++]);
+        if (c == '"') return position;
+        if (c < 0x20) fail(ErrorCode::InvalidJson, {}, QStringLiteral("Unescaped JSON control character"));
+        if (c != '\\') continue;
+        if (position == bytes.size())
+            fail(ErrorCode::InvalidJson, {}, QStringLiteral("Truncated JSON escape"));
+        switch (bytes[position++]) {
+        case '"': case '\\': case '/': case 'b': case 'f': case 'n': case 'r': case 't': break;
+        case 'u': {
+            const auto unit = unicodeEscape(bytes, position);
+            if (unit >= 0xd800 && unit <= 0xdbff) {
+                if (bytes.size() - position < 2 || bytes[position] != '\\' || bytes[position + 1] != 'u')
+                    fail(ErrorCode::InvalidJson, {}, QStringLiteral("Missing low surrogate escape"));
+                position += 2;
+                const auto low = unicodeEscape(bytes, position);
+                if (low < 0xdc00 || low > 0xdfff)
+                    fail(ErrorCode::InvalidJson, {}, QStringLiteral("Invalid low surrogate escape"));
+            } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+                fail(ErrorCode::InvalidJson, {}, QStringLiteral("Unpaired low surrogate escape"));
+            }
+            break;
+        }
+        default: fail(ErrorCode::InvalidJson, {}, QStringLiteral("Invalid JSON string escape"));
+        }
+    }
+    fail(ErrorCode::InvalidJson, {}, QStringLiteral("Unterminated JSON string"));
+}
+
 // Runs before Qt builds a DOM. Qt remains the JSON grammar parser; this pass bounds
-// structure and rejects duplicate decoded keys that QJsonObject would otherwise lose.
+// structure and rejects permissive string/number parsing and duplicate decoded keys.
 void preflight(const QByteArray &bytes, ManifestLimits limits)
 {
     if (!limits.maxBytes || !limits.maxTokens || !limits.maxDepth
@@ -159,14 +208,8 @@ void preflight(const QByteArray &bytes, ManifestLimits limits)
             stack.pop_back(); ++i;
         } else if (c == '"') {
             token();
-            const auto start = i++;
-            bool closed = false;
-            while (i < bytes.size()) {
-                const auto ch = bytes[i++];
-                if (ch == '\\') { if (i < bytes.size()) ++i; }
-                else if (ch == '"') { closed = true; break; }
-            }
-            if (!closed) fail(ErrorCode::InvalidJson, {}, QStringLiteral("Unterminated JSON string"));
+            const auto start = i;
+            i = stringEnd(bytes, start);
             auto next = i;
             while (next < bytes.size() && white(bytes[next])) ++next;
             if (next < bytes.size() && bytes[next] == ':' && !stack.empty() && stack.back().kind == '{') {
@@ -187,15 +230,26 @@ void preflight(const QByteArray &bytes, ManifestLimits limits)
                     while (endValue < bytes.size() && !white(bytes[endValue]) && bytes[endValue] != ','
                            && bytes[endValue] != '}' && bytes[endValue] != ']') ++endValue;
                     const auto raw = bytes.mid(startValue, endValue - startValue);
-                    if (decimalSyntax(raw, false) && !decimalSyntax(raw, true))
-                        fail(ErrorCode::NumericRange, key, QStringLiteral("Version requires an unsigned integer token"));
+                    if (!raw.isEmpty() && numericStart(raw.front())) {
+                        if (!decimalSyntax(raw, false))
+                            fail(ErrorCode::InvalidJson, key, QStringLiteral("Malformed JSON number token"));
+                        if (!decimalSyntax(raw, true))
+                            fail(ErrorCode::NumericRange, key, QStringLiteral("Version requires an unsigned integer token"));
+                        std::uint32_t value = 0;
+                        const auto converted = std::from_chars(raw.data(), raw.data() + raw.size(), value);
+                        if (converted.ec == std::errc::result_out_of_range)
+                            fail(ErrorCode::NumericRange, key, QStringLiteral("Version outside uint32 range"));
+                    }
                 }
             }
         } else {
+            const auto start = i;
             token(); ++i;
             while (i < bytes.size() && !white(bytes[i]) && bytes[i] != ',' && bytes[i] != ']'
                    && bytes[i] != '}' && bytes[i] != ':' && bytes[i] != '"'
                    && bytes[i] != '[' && bytes[i] != '{') ++i;
+            if (numericStart(c) && !decimalSyntax(bytes.mid(start, i - start), false))
+                fail(ErrorCode::InvalidJson, {}, QStringLiteral("Malformed JSON number token"));
         }
     }
     if (!stack.empty()) fail(ErrorCode::InvalidJson, {}, QStringLiteral("Unclosed JSON container"));

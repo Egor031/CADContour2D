@@ -604,7 +604,7 @@ QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff chec
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
 и ограничения. В задаче 05 реализована только 05.1 (Persistence Foundation),
-ожидающая независимого ревью; пользовательские Save/Open и восстановление ещё не реализованы;
+ожидающая повторной проверки исправлений H1/H2; пользовательские Save/Open и восстановление ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -619,10 +619,14 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 
 Точная схема и ограничения — [Project Manifest v1](docs/project-manifest-format.md),
 результаты проверок — [отчёт 05.1](docs/reports/task-05/persistence-foundation.md).
-Статус части: **READY FOR INDEPENDENT REVIEW**; задача 05 целиком не завершена.
+После независимого ревью `80eff06` исправлены H1/H2 в lexical JSON validation:
+неизвестные escapes/raw control bytes и malformed version numbers отклоняются до Qt.
+Воспроизведение до исправления и регрессия — в [дополнении к отчёту](docs/reports/task-05/persistence-foundation.md#h1-h2-review-fixes).
+Статус исправлений: **H1/H2 FIXED — READY FOR VERIFICATION**; 05.1 ещё не принята,
+задача 05 целиком не завершена.
 
 Проверены полные Debug/Release сборки и `all_qmllint`, затем production CTest:
-в каждой конфигурации **474 passed, 0 failed, 1 skipped** из 475. Пропущен только
+в каждой конфигурации **480 passed, 0 failed, 1 skipped** из 481. Пропущен только
 file-symlink test: Windows error 1314, права создания symlink недоступны;
 реальный junction escape проверен. Точные команды в стандартной CMD-среде выше:
 

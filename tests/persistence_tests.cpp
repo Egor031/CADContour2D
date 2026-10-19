@@ -69,7 +69,140 @@ void write(const QString &path)
     ASSERT_EQ(f.write("deliberately not a cache"), 24);
 }
 auto bits(double value) { return std::bit_cast<std::uint64_t>(value); }
+
+// Inject raw JSON after serialization so Qt cannot repair malformed test input.
+QByteArray sourceTokenManifest(const QByteArray &token)
+{
+    auto o = validJson();
+    auto source = o["source"].toObject(); source["path"] = "source-token-placeholder"; o["source"] = source;
+    auto bytes = QJsonDocument(o).toJson(QJsonDocument::Compact);
+    bytes.replace("\"source-token-placeholder\"", token);
+    return bytes;
+}
+QByteArray versionTokenManifest(const QByteArray &field, const QByteArray &token)
+{
+    auto bytes = QJsonDocument(validJson()).toJson(QJsonDocument::Compact);
+    const auto original = '"' + field + "\":1";
+    EXPECT_TRUE(bytes.contains(original));
+    bytes.replace(original, '"' + field + "\":" + token);
+    return bytes;
+}
+void expectRawError(const QByteArray &bytes, ErrorCode code = ErrorCode::InvalidJson)
+{
+    const auto result = decodeManifest(bytes, limits);
+    if (result) {
+        ADD_FAILURE() << "Accepted malformed JSON; source.path UTF-8 hex="
+                      << result.value().source.path.toUtf8().toHex().toStdString()
+                      << ", cell=" << result.value().cell;
+    } else {
+        EXPECT_EQ(result.error().code, code) << result.error().field.toStdString()
+                                            << ": " << result.error().detail.toStdString();
+    }
+}
 } // namespace
+
+TEST(ManifestReviewRegression, H1RejectsInvalidStringEscapesInKeysAndValues)
+{
+    for (const auto &token : {R"("\q")", R"("\m")", R"("\1")", R"("\v")", R"("\a")",
+                              R"("\x41")", R"("\'")", R"("\?")", R"("\U0041")"}) {
+        SCOPED_TRACE(token);
+        expectRawError(sourceTokenManifest(token));
+    }
+    auto units = QJsonDocument(validJson()).toJson(QJsonDocument::Compact);
+    units.replace(R"("units":"mm")", R"("units":"m\m")");
+    expectRawError(units);
+    auto cell = validJson(); cell["parameters"] = QJsonObject{{"cell", "cell-token-placeholder"}};
+    auto bytes = QJsonDocument(cell).toJson(QJsonDocument::Compact);
+    bytes.replace(R"("cell-token-placeholder")", R"("\1")");
+    expectRawError(bytes);
+    auto key = QJsonDocument(validJson()).toJson(QJsonDocument::Compact);
+    key.replace(R"("units")", R"("unit\s")");
+    expectRawError(key);
+}
+
+TEST(ManifestReviewRegression, H1RejectsEveryUnescapedControlByte)
+{
+    for (int c = 0; c < 32; ++c) {
+        SCOPED_TRACE(c);
+        const auto token = QByteArray("\"before") + static_cast<char>(c) + "after\"";
+        expectRawError(sourceTokenManifest(token));
+    }
+}
+
+TEST(ManifestReviewRegression, H1RejectsMalformedUnicodeAndTruncatedStrings)
+{
+    for (const auto &token : {R"("\u")", R"("\u1")", R"("\u12")", R"("\u123")", R"("\u12G4")",
+                              R"("\u{0041}")", R"("\uD800")", R"("\uDC00")", R"("\uDBFF\u0041")",
+                              R"("\uD800\uD800")", R"("\uD800\n")", R"("\uDC00\uD800")",
+                              "\"unterminated", "\"dangling\\", "\"escaped-closing\\\""}) {
+        SCOPED_TRACE(token);
+        expectRawError(sourceTokenManifest(token));
+    }
+}
+
+TEST(ManifestReviewRegression, H1AcceptsStandardEscapesAndUnicodeWithoutChangingValues)
+{
+    struct Case { QByteArray token; QString expected; };
+    for (const auto &item : {
+        Case{R"("\"\\\/\b\f\n\r\t")", QStringLiteral("\"\\/\b\f\n\r\t")},
+        Case{R"("\u0041\u00e9\u042F")", QStringLiteral("AéЯ")},
+        Case{R"("\ud83d\uDE00")", QString::fromUcs4(U"😀")},
+        Case{QStringLiteral("\"Деталь 😀.xyz\"").toUtf8(), QStringLiteral("Деталь 😀.xyz")},
+        Case{R"("literal\\q")", QStringLiteral("literal\\q")}}) {
+        SCOPED_TRACE(item.token.toStdString());
+        const auto result = decodeManifest(sourceTokenManifest(item.token), limits);
+        ASSERT_TRUE(result);
+        EXPECT_EQ(result.value().source.path, item.expected);
+    }
+    auto o = validJson(); o["parameters"] = QJsonObject{{"cell", "1"}};
+    auto bytes = QJsonDocument(o).toJson(QJsonDocument::Compact);
+    bytes.replace(R"("units":"mm")", R"("u\u006eits":"m\u006d")");
+    bytes.replace(R"("cell":"1")", R"("cell":"\u0031")");
+    const auto result = decodeManifest(bytes, limits);
+    ASSERT_TRUE(result); EXPECT_EQ(bits(result.value().cell), bits(1.0));
+    // Escaped NUL is valid JSON but remains forbidden by the source metadata contract.
+    expectRawError(sourceTokenManifest(R"("\u0000")"), ErrorCode::InvalidValue);
+}
+
+TEST(ManifestReviewRegression, H2VersionTokensAndTypesAreStrict)
+{
+    for (const auto &field : {QByteArray("version"), QByteArray("formatVersion")}) {
+        for (const auto &token : {QByteArray("1"), QByteArray(" \n1\t ")})
+            EXPECT_TRUE(decodeManifest(versionTokenManifest(field, token), limits));
+        struct Case { QByteArray token; ErrorCode code; };
+        for (const auto &item : {
+            Case{"1.", ErrorCode::InvalidJson}, Case{"01", ErrorCode::InvalidJson},
+            Case{"+1", ErrorCode::InvalidJson}, Case{".1", ErrorCode::InvalidJson},
+            Case{"1e", ErrorCode::InvalidJson}, Case{"1e+", ErrorCode::InvalidJson},
+            Case{"1.e0", ErrorCode::InvalidJson}, Case{"1e-", ErrorCode::InvalidJson},
+            Case{"1.0", ErrorCode::NumericRange}, Case{"1e0", ErrorCode::NumericRange},
+            Case{"-1", ErrorCode::NumericRange}, Case{"-0", ErrorCode::NumericRange},
+            Case{"1.00000000000000000001", ErrorCode::NumericRange},
+            Case{"0", ErrorCode::UnsupportedVersion}, Case{"2", ErrorCode::UnsupportedVersion},
+            Case{"4294967295", ErrorCode::UnsupportedVersion}, Case{"4294967296", ErrorCode::NumericRange},
+            Case{QByteArray(400, '9'), ErrorCode::NumericRange},
+            Case{"\"1\"", ErrorCode::InvalidType}, Case{"null", ErrorCode::InvalidType},
+            Case{"true", ErrorCode::InvalidType}, Case{"[]", ErrorCode::InvalidType}, Case{"{}", ErrorCode::InvalidType}}) {
+            SCOPED_TRACE(field.toStdString() + ": " + item.token.toStdString());
+            expectRawError(versionTokenManifest(field, item.token), item.code);
+        }
+    }
+}
+
+TEST(ManifestReviewRegression, H2NumericGrammarIsCheckedBeforeFieldTypes)
+{
+    for (const auto &token : {QByteArray("1."), QByteArray("01"), QByteArray("+1"),
+                              QByteArray(".1"), QByteArray("1e+"), QByteArray("1.e0")}) {
+        auto bytes = QJsonDocument(validJson()).toJson(QJsonDocument::Compact);
+        EXPECT_TRUE(bytes.contains(R"("hasNonZeroZ":true)"));
+        bytes.replace(R"("hasNonZeroZ":true)", "\"hasNonZeroZ\":" + token);
+        SCOPED_TRACE(token.toStdString());
+        expectRawError(bytes);
+    }
+    auto bytes = QJsonDocument(validJson()).toJson(QJsonDocument::Compact);
+    bytes.replace(R"("hasNonZeroZ":true)", R"("hasNonZeroZ":1)");
+    expectRawError(bytes, ErrorCode::InvalidType);
+}
 
 TEST(Manifest, FullRoundTripAndExactFields)
 {

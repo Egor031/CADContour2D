@@ -1,5 +1,10 @@
 # 05.1 — Persistence Foundation
 
+Первоначальная реализация — commit `80eff06`. Независимое ревью потребовало
+исправлений H1/H2 (**FIXES REQUIRED**); воспроизведение и результаты исправления
+описаны в [дополнении H1/H2](#h1-h2-review-fixes). Разделы A–I ниже сохраняют
+исторические результаты первоначальной реализации. Окончательная приёмка 05.1 не объявлена.
+
 ## A. Baseline
 
 - Дата: 2026-10-19, Windows x64.
@@ -213,3 +218,127 @@ Branch остаётся `main`. Результат предназначен дл
 commit, содержащий этот отчёт (точный hash приводится в финальном сообщении).
 После commit ожидается чистый index/рабочее дерево; фактический Git status проверяется
 после commit и сообщается отдельно. Push не выполняется.
+
+## H1-H2 review fixes
+
+### A. Baseline
+
+Дата: 2026-10-19. Branch `main`, исходный HEAD
+`80eff061ef56ad783de7ae220819d1f3af4314eb`. Рабочее дерево и index чистые.
+Применены действующие AGENTS.md и Git-политика: адресное исправление, проверки и
+отдельный commit без изменения истории или push. Повторный архитектурный аудит
+и работы 05.2 не выполнялись.
+
+### B. Verification of Findings
+
+**H1 подтверждено.** В preflight backslash без проверки пропускал следующий байт;
+raw control bytes также пропускались. Qt 6.12 parser принимал повреждённые strings:
+`source.path="\q"` превращался в `q`, `units="m\m"` — в `mm`, `cell="\1"` — в `1`.
+Также принят key `"unit\s"` как `units`. Из 32 raw control bytes в тестовом source.path
+U+0001–U+001F принимались; raw NUL уже отклонялся поздней semantic validation как
+InvalidValue, а не как повреждённый JSON. Escaped unpaired surrogates также ранее
+отклонялись поздно как InvalidValue; теперь они выявляются до Qt.
+
+**H2 подтверждено для обоих полей.** Условие
+`decimalSyntax(raw, false) && !decimalSyntax(raw, true)` не отклоняло `1.` и `1.e0`,
+поскольку первая проверка возвращала false. Permissive Qt parser затем превращал
+эти tokens в 1. Та же причина давала неверную диагностику malformed numbers в
+других полях: например, `hasNonZeroZ:1.` доходил до проверки JSON-типа как число.
+
+Сначала изменены **только tests**, production codec оставался исходным. Запущены
+6 новых regression tests и 3 прежних round-trip controls: **4 Passed / 5 Failed /
+0 Skipped**, exit 1. Пять отрицательных групп обнаружили дефекты, positive escapes
+и все три numeric/full round-trip controls прошли. Это ожидаемые failures
+воспроизведения, а не failures итоговой реализации. Локальные доказательства:
+`build/task05-h1h2-before.log` и `.xml`.
+
+### C. Fixes
+
+Изменены только:
+
+- `src/persistence/project_manifest.cpp` — lexical preflight;
+- `tests/persistence_tests.cpp` — raw-input fixtures и regression tests;
+- `docs/project-manifest-format.md` — уточнение фактически обеспечиваемой validation;
+- этот отчёт и README — результаты и текущий статус.
+
+H1: общий string scanner проверяет **все** names/values до любого Qt parsing.
+Разрешён точный набор JSON escapes; проверяются четыре hex digits у `\uXXXX`,
+согласованность UTF-16 surrogate pairs, string/escape termination и запрет raw
+U+0000–U+001F. Значения не исправляются и не нормализуются. Literal UTF-8 и корректные
+escapes остаются допустимыми. Существующая semantic NUL validation сохранена.
+
+H2: malformed JSON number теперь даёт InvalidJson; корректный fraction/exponent
+или signed token в поле unsigned version — NumericRange. Диапазон uint32 проверяется
+по исходной целочисленной строке до Qt conversion, включая очень длинный overflow.
+`1` принимается, корректные integers неподдерживаемой версии дают UnsupportedVersion,
+а неверный JSON-тип по-прежнему даёт InvalidType. Общая проверка raw numeric tokens
+устраняет тот же permissive parsing вне version fields.
+
+Это дополнение существующего ограниченного preflight; Qt по-прежнему разбирает
+структуру JSON и строит DOM. Новый полноценный JSON parser, интерфейсы или зависимости
+не добавлены. Схема не расширялась: ранее запрещённый вход теперь действительно отклоняется.
+
+### D. Regression Tests
+
+Набор `ManifestReviewRegression` (6 tests):
+
+| Test | Проверка |
+|---|---|
+| H1RejectsInvalidStringEscapesInKeysAndValues | Неизвестные escapes в source, units, cell и key |
+| H1RejectsEveryUnescapedControlByte | Все 32 raw U+0000–U+001F |
+| H1RejectsMalformedUnicodeAndTruncatedStrings | Короткие/non-hex Unicode escapes, unpaired/wrong surrogates, усечение strings/escapes |
+| H1AcceptsStandardEscapesAndUnicodeWithoutChangingValues | Все 9 JSON escape forms, literal Unicode, supplementary pair, escaped keys/cell, literal backslash перед q; semantic NUL rejection |
+| H2VersionTokensAndTypesAreStrict | Оба поля: 1/whitespace, 1., 1.0, 1e0, 01, +1, .1, -1, -0, malformed exponent/fraction, rounding, uint32 boundaries/overflow, unsupported versions и неверные types |
+| H2NumericGrammarIsCheckedBeforeFieldTypes | Malformed raw numbers вне versions дают InvalidJson; корректное число неверного типа сохраняет InvalidType |
+
+Raw tokens вставляются в уже сериализованный корректный fixture, чтобы Qt encoder
+не мог исправить повреждение до теста. Positive controls сравнивают фактические
+decoded значения, не только success. В обеих конфигурациях новый набор: **6 Passed /
+0 Failed / 0 Skipped**. Полный persistence-набор: **25 Passed / 0 Failed / 1 Skipped**;
+побитовые binary64/uint64/signed-zero и прежние validation tests прошли.
+
+### E. Debug / Release
+
+Использованы существующие CMake presets и штатный локальный MSVC/Qt environment
+из `build/task02-env.cmd`, без изменения зависимостей/toolchain.
+
+```bat
+build\task02-env.cmd cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+build\task02-env.cmd cmake --build --preset windows-release --target all all_qmllint --parallel 4
+build\task02-env.cmd ctest --preset windows-debug -R ^Persistence --output-on-failure --output-log build/task05-h1h2-debug-persistence.log
+build\task02-env.cmd ctest --preset windows-release -R ^Persistence --output-on-failure --output-log build/task05-h1h2-release-persistence.log
+build\task02-env.cmd ctest --preset windows-debug -L production --output-on-failure --output-log build/task05-h1h2-debug-production.log
+build\task02-env.cmd ctest --preset windows-release -L production --output-on-failure --output-log build/task05-h1h2-release-production.log
+git diff --check
+```
+
+Debug: build и QML lint PASS; production **480 Passed / 0 Failed / 1 Skipped**
+из 481, 91.78 s. Release: build и QML lint PASS; production **480 Passed / 0 Failed /
+1 Skipped** из 481, 50.85 s. Адресный persistence-набор в каждой конфигурации:
+**25 Passed / 0 Failed / 1 Skipped**. Новый code/tests собраны с `/W4` без предупреждений.
+`git diff --check` PASS. Просмотр полного diff подтвердил адресную область изменений.
+
+### F. Scope and Compatibility
+
+Схема `.pc2dproj` v1, Point Cache v1, numeric representation и error enum не менялись.
+Из production изменён только manifest codec. Domain/application, Import,
+OperationRunner, worker lifecycle, storage paths/ownership и GUI/QML не менялись.
+Полные scans/validate/copy cache и другие тяжёлые операции не добавлены.
+Гигабайтные benchmarks, opt-in CacheReaderIntegration и ручной GUI smoke не запускались.
+05.2, Save/Save As и расширение persistence не начинались.
+
+### G. Remaining Risks
+
+FileSymlinkEscape остаётся SKIP с Windows `ERROR_PRIVILEGE_NOT_HELD (1314)`;
+политика теста не менялась. Реальный junction escape проверен. Прежние ограничения
+TOCTOU, conservative retention и metadata admission budgets сохранены. Исправления
+не добавляют гарантий dataset integrity/availability. Новых дефектов вне H1/H2
+в ходе этой целевой проверки не обнаружено.
+
+### H. Final Status
+
+**H1/H2 FIXED — READY FOR VERIFICATION.**
+Branch остаётся `main`; исправления предназначены для нового отдельного commit
+`fix strict JSON string and version token validation` без изменения `80eff06`.
+Точный итоговый HEAD и проверенный Git status сообщаются после commit.
+Окончательная приёмка 05.1 и всей задачи 05 не объявляется; push не выполняется.
