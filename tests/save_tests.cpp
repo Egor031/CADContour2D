@@ -11,6 +11,8 @@
 #include <QTemporaryDir>
 #include <gtest/gtest.h>
 
+#include <vector>
+
 #define NOMINMAX
 #include <Windows.h>
 
@@ -225,6 +227,73 @@ TEST_F(Save, ShutdownDuringCopyCancelsAndJoins)
     EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::Applied); proceed.set();
     ASSERT_TRUE(finish(controller)); EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
     EXPECT_EQ(controller.operation().status, OperationStatus::Cancelled); EXPECT_FALSE(QFileInfo::exists(target)); noStaging();
+}
+
+TEST_F(Save, ShutdownFromPersistedStateNotificationWaitsForTerminalCompletion)
+{
+    auto &runner = OperationTestAccess::runner(controller);
+    int publications = 0, terminals = 0, releases = 0;
+    std::vector<ShutdownState> shutdownStates;
+    auto checkReady = [&] {
+        if (controller.shutdownState() == ShutdownState::Ready) {
+            EXPECT_FALSE(controller.operation().active);
+            EXPECT_FALSE(runner.busy());
+        }
+    };
+    QObject::connect(&controller, &ProjectController::operationChanged, &controller, [&] {
+        checkReady();
+        if (!controller.operation().active) {
+            ++terminals;
+            EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+            EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
+        }
+    });
+    QObject::connect(&controller, &ProjectController::shutdownChanged, &controller, [&] {
+        checkReady();
+        shutdownStates.push_back(controller.shutdownState());
+        EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::NoChange);
+    });
+    QObject::connect(&runner, &OperationRunner::released, &controller, [&](OperationId, WorkerStatus status,
+        OperationFailure, bool) {
+        ++releases;
+        EXPECT_EQ(status, WorkerStatus::Succeeded);
+        EXPECT_FALSE(controller.operation().active);
+        checkReady();
+    });
+    ASSERT_EQ(controller.saveProject({target}).outcome, CommandOutcome::Applied);
+    const auto id = controller.operation().id;
+    const auto context = OperationRunnerTestAccess::context(runner);
+    ASSERT_TRUE(context);
+    QObject::connect(&controller, &ProjectController::stateChanged, &controller, [&] {
+        ++publications;
+        EXPECT_TRUE(context->nativeCompletion.finished());
+        EXPECT_FALSE(runner.busy());
+        EXPECT_TRUE(controller.operation().active);
+        EXPECT_EQ(controller.operation().decision, PublicationDecision::Accept);
+        EXPECT_EQ(controller.operation().status, OperationStatus::Finishing);
+        EXPECT_NE(controller.savedProject(), nullptr);
+        EXPECT_FALSE(controller.isDirty());
+        EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::Applied);
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
+        OperationTestAccess::poll(controller); // Reentry must leave terminal completion to released().
+        EXPECT_TRUE(controller.operation().active);
+        checkReady();
+    });
+    ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(shutdownStates, (std::vector<ShutdownState>{ShutdownState::Closing, ShutdownState::Ready}));
+    EXPECT_EQ(controller.operation().workerStatus, WorkerStatus::Succeeded);
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Ready);
+    ASSERT_NE(controller.savedProject(), nullptr);
+    EXPECT_EQ(manifest(target).snapshotId, controller.savedProject()->snapshot.snapshotId);
+    EXPECT_EQ(QFileInfo(cachePath()).canonicalFilePath(),
+              QFileInfo(datasetPath(manifest(target), target)).canonicalFilePath());
+    EXPECT_FALSE(controller.isDirty());
+    emit runner.saveFinished(id, {}, {}); // A delayed receipt cannot publish or terminate again.
+    for (int i = 0; i < 20; ++i) OperationTestAccess::poll(controller);
+    EXPECT_EQ(publications, 1); EXPECT_EQ(terminals, 1); EXPECT_EQ(releases, 1);
+    EXPECT_EQ(shutdownStates.size(), 2);
+    EXPECT_EQ(controller.requestShutdown().outcome, CommandOutcome::NoChange);
+    noStaging();
 }
 
 TEST_F(Save, ReentrantAndDelayedNotificationsCannotStartOrApplyAnotherSave)

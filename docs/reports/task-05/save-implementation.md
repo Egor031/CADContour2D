@@ -290,3 +290,68 @@ Open/partial availability (05.3), Autosave/Recovery (05.4) и GUI (05.5) не р
 Известные границы: cooperative locking, conservative orphan retention, metadata-only
 integrity checks, отказ от автоматического retry при Uncertain, отсутствие абсолютной
 power-loss durability. Дальнейшая отдельная стадия — независимое ревью 05.2.
+
+## J. Review fixes R1/R2
+
+Дата: 2026-10-19. Исходный HEAD `4187e24`, рабочее дерево и index чистые.
+По предоставленному результату независимого ревью: **REVIEW PASSED — READY FOR ACCEPTANCE**,
+замечания R1 (MINOR) и R2 (OPTIONAL). Оба замечания проверены и подтверждены.
+
+**R1:** `OperationRunner::poll()` подтверждает native completion и Qt join,
+освобождает runner, затем посылает `saveFinished()` и `released()` именно в этом
+порядке. Receipt обновляет binding/baseline и синхронно вызывает `stateChanged()`.
+До `released()` операция controller ещё active. Прежняя проверка только
+`!runner_.busy()` в `requestShutdown()` позволяла observer увидеть Ready при active.
+Первопричина — смешение физического освобождения worker и terminal completion controller.
+
+Добавлен `Save.ShutdownFromPersistedStateNotificationWaitsForTerminalCompletion`.
+На исходном production-коде он дал **0 passed / 1 failed / 0 skipped**, CTest exit 1:
+Ready наблюдался при active, последовательность shutdown notifications была `[Ready]`
+вместо `[Closing, Ready]`. Лог: `build/r052-before-debug.log`.
+После исправления отдельный Debug-прогон дал **1/1 PASS**
+(`build/r052-after-debug.log`); тест также прошёл в связанных и полных наборах обеих конфигураций.
+
+Исправление ограничено условием `!operation_.active && !runner_.busy()` перед Ready
+в `requestShutdown()`. В receipt notification shutdown остаётся Closing; существующий
+`finishOperation()` завершает операцию и устанавливает Ready до terminal notification.
+Runner, native completion, Save permission/receipt, Import и command guard не менялись.
+Тест проверяет native completion до receipt, сохранённые manifest/binding/baseline,
+Closing → Ready, reentrant poll и повторный shutdown, по одному publication/release/
+terminal transition, а также игнорирование позднего receipt.
+
+**R2:** architecture §45 сохранял устаревший перечень следующей работы вопреки §28.1.
+Указатель теперь отмечает реализованные в 05.2 Save/Save As и atomic publication;
+Open/partial availability и Autosave/Recovery остаются следующими этапами.
+Архитектурные контракты и форматы manifest/Point Cache v1 не менялись.
+
+Использованы существующие build directories и штатная CMD-среда vcvars64/Qt 6.12.0,
+без восстановления старых сборок или установки инструментов.
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Сборка `all` и `all_qmllint` (`--parallel 4`) | PASS | PASS |
+| Связанные Save/Operations/Import, passed / failed / skipped | 252 / 0 / 1 из 253 | 252 / 0 / 1 из 253 |
+| Полный production CTest, passed / failed / skipped | 524 / 0 / 2 из 526 | 524 / 0 / 2 из 526 |
+| Отдельный cross-volume Save As с TEMP/TMP на F:, target на C: | 1 / 0 / 0 | 1 / 0 / 0 |
+
+Связанный набор запущен через `-R "SaveApplication|Operations|StaleInputs|WorkerFailures|PublicationFailures|TerminalReentry|ShutdownCheckpoints|Asc"`.
+Он включает все 45 Save, 51 Operations, ASC/XYZ, application Import, Z-confirmation
+и GUI Import tests. Полный production дополнительно проверяет persistence,
+cache, project, view model и production QML, включая native TLS/shutdown/reentrant cases.
+Логи: `build/r052-{debug,release}-{build,focused-console,production,cross-volume}.log`.
+
+Два production SKIP подтверждены по output: `SaveAsAcrossAvailableWindowsVolumes`
+при стандартных TEMP/build на одном томе (отдельно проверен с TEMP/TMP
+`F:\CADContour2D-benchmark`), `Persistence.StoragePath.FileSymlinkEscape` —
+Windows privilege 1314. Реальный junction escape прошёл в обеих конфигурациях.
+File-symlink при доступной privilege не проверен. Большие нагрузочные измерения,
+ручной native GUI smoke и power-loss tests не повторялись; эти исправления
+не меняют copy/readback, UI или файловый протокол.
+
+Просмотрен итоговый diff; `git diff --check` и `git diff --cached --check` — PASS.
+Изменены controller, Save regression test, architecture §45, README, статус в плане
+и этот отчёт. Логи остаются в игнорируемом build, в commit не входят. Локальный commit
+и status после него сообщаются отдельно; push не выполняется.
+
+**READY FOR FINAL VERIFICATION.** R1/R2 исправлены, доступные проверки успешны.
+05.2 и задача 05 целиком не объявляются принятыми; 05.3–05.5 не реализовывались.

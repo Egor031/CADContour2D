@@ -1549,7 +1549,7 @@ Compression не требуется для v1; возможное дальней
 
 - **Density Map Versions:** политика повторного построения с теми же параметрами, представление идентичности/provenance и связей datasets, persistence layout и UI переключения; обязательные контракты — §§9, 15, 23, 27–28. Автоматическое восстановление Precise Stage не утверждено (§6.2).
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
-- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As, atomic publication, Open и partial availability остаются последующим частям задачи 05.
+- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication реализованы в 05.2 (§28.1). Open и partial availability остаются последующим частям задачи 05; Autosave/Recovery — отдельный следующий этап (§31).
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.
 - **Autosave/Recovery:** период, триггеры, протокол записи и lifecycle (§31).
 - **Worker applicability:** механизм обеспечения инварианта §25.

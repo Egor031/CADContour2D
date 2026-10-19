@@ -466,7 +466,7 @@ build\windows-release\operation_probe.exe
 существенных неподтверждённых рисков — 0; обязательных исправлений нет.
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
 В задаче 05 принят этап 05.1 — Persistence Foundation; задача 05 целиком не завершена.
-05.2 — **READY FOR INDEPENDENT REVIEW**; Open/Recovery и GUI Save/Open (05.3–05.5)
+05.2 — **READY FOR FINAL VERIFICATION** после исправления R1/R2; Open/Recovery и GUI Save/Open (05.3–05.5)
 не начаты. [Отчёт Save / Save As](docs/reports/task-05/save-implementation.md).
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
@@ -663,11 +663,17 @@ Open, Autosave/Recovery не входят в 05.2. Архитектура и г�
 Проверенные targets включают `save_tests` и дочерний `save_crash_probe`.
 Отдельный набор: `ctest --preset windows-debug -R ^SaveApplication --output-on-failure`
 или `windows-release`. Он также входит в полный `-L production`.
-Финальные Debug/Release build и `all_qmllint` — PASS; полный production в каждой
-конфигурации — **524 passed / 0 failed / 1 skipped** из 525, включая **44 Save tests**.
-Единственный SKIP — прежний file-symlink test без Windows privilege (1314), junction
-и C:↔D: Save As проверены. Известная гонка setup TLS-теста исправлена барьером
-фактического входа helper; ограниченные серии по 12 Debug/Release повторов прошли.
+После исправления R1/R2 Debug/Release build и `all_qmllint` — PASS; полный production
+в каждой конфигурации — **524 passed / 0 failed / 2 skipped** из 526, включая
+**45 Save tests**. SKIP: file-symlink без Windows privilege (1314) и cross-volume Save As
+при TEMP/build на одном томе. Cross-volume отдельно прошёл с TEMP на F: и target на C:
+в обеих конфигурациях; junction проверен в production. Связанный набор Save/Operations/Import —
+**252 passed / 0 failed / 1 skipped** из 253 в каждой конфигурации.
+Новый regression test воспроизвёл преждевременный shutdown Ready на исходном коде
+(1 FAIL), после исправления проходит; сохранены Closing → Ready, receipt и однократный
+terminal transition. [Причины, проверки и ограничения R1/R2](docs/reports/task-05/save-implementation.md#j-review-fixes-r1r2).
+Известная гонка setup TLS-теста ранее исправлена барьером фактического входа helper;
+тогда ограниченные серии по 12 Debug/Release повторов прошли.
 Финальные команды после штатной инициализации среды остаются:
 
 ```bat

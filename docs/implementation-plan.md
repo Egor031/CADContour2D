@@ -256,7 +256,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
-| 05.2 | Save / Save As | READY FOR INDEPENDENT REVIEW |
+| 05.2 | Save / Save As | READY FOR FINAL VERIFICATION |
 | 05.3 | Open и частичная доступность | NOT STARTED |
 | 05.4 | Autosave / Recovery | NOT STARTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
@@ -274,6 +274,7 @@ project-owned paths и shared immutable physical binding без автомати
 проверки и ограничения — [отчёт 05.1](reports/task-05/persistence-foundation.md).
 В 05.2 реализованы C++ Save/Save As, copy/atomic publication, saved baseline и dirty
 tracking; текущие проверки и ограничения — [отчёт 05.2](reports/task-05/save-implementation.md).
+Замечания ревью R1/R2 исправлены и проверены; окончательное принятие 05.2 выполняется отдельно.
 Open, recovery и GUI-интеграция Save остаются задачами 05.3–05.5.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.

@@ -662,7 +662,8 @@ CommandResult ProjectController::requestShutdown()
     }
     runner_.shutdown(); // cancellation, Discard under mutex, unlock, notify before any wait
     operationDiagnostic("shutdown", operation_, operationClock_.isValid() ? operationClock_.elapsed() : 0);
-    if (!runner_.busy())
+    // Save receipts arrive after join but before the operation's terminal transition.
+    if (!operation_.active && !runner_.busy())
         shutdown_ = ShutdownState::Ready;
     emit operationChanged();
     emit shutdownChanged();
