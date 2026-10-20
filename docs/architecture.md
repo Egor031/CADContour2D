@@ -1106,7 +1106,8 @@ directory и относительным dataset path; ProjectSession больш�
 последней ссылки не удаляет принятые файлы: Close, замена и очистка history безопасны,
 допускается накопление caches. До Accept cleanup по-прежнему принадлежит worker
 PendingCache/QTemporaryDir; irreversible gate и worker finalization не изменены.
-Save/Save As реализованы в 05.2 (§28.1); Open/Recovery и автоматическая GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
+Save/Save As реализованы в 05.2 (§28.1), Open — в 05.3 (§28.2);
+Recovery и автоматическая GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
 files; автоматического scavenger нет.
 
 `ProjectState` остаётся Qt-независимой domain model без I/O. Его постоянный `ProjectId`
@@ -1212,6 +1213,80 @@ post-commit receipt/cleanup hooks оставляет Persisted и отдельн
 Crash может оставить staging/orphan files; абсолютная power-loss durability не обещается.
 
 Реализация, проверки и ограничения — [отчёт 05.2](reports/task-05/save-implementation.md).
+
+---
+
+### 28.2. Open и частичная доступность (05.3)
+
+`ProjectController::openProject(OpenRequest)` принимает абсолютный `.pc2dproj` path,
+ManifestLimits и бюджет Reader (по умолчанию 4 MiB / 4096 tokens / depth 32 для
+manifest, 1 MiB / два handles для cache). Это overridable admission profiles,
+не ограничения размера облака или RAM приложения. `replacementConfirmed` обязателен
+при любом текущем проекте; optional `expectedContext` использует существующий
+ImportContext, захваченный через `importContext()`, и защищает от устаревшего выбора.
+Без него headless caller подтверждает именно контекст вызова. GUI относится к 05.5.
+
+Worker читает manifest существующим bounded `readManifest`, получает digest ровно
+декодированных bytes без повторного чтения, разрешает пути от фактического canonical
+каталога выбранного документа. Неверный manifest даёт structured `openError` и не
+заменяет сеанс; source ASC/XYZ не открывается. Dataset path/reparse failure сохраняет
+metadata проекта, но не предоставляет cache операциям.
+
+Ограниченная проверка использует `CacheReader::open`: физический размер,
+header/footer/version/checksums, packed hierarchy shape и одну корневую index page,
+точное совпадение CacheId/count/bounds/Z с descriptor. Read-only lease запрещает
+обычные write/delete во время проверки; identity наблюдается по retained handle.
+Manifest закрывается до dataset probe; lease + Reader укладываются в два handles.
+Для v1 непустого cache читается 73 728 bytes, ноль point pages; нет копирования,
+scratch, scanAll, validate, сортировки, PNG или reduced cloud.
+
+`CacheAvailability` принадлежит application session отдельно от domain content и
+saved baseline. Различаются AvailableLimited, Missing, Corrupt, Unsupported, FileIO,
+UnsafePath; диагностические cache/path errors сохраняются. AvailableLimited означает
+только доступность после ограниченной проверки, без полной проверки страниц/RecordId.
+Принятый импорт тоже не объявляется полностью проверенным Reader validation.
+Resource admission failure не подменяется частичным success: прежний сеанс сохраняется.
+
+Ready переносит только immutable LoadedProject metadata, без файловых guards.
+Owner готовит ProjectState с точным saved cell через constructor (revision = 0),
+новой runtime identity, прежним ProjectId и новым пустым QUndoStack. Все allocations
+выполняются до final applicability check; noexcept gate обменивает единственного
+владельца ProjectSession и фиксирует Accept. Context epoch растёт, verification
+products инвалидируются; notification видит согласованные state/history/baseline.
+Cancel, изменение текущих входов, Close, shutdown или stale callback отзывают
+публикацию. Старый проект и история сохраняются при failure/discard. Один worker
+остаётся Busy до native completion/join. Save permission/receipt не меняются.
+
+SavedProject восстанавливает published snapshot/path/digest, content и physical
+binding. Наблюдаемая DatasetFileIdentity optional: у недоступного/непроверенного
+файла нет фиктивной identity. Dirty по-прежнему сравнивает persistent content;
+обычный Open clean, cell → dirty, Undo к baseline → clean. Open снимает прежний
+Uncertain только восстановлением фактически прочитанного manifest, независимо от
+того, состоялся ли тот Save. После доступного Open обычный Save переиспользует cache.
+
+`recheckPointCache(ResourceLimits)` явно запускает тот же ограниченный probe в worker
+по ожидаемому пути и descriptor. Успех атомарно обновляет availability и наблюдаемую
+file identity внутри нового immutable SavedProject, сохраняя published content,
+snapshotId/digest, runtime session, revision, параметры, history и dirty. Неверный
+CacheId не принимается. Recheck failure/cancel оставляет прежние наблюдения; обнаруженные
+missing/corrupt/access failures публикуют соответствующую availability без потери metadata.
+Для импортированного ещё не сохранённого проекта recheck возвращает UnsafeState;
+для Uncertain требуется Open, а не переинтерпретация prepared snapshot.
+
+У недоступного cache C++ запрещает cell/Undo/Redo, Save/Save As и текущую verification
+операцию. Close, подтверждённые Import/Open и recheck остаются доступны. Это guards
+конкретных нынешних операций, не глобальный запрет будущего редактирования независимых
+PNG/Rough datasets. Availability — наблюдение, а не вечная гарантия filesystem:
+после удаления файла прежний флаг остаётся до recheck; Save повторяет path/identity/
+envelope checks в worker и отказывает, сохраняя manifest. Изменение cell не делает I/O.
+Будущие потребители обязаны повторять собственные проверки непосредственно перед I/O.
+
+Полная integrity validation — отдельный явный C++ контракт `CacheReader::open` →
+`validate(limits, temporaryParent, cancel, context)` вне GUI thread. Она требует
+собственного resource budget, cancellation и applicability; controller-команда и
+GUI полной validation в 05.3 не добавлены, никаких неявных вызовов нет.
+Границы resolver/TOCTOU, cooperative access и conservative retention сохраняются.
+Проверки и ограничения — [отчёт 05.3](reports/task-05/open-implementation.md).
 
 ---
 
@@ -1549,7 +1624,7 @@ Compression не требуется для v1; возможное дальней
 
 - **Density Map Versions:** политика повторного построения с теми же параметрами, представление идентичности/provenance и связей datasets, persistence layout и UI переключения; обязательные контракты — §§9, 15, 23, 27–28. Автоматическое восстановление Precise Stage не утверждено (§6.2).
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
-- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication реализованы в 05.2 (§28.1). Open и partial availability остаются последующим частям задачи 05; Autosave/Recovery — отдельный следующий этап (§31).
+- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2). Autosave/Recovery — отдельный следующий этап (§31), GUI Save/Open — 05.5.
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.
 - **Autosave/Recovery:** период, триггеры, протокол записи и lifecycle (§31).
 - **Worker applicability:** механизм обеспечения инварианта §25.

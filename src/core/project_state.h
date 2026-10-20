@@ -28,6 +28,7 @@ class ProjectState {
 public:
     explicit ProjectState(std::uint64_t runtimeIdentity);
     ProjectState(std::uint64_t runtimeIdentity, ProjectId projectId, ImportedDataset dataset);
+    ProjectState(std::uint64_t runtimeIdentity, ProjectId projectId, ImportedDataset dataset, double savedCell);
     const ImportedDataset *dataset() const noexcept { return dataset_ ? &*dataset_ : nullptr; }
     ProjectId projectId() const noexcept { return projectId_; }
 

@@ -67,5 +67,7 @@ Result<QByteArray> encodeManifest(const ProjectSnapshot &snapshot, ManifestLimit
 Result<ProjectSnapshot> decodeManifest(const QByteArray &utf8, ManifestLimits limits);
 // Bounded read from an already opened metadata device; no dataset I/O.
 Result<ProjectSnapshot> readManifest(QIODevice &device, ManifestLimits limits);
+// Digest of the exact bytes decoded, assigned only on success (no second file read).
+Result<ProjectSnapshot> readManifest(QIODevice &device, ManifestLimits limits, QByteArray *digest);
 
 } // namespace cadcontour::persistence

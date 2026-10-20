@@ -118,6 +118,78 @@ const persistence::SavedProject *ProjectController::unconfirmedSave() const noex
     return session_ ? session_->unconfirmed.get() : nullptr;
 }
 
+const persistence::CacheAvailability *ProjectController::pointCacheAvailability() const noexcept
+{
+    return session_ ? session_->availability.get() : nullptr;
+}
+
+bool ProjectController::cacheAvailable() const noexcept
+{
+    return session_ && session_->availability->access == persistence::CacheAccess::AvailableLimited;
+}
+
+namespace {
+OperationWork openWork(OpenRequest request, std::shared_ptr<const persistence::SavedProject> previous = {})
+{
+    return [request = std::move(request), previous = std::move(previous)]
+        (const OperationSnapshot &, const WorkerControl &control) -> WorkerOutcome {
+        control.report({OperationPhase::Preparing, 0, std::nullopt});
+        auto cancel = [](void *context) noexcept { return static_cast<const WorkerControl *>(context)->cancelled(); };
+        auto result = previous ? persistence::recheckPointCache(*previous, request.readerLimits, cancel,
+                                      const_cast<WorkerControl *>(&control))
+            : persistence::loadProject(request.manifestPath, request.limits, request.readerLimits, cancel,
+                                      const_cast<WorkerControl *>(&control));
+        if (control.cancelled()) return WorkerOutcome::cancelled();
+        if (!result) {
+            auto failure = OperationFailure::make(FailureReason::OpenFailed, OperationPhase::Preparing);
+            failure.openError = result.error();
+            failure.category = result.error().code == persistence::ErrorCode::ResourceExhausted
+                ? FailureCategory::ResourceUnavailable
+                : result.error().code == persistence::ErrorCode::FileIO ? FailureCategory::ExecutionFailure
+                                                                       : FailureCategory::InvalidInput;
+            return WorkerOutcome::failed(std::move(failure));
+        }
+        control.report({OperationPhase::Finalizing, 0, std::nullopt});
+        return WorkerOutcome::success(std::make_shared<const persistence::LoadedProject>(std::move(result.value())));
+    };
+}
+} // namespace
+
+CommandResult ProjectController::openProject(OpenRequest request)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (runner_.busy()) return CommandResult::rejected(CommandError::Busy);
+    if ((request.expectedContext && request.expectedContext != importContext())
+        || (session_ && !request.replacementConfirmed))
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::ReplacementNotConfirmed);
+    if (!QFileInfo(request.manifestPath).isAbsolute() || request.manifestPath.isEmpty()
+        || !request.readerLimits.memoryBytes || !request.readerLimits.maxOpenFiles)
+        return CommandResult::rejected(CommandError::InvalidValue);
+    const auto confirmed = request.replacementConfirmed;
+    try { return startWork(openWork(std::move(request)), OperationKind::Open, confirmed); }
+    catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
+}
+
+CommandResult ProjectController::recheckPointCache(cache::ResourceLimits limits)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (runner_.busy()) return CommandResult::rejected(CommandError::Busy);
+    if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (!session_->saved || session_->unconfirmed) return CommandResult::rejected(CommandError::UnsafeState);
+    if (!limits.memoryBytes || !limits.maxOpenFiles) return CommandResult::rejected(CommandError::InvalidValue);
+    try {
+        OpenRequest request;
+        request.readerLimits = limits;
+        return startWork(openWork(std::move(request), session_->saved), OperationKind::RecheckCache);
+    } catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
+}
+
 CommandResult ProjectController::saveProject(SaveRequest request) { return startSave(std::move(request), false); }
 CommandResult ProjectController::saveProjectAs(SaveRequest request) { return startSave(std::move(request), true); }
 
@@ -127,6 +199,7 @@ CommandResult ProjectController::startSave(SaveRequest request, bool saveAs)
     if (entry.outcome == CommandOutcome::Rejected) return entry;
     if (!session_) return CommandResult::rejected(CommandError::NoProject);
     if (runner_.busy()) return CommandResult::rejected(CommandError::Busy);
+    if (!cacheAvailable()) return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
     if (session_->unconfirmed) return CommandResult::rejected(CommandError::UnsafeState);
     if (!session_->state.dataset()) return CommandResult::rejected(CommandError::InvalidValue);
     if (request.manifestPath.isEmpty()) {
@@ -229,6 +302,8 @@ CommandResult ProjectController::setCell(double value)
         return entry;
     if (!session_)
         return CommandResult::rejected(CommandError::NoProject);
+    if (!cacheAvailable())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
     const auto result = session_->state.checkCellChange(value);
     if (result.outcome != CommandOutcome::Applied)
         return result;
@@ -252,6 +327,8 @@ CommandResult ProjectController::moveHistory(bool undo)
         return entry;
     if (!session_)
         return CommandResult::rejected(CommandError::NoProject);
+    if (!cacheAvailable())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
     if (!(undo ? session_->history.canUndo() : session_->history.canRedo()))
         return CommandResult::noChange();
     if (session_->state.inputRevision() == std::numeric_limits<std::uint64_t>::max())
@@ -388,6 +465,8 @@ CommandResult ProjectController::startWork(OperationWork work, OperationKind kin
         return CommandResult::rejected(CommandError::Busy);
     if (kind == OperationKind::Verification && !session_)
         return CommandResult::rejected(CommandError::NoProject);
+    if (kind == OperationKind::Verification && !cacheAvailable())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
     if (lastOperationId_ == std::numeric_limits<OperationId>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::OperationIdExhausted);
     if (!work)
@@ -442,7 +521,7 @@ bool ProjectController::applicable(OperationId id) const noexcept
         && id == operation_.id && operation_.decision == PublicationDecision::Pending
         && !operation_.publicationRevoked && !operation_.cancellationRequested
         && snapshot_.contextEpoch == contextEpoch_ && sameContext
-        && (snapshot_.kind != OperationKind::Import || !snapshot_.projectContext
+        && ((snapshot_.kind != OperationKind::Import && snapshot_.kind != OperationKind::Open) || !snapshot_.projectContext
             || snapshot_.replacementConfirmed);
 }
 
@@ -519,6 +598,45 @@ void ProjectController::processReady(OperationId id)
                 committed = lease.accept(&operation_, [](void *data) noexcept {
                     static_cast<OperationState *>(data)->decision = PublicationDecision::Accept;
                 }); // permission only; baseline and binding await the persisted receipt
+            } else if (operation_.kind == OperationKind::Open || operation_.kind == OperationKind::RecheckCache) {
+                if (!outcome.loaded || !outcome.loaded->saved || !outcome.loaded->availability
+                    || outcome.product || outcome.imported || outcome.save)
+                    throw std::invalid_argument("expected loaded project metadata");
+                const auto &loaded = *outcome.loaded;
+                std::unique_ptr<ProjectSession> candidate;
+                if (operation_.kind == OperationKind::Open) {
+                    if (lastIdentity_ == std::numeric_limits<std::uint64_t>::max()
+                        || contextEpoch_ == std::numeric_limits<std::uint64_t>::max())
+                        throw std::overflow_error("project identity/context exhausted");
+                    candidate = std::make_unique<ProjectSession>(ProjectState(lastIdentity_ + 1,
+                        loaded.saved->snapshot.projectId, loaded.saved->content, loaded.saved->snapshot.cell));
+                    candidate->saved = loaded.saved;
+                    candidate->availability = loaded.availability;
+                }
+                if (prepareOpenHook_) prepareOpenHook_();
+                if (applicable(id)) {
+                    struct Commit {
+                        ProjectController &controller;
+                        std::unique_ptr<ProjectSession> &candidate;
+                        const persistence::LoadedProject &loaded;
+                    } commit{*this, candidate, loaded};
+                    committed = lease.accept(&commit, [](void *data) noexcept {
+                        auto &c = *static_cast<Commit *>(data);
+                        if (c.candidate) {
+                            c.controller.session_.swap(c.candidate);
+                            ++c.controller.lastIdentity_;
+                            ++c.controller.contextEpoch_;
+                        } else {
+                            c.controller.session_->saved = c.loaded.saved;
+                            c.controller.session_->availability = c.loaded.availability;
+                        }
+                        c.controller.operation_.decision = PublicationDecision::Accept;
+                    });
+                    if (committed && operation_.kind == OperationKind::Open) {
+                        verification_.reset();
+                        previousVerification_.reset();
+                    }
+                }
             } else if (operation_.kind == OperationKind::Import) {
                 if (!outcome.imported || outcome.product)
                     throw std::invalid_argument("expected import product");

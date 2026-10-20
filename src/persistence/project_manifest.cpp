@@ -1,6 +1,7 @@
 #include "project_manifest.h"
 #include "project_storage.h"
 
+#include <QCryptographicHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -392,6 +393,11 @@ Result<ProjectSnapshot> decodeManifest(const QByteArray &utf8, ManifestLimits li
 
 Result<ProjectSnapshot> readManifest(QIODevice &device, ManifestLimits limits)
 {
+    return readManifest(device, limits, nullptr);
+}
+
+Result<ProjectSnapshot> readManifest(QIODevice &device, ManifestLimits limits, QByteArray *digest)
+{
     try {
         if (!limits.maxBytes || !limits.maxTokens || !limits.maxDepth) return resource();
         if (!device.isReadable() || device.isSequential() || device.pos() != 0 || device.isTextModeEnabled())
@@ -414,7 +420,9 @@ Result<ProjectSnapshot> readManifest(QIODevice &device, ManifestLimits limits)
         }
         if (bytes.size() != size || device.size() != size)
             return Error{ErrorCode::FileIO, {}, QStringLiteral("Manifest changed while reading")};
-        return decodeManifest(bytes, limits);
+        auto result = decodeManifest(bytes, limits);
+        if (result && digest) *digest = QCryptographicHash::hash(bytes, QCryptographicHash::Sha256);
+        return result;
     } catch (const std::bad_alloc &) { return resource(); }
 }
 

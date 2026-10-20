@@ -43,7 +43,7 @@ struct SavedProject {
     ImportedDataset content; // prepared new binding; location excluded from dirty comparison
     QString manifestPath;
     QByteArray manifestDigest;
-    DatasetFileIdentity datasetIdentity;
+    std::optional<DatasetFileIdentity> datasetIdentity; // absent when Open cannot observe a usable dataset
 };
 bool matchesSavedContent(const ProjectState &state, const SavedProject &saved) noexcept;
 

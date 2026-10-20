@@ -189,9 +189,11 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         } else {
             outcome = control.cancelled() ? WorkerOutcome::cancelled() : work(snapshot, control);
         }
-        const auto products = int(bool(outcome.product)) + int(bool(outcome.imported)) + int(bool(outcome.save));
+        const auto products = int(bool(outcome.product)) + int(bool(outcome.imported)) + int(bool(outcome.save))
+            + int(bool(outcome.loaded));
         if (outcome.status == WorkerStatus::Succeeded && (products != 1
-            || (snapshot.kind == OperationKind::Save) != bool(outcome.save)))
+            || (snapshot.kind == OperationKind::Save) != bool(outcome.save)
+            || (snapshot.kind == OperationKind::Open || snapshot.kind == OperationKind::RecheckCache) != bool(outcome.loaded)))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
         if (outcome.status == WorkerStatus::Succeeded && outcome.imported && !validImportTransport(*outcome.imported))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
@@ -211,6 +213,7 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
             context->outcome.imported = outcome.imported->ready;
         if (outcome.save)
             context->outcome.save = outcome.save->prepared();
+        context->outcome.loaded = std::move(outcome.loaded);
         context->ready = true;
         if (context->zRequest) { // also clear a request if a test hook/worker threw
             context->zRequest.reset();

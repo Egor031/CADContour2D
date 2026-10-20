@@ -257,7 +257,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
 | 05.2 | Save / Save As | ACCEPTED |
-| 05.3 | Open и частичная доступность | NOT STARTED |
+| 05.3 | Open и частичная доступность | READY FOR INDEPENDENT REVIEW |
 | 05.4 | Autosave / Recovery | NOT STARTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
 
@@ -277,7 +277,15 @@ tracking; текущие проверки и ограничения — [отч�
 05.2 принята 2026-10-20 после финальной независимой проверки исправлений R1/R2
 на commit `cedf844d9ff85f389b68287caa763e143983f894`; замечания закрыты,
 существенных новых проблем нет. [Заключение и проверки](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
-Open, recovery и GUI-интеграция Save остаются задачами 05.3–05.5.
+В 05.3 реализованы C++ Open и явная повторная ограниченная проверка cache:
+восстановление ProjectId/metadata/cell, нового runtime session с пустой history,
+saved baseline/dirty и физического binding. Missing/corrupt/unsupported/inaccessible
+cache оставляет доступными metadata; C++ guards запрещают зависимые операции.
+Open/recheck не запускают полную validation, scan, копирование или вычисления.
+Протокол — [architecture §28.2](architecture.md#282-open-и-частичная-доступность-053),
+проверки и ограничения — [отчёт 05.3](reports/task-05/open-implementation.md).
+05.3 готова к независимому ревью, но не принята. Recovery и GUI-интеграция Save/Open
+остаются задачами 05.4–05.5; вся задача 05 не завершена.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.
@@ -286,7 +294,7 @@ Open, recovery и GUI-интеграция Save остаются задачам�
 - **Результат:** импортированный проект открывается без исходного ASC/XYZ.
 - **Проверка:** round-trip с восстановлением сохранённого выбранного `cell`, перенос project directory, недоступный source, неизвестная версия, отсутствующий/повреждённый cache и частично доступный проект, прерывание записи по фазам; сохранность последнего explicit save и предыдущего recovery.
 - **Критерий завершения:** опубликованное состояние не ссылается на частичные datasets; отказ сохранения не уничтожает последнее корректное сохранение.
-- **Открытые решения:** Open/partial availability, recovery triggers и lifecycle. Протокол Save/Save As определён в [architecture.md, §28.1](architecture.md#281-явные-save--save-as-052). Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
+- **Открытые решения:** recovery triggers и lifecycle, GUI Save/Discard/Cancel. Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.2](architecture.md#281-явные-save--save-as-052). Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
 
 Далее каждая задача расширяет сериализацию **своих** данных. В 06–10 Save/Open и recovery охватывают все версии с независимыми правками; очистка истории и runtime-буферов не удаляет сохранённые версии, автоматического ограничения их количества нет. Persistence не откладывается отдельным большим этапом до конца.
 

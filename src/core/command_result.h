@@ -9,7 +9,8 @@ enum class CommandError { InvalidValue, NoProject, UnsafeState, Busy, ResourceUn
 enum class ErrorDetail { CellMustBeFiniteAndPositive, RevisionExhausted,
                          IdentityExhausted, HistoryExhausted, ReentrantCommand,
                          WrongThread, ShuttingDown, OperationIdExhausted,
-                         ImportRequired, ReplacementNotConfirmed, ContextEpochExhausted, OutOfMemory };
+                         ImportRequired, ReplacementNotConfirmed, ContextEpochExhausted, OutOfMemory,
+                         DatasetUnavailable };
 
 struct CommandFailure {
     CommandError category;

@@ -61,9 +61,10 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 В новом проекте выбранный `cell` начинается с 1 мм без наследования прежнего значения. Это изменяемый пользователем параметр последующего явного построения Density Map; импорт не требует `cell` и карту не строит. Изменение выбранного `cell` не меняет существующие карты; каждая версия хранит собственные параметры построения. Автоматическая рекомендация `cell` — потенциальная тема исследования без выбранного алгоритма и утверждённой необходимости, не зависимость задач 04 или 06.
 
 GUI выбора ASC/XYZ, подтверждения замены/Z и карточка dataset реализованы в 04.4A.
-В 05.2 реализованы C++ Save/Save As `.pc2dproj`; GUI сохранения, Open, восстановление
-параметров и частично доступного состояния — оставшиеся части задачи 05; обычная
-работа после импорта не требует исходного ASC/XYZ. Ниже описан целевой поток
+В 05.2–05.3 реализованы C++ Save/Save As/Open `.pc2dproj`, восстановление параметров
+и частично доступного состояния; GUI сохранения/открытия и Autosave/Recovery
+остаются следующими частями задачи 05. Обычная работа после импорта не требует
+исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
 
 Основной поток данных:
@@ -193,6 +194,17 @@ cmake --preset windows-debug -DCADCONTOUR2D_BUILD_TOOLS=ON
 cmake --build --preset windows-debug --target CADContour2D import_application_tests asc_xyz_tests cache_tests operation_tests project_tests view_model_tests qml_integration_tests dependency_smoke operation_probe all_qmllint --parallel 4
 ctest --preset windows-debug -L production --output-on-failure
 ```
+
+Актуальная проверка после 05.3: в той же CMD-среде выполнены `cmake --build --preset
+windows-debug --target all all_qmllint --parallel 4` и соответствующая команда
+`windows-release`, затем полный `ctest --preset <preset> -L production --output-on-failure`.
+В каждой конфигурации **583 passed / 0 failed / 1 skipped из 584**. Новый `open_tests`
+включается при BUILD_TESTING и входит в production; отдельно проверены
+`ctest --preset windows-debug -R ^OpenApplication --output-on-failure` и вариант
+`windows-release` — **58/58** в каждом. Единственный SKIP — file-symlink privilege
+1314; junction, ACL и cross-volume Open/Save As прошли.
+[Команды, результаты и ограничения 05.3](docs/reports/task-05/open-implementation.md#f-tests-and-regression).
+Далее сохранены исторические результаты предыдущих этапов.
 
 Задача 02 после исправления R1: **132/132 PASS в Debug и Release** — 32 domain/application/coordinate, 51 operation, 35 view model, 13 production QML integration и один dependency smoke. Production tests и отдельный `operation_probe` включаются при `BUILD_TESTING` независимо от генератора. Фильтр `-L production` исключает его полную регрессию. `all_qmllint` прошёл для production и verification QML в обеих конфигурациях.
 
@@ -467,8 +479,10 @@ build\windows-release\operation_probe.exe
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
 В задаче 05 приняты этапы 05.1 — Persistence Foundation и 05.2 — Save / Save As;
 задача 05 целиком не завершена. **05.2 — ACCEPTED** после финальной независимой
-проверки исправлений R1/R2 на `cedf844`. Open/Recovery и GUI Save/Open (05.3–05.5)
-не начаты. [Заключение по 05.2](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
+проверки исправлений R1/R2 на `cedf844`.
+[Заключение по 05.2](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
+**05.3 — READY FOR INDEPENDENT REVIEW**: C++ Open/partial availability реализованы
+и проверены. 05.4 Recovery и 05.5 GUI Save/Open не начаты.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -606,8 +620,8 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. В задаче 05 принята только 05.1 (Persistence Foundation);
-пользовательские Save/Open и восстановление ещё не реализованы;
+и ограничения. В задаче 05 приняты 05.1–05.2; C++ Open/partial availability
+реализованы в 05.3 и ожидают независимого ревью; GUI Save/Open и recovery ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -626,7 +640,8 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 независимого ревью, исправления H1/H2 и повторной независимой проверки.
 H1/H2 — FIXED, итог ревью — **05.1 — READY FOR ACCEPTANCE**; новых блокирующих
 дефектов нет. [Итоги и границы принятия](docs/reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
-Задача 05 целиком не завершена; 05.3–05.5 — NOT STARTED. Реализация 05.2 описана ниже.
+Задача 05 целиком не завершена; текущие реализации 05.2–05.3 описаны ниже,
+05.4–05.5 — NOT STARTED.
 
 По результатам уже выполненной повторной независимой проверки сборки Debug/Release
 и `all_qmllint` — PASS; итоговый production CTest в каждой конфигурации —
@@ -696,4 +711,29 @@ Sampled working set около 12 MiB у обоих размеров. Метод
 ограничения OS cache/измерений см. в отчёте; большой прогон предшествовал последнему
 усилению публикации нового manifest (copy/readback не менялись), после него повторён
 resource smoke на 1 млн points. Benchmark не включён в CTest.
+
+### Open и частичная доступность — 05.3
+
+`ProjectController::openProject(OpenRequest)` восстанавливает `.pc2dproj` без source
+ASC/XYZ: ProjectId, точный cell и metadata, physical dataset binding, saved baseline
+и clean state. Runtime session новый, Undo/Redo пусты. До успешного atomic Accept
+прежний проект сохраняется; replacement требует явного подтверждения, Busy/shutdown/
+stale context и cancellation защищены существующим OperationRunner.
+
+Open проверяет только bounded manifest и CacheReader envelope/root: 73 728 bytes
+непустого v1 cache, ноль point pages. Full validation, scan, copy, PNG и reduced cloud
+не запускаются. Missing/corrupt/unsupported/inaccessible cache сохраняет доступные
+metadata и диагностику. C++ закрывает cell/Save/зависимые операции до успешного явного
+`recheckPointCache`; Close и подтверждённые Import/Open остаются доступны.
+AvailableLimited не означает полную integrity validation. Последующий Save повторяет
+filesystem checks и переиспользует неизменённый cache без копирования.
+
+Debug/Release build/lint — PASS; новые Open tests **58/58** и полный production
+**583 passed / 0 failed / 1 skipped** в каждой конфигурации. SKIP — существующий
+file-symlink test без privilege 1314. Проверены реальные Windows ACL/sharing failures,
+junction, перенос C: → D:, dirty/Undo, shutdown/reentry и оба исхода Uncertain Save.
+Большие performance/Peak Working Set, UNC и power-loss проверки не выполнялись.
+Форматы v1 и Save permission/receipt сохранены. [Отчёт A–J](docs/reports/task-05/open-implementation.md),
+[протокол](docs/architecture.md#282-open-и-частичная-доступность-053).
+**READY FOR INDEPENDENT REVIEW**; 05.3 ещё не принята, задача 05 не завершена.
 

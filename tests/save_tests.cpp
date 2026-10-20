@@ -517,7 +517,8 @@ TEST_F(Save, SaveAsAcrossAvailableWindowsVolumes)
     const auto path = other.filePath(QStringLiteral("project/P.pc2dproj"));
     ASSERT_EQ(controller.saveProjectAs({path}).outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(controller));
     ASSERT_EQ(controller.operation().status, OperationStatus::Succeeded);
-    if (first.volume == controller.savedProject()->datasetIdentity.volume) GTEST_SKIP() << "Same physical volume";
+    ASSERT_TRUE(first); ASSERT_TRUE(controller.savedProject()->datasetIdentity);
+    if (first->volume == controller.savedProject()->datasetIdentity->volume) GTEST_SKIP() << "Same physical volume";
     EXPECT_EQ(bytes(datasetPath(manifest(target), target)), bytes(cachePath()));
     EXPECT_EQ(controller.savedProject()->manifestPath, path); EXPECT_FALSE(controller.isDirty());
 }

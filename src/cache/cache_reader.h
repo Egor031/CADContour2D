@@ -31,6 +31,7 @@ public:
     const CacheMetadata &metadata() const noexcept { return header_.metadata; }
     const IndexDescriptor &index() const noexcept { return header_.index; }
     const FileLayout &layout() const noexcept { return layout_; }
+    const ReadStatistics &statistics() const noexcept { return statistics_; }
     // Borrowed batches (<= pointCapacity) live only during the callback. Failure or
     // cancellation can follow an emitted prefix. A subsequent operation starts afresh.
     Result<ReadStatistics> scanAll(const Sink &sink, CancelCheck cancel = nullptr, void *context = nullptr);

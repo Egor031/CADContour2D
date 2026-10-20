@@ -10,6 +10,14 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(open_tests operation_test_main.cpp open_tests.cpp)
+set_target_properties(open_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(open_tests PRIVATE cadcontour_application GTest::gtest Advapi32)
+target_compile_options(open_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+target_compile_definitions(open_tests PRIVATE OPEN_TEST_WORKSPACE="${CMAKE_BINARY_DIR}")
+gtest_discover_tests(open_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX OpenApplication.
+    PROPERTIES LABELS production TIMEOUT 40)
+
 add_executable(save_tests operation_test_main.cpp save_tests.cpp)
 set_target_properties(save_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(save_tests PRIVATE cadcontour_application GTest::gtest)

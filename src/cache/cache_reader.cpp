@@ -87,6 +87,9 @@ Status CacheReader::initialize(ResourceLimits limits)
     reserve = checked::add(*reserve, header_.index.height * sizeof(Frame));
     if (!reserve || *reserve > limits.memoryBytes) return resource(phase_);
     reserve_ = *reserve;
+    statistics_.bufferBytes = format::pageSize + format::pointCapacity * sizeof(PointRecord)
+        + header_.index.height * sizeof(Frame);
+    statistics_.traversalFrames = header_.index.height;
     records_ = std::make_unique<PointRecord[]>(format::pointCapacity);
     if (header_.index.height) {
         frames_ = std::make_unique<Frame[]>(header_.index.height);

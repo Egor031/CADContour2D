@@ -60,4 +60,12 @@ WorkerOutcome WorkerOutcome::success(std::unique_ptr<persistence::SaveTransactio
     return result;
 }
 
+WorkerOutcome WorkerOutcome::success(std::shared_ptr<const persistence::LoadedProject> product) noexcept
+{
+    WorkerOutcome result;
+    result.status = WorkerStatus::Succeeded;
+    result.loaded = std::move(product);
+    return result;
+}
+
 } // namespace cadcontour

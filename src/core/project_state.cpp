@@ -26,6 +26,15 @@ bool ProjectState::isValidCell(double value) noexcept
     return std::isfinite(value) && value > 0.0;
 }
 
+ProjectState::ProjectState(std::uint64_t runtimeIdentity, ProjectId projectId,
+                           ImportedDataset dataset, double savedCell)
+    : ProjectState(runtimeIdentity, projectId, std::move(dataset))
+{
+    if (!isValidCell(savedCell))
+        throw std::invalid_argument("Saved cell must be finite and positive");
+    cell_ = savedCell;
+}
+
 void ProjectState::bindDataset(std::shared_ptr<const DatasetLocation> location) noexcept
 {
     if (dataset_) dataset_->location = std::move(location);

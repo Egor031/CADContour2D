@@ -18,6 +18,14 @@ struct SaveRequest {
     persistence::ManifestLimits limits{4ULL << 20, 4096, 32};
 };
 
+struct OpenRequest {
+    QString manifestPath;
+    persistence::ManifestLimits limits{4ULL << 20, 4096, 32};
+    cache::ResourceLimits readerLimits{1ULL << 20, 0, 2};
+    bool replacementConfirmed = false;
+    std::optional<ImportContext> expectedContext;
+};
+
 class ProjectController : public QObject {
     Q_OBJECT
 
@@ -41,6 +49,9 @@ public:
     CommandResult importAscXyz(ImportRequest request);
     CommandResult saveProject(SaveRequest request = {});
     CommandResult saveProjectAs(SaveRequest request);
+    CommandResult openProject(OpenRequest request);
+    CommandResult recheckPointCache(cache::ResourceLimits limits = {1ULL << 20, 0, 2});
+    const persistence::CacheAvailability *pointCacheAvailability() const noexcept;
     bool isDirty() const noexcept;
     const persistence::SavedProject *savedProject() const noexcept;
     const persistence::SavedProject *unconfirmedSave() const noexcept;
@@ -64,6 +75,7 @@ private:
     friend class ProjectControllerTestAccess;
     friend class OperationTestAccess;
     friend class SaveTestAccess;
+    friend class OpenTestAccess;
     class CommandScope;
     // Reverse destruction order: undo commands disappear before their referenced state.
     // DatasetLocation retains accepted files across session/controller destruction.
@@ -73,6 +85,8 @@ private:
         QUndoStack history;
         std::shared_ptr<const persistence::SavedProject> saved;
         std::shared_ptr<const persistence::SavedProject> unconfirmed;
+        std::shared_ptr<const persistence::CacheAvailability> availability =
+            std::make_shared<const persistence::CacheAvailability>();
     };
     struct VerificationState {
         std::uint64_t generation = 0;
@@ -87,6 +101,7 @@ private:
     CommandResult startWork(OperationWork work, OperationKind kind, bool replacementConfirmed = false);
     CommandResult startImport(ImportRequest request, io::ZHandler handler);
     CommandResult startSave(SaveRequest request, bool saveAs);
+    bool cacheAvailable() const noexcept;
     void processSaveReceipt(OperationId id, std::shared_ptr<const persistence::SavedProject> prepared,
                             persistence::SaveCommitResult receipt);
     std::unique_ptr<ProjectSession> prepareImport(const ImportReadyProduct &product);
@@ -104,6 +119,7 @@ private:
     std::uint64_t contextEpoch_ = 0;
     // Internal fault seam; tests can cancel/invalidate or fail during preparation.
     std::function<void()> prepareImportHook_;
+    std::function<void()> prepareOpenHook_;
     std::function<persistence::SaveResult<std::unique_ptr<persistence::SaveTransaction>>(
         persistence::SaveInput, persistence::SaveCallbacks)> savePrepare_;
     std::uint64_t lastIdentity_ = 0;
