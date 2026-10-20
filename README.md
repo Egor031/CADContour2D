@@ -458,16 +458,17 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**Задачи 01–04 и этап 05.1: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задачи 01–04 и этапы 05.1–05.2: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 Задача 04 принята 2026-10-19 после финального независимого ревью:
 **REVIEW PASSED — TASK 04 ACCEPTABLE** на HEAD
 `a227f3865f5bbd3068eb7e8eb95febc3e2ce241d`. Подтверждённых дефектов P0–P3 и
 существенных неподтверждённых рисков — 0; обязательных исправлений нет.
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
-В задаче 05 принят этап 05.1 — Persistence Foundation; задача 05 целиком не завершена.
-05.2 — **READY FOR FINAL VERIFICATION** после исправления R1/R2; Open/Recovery и GUI Save/Open (05.3–05.5)
-не начаты. [Отчёт Save / Save As](docs/reports/task-05/save-implementation.md).
+В задаче 05 приняты этапы 05.1 — Persistence Foundation и 05.2 — Save / Save As;
+задача 05 целиком не завершена. **05.2 — ACCEPTED** после финальной независимой
+проверки исправлений R1/R2 на `cedf844`. Open/Recovery и GUI Save/Open (05.3–05.5)
+не начаты. [Заключение по 05.2](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -658,7 +659,7 @@ directory отклоняется явно. При Uncertain commit baseline не
 сохраняется, следующий Save требует проверки через последующее Open. GUI сохранения,
 Open, Autosave/Recovery не входят в 05.2. Архитектура и границы —
 [§28.1](docs/architecture.md#281-явные-save--save-as-052),
-технический отчёт A–I — [save-implementation.md](docs/reports/task-05/save-implementation.md).
+технический отчёт и заключение о принятии — [save-implementation.md](docs/reports/task-05/save-implementation.md).
 
 Проверенные targets включают `save_tests` и дочерний `save_crash_probe`.
 Отдельный набор: `ctest --preset windows-debug -R ^SaveApplication --output-on-failure`
@@ -674,6 +675,11 @@ Open, Autosave/Recovery не входят в 05.2. Архитектура и г�
 terminal transition. [Причины, проверки и ограничения R1/R2](docs/reports/task-05/save-implementation.md#j-review-fixes-r1r2).
 Известная гонка setup TLS-теста ранее исправлена барьером фактического входа helper;
 тогда ограниченные серии по 12 Debug/Release повторов прошли.
+Финальная независимая проверка 2026-10-20 на `cedf844` повторила сборки/lint,
+R1 regression, полный production и отдельный cross-volume в обеих конфигурациях:
+проверки прошли с указанными двумя production SKIP. **R1/R2 — CLOSED; 05.2 — ACCEPTED**.
+Исторические результаты и оставшиеся ограничения отделены от новых проверок в
+[заключении](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
 Финальные команды после штатной инициализации среды остаются:
 
 ```bat

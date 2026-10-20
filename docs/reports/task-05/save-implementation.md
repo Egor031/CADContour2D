@@ -1,5 +1,9 @@
 # Task 05.2 — Save / Save As
 
+Текущий статус: **05.2 — ACCEPTED** (2026-10-20).
+[Финальное независимое заключение](#k-independent-verification-and-acceptance) приведено в §K;
+разделы A–J сохраняют результаты и промежуточные статусы соответствующих этапов.
+
 ## A. Baseline
 
 Дата: 2026-10-19. Branch `main`, исходный HEAD
@@ -355,3 +359,48 @@ File-symlink при доступной privilege не проверен. Боль
 
 **READY FOR FINAL VERIFICATION.** R1/R2 исправлены, доступные проверки успешны.
 05.2 и задача 05 целиком не объявляются принятыми; 05.3–05.5 не реализовывались.
+
+## K. Independent verification and acceptance
+
+**05.2 — ACCEPTED, 2026-10-20.** Финально проверен commit
+`cedf844d9ff85f389b68287caa763e143983f894` поверх реализации `4187e24`:
+полный diff шести файлов, исходный Git status чистый. Новых существенных замечаний нет.
+
+**R1 — CLOSED.** Условие `!operation_.active && !runner_.busy()` устраняет смешение
+физического завершения worker и terminal transition controller. При shutdown из
+persisted `stateChanged` сохраняется Closing; `finishOperation()` завершает операцию
+и устанавливает Ready до terminal notification. Regression test независимо проверен:
+реальные manifest/binding/baseline, native completion, Closing → Ready, reentrant poll,
+повторный shutdown, однократные publication/release/terminal и поздний receipt.
+Журнал прежнего FAIL `build/r052-before-debug.log` прочитан и соответствует дефекту;
+старый production-код в этой проверке не изменялся и не пересобирался.
+
+**R2 — CLOSED.** Architecture §45 соответствует §28.1: Save/Save As и atomic publication
+реализованы; Open/partial availability и Autosave/Recovery остаются будущей работой.
+Остальные изменения документации `cedf844` проверены; исторические результаты §J
+не подменяют собственные запуски ниже.
+
+| Собственная проверка | Debug | Release |
+|---|---|---|
+| Incremental build `all` + `all_qmllint`, `--parallel 4` | PASS | PASS |
+| R1 regression отдельно, passed / failed / skipped | 1 / 0 / 0 | 1 / 0 / 0 |
+| Полный production CTest, passed / failed / skipped | 524 / 0 / 2 из 526 | 524 / 0 / 2 из 526 |
+| Cross-volume Save As отдельно, TEMP/TMP на F:, target на C: | 1 / 0 / 0 | 1 / 0 / 0 |
+
+Полный production занял 149.24 s Debug / 81.24 s Release и включает связанные Save,
+Operations и Import tests; отдельный связанный набор §J повторно не запускался.
+Два SKIP подтверждены: TEMP/build на одном томе в cross-volume case (отдельный запуск
+на разных томах прошёл) и file-symlink privilege 1314. SKIP не считается PASS.
+Локальные журналы новых запусков: `build/review052-final-20261020/`.
+
+Границы принятия сохраняются: cooperative locking, conservative orphan retention,
+metadata-only integrity checks и запрет повторного Save при Uncertain. File-symlink
+с доступной privilege, UNC/SMB failures, power loss, большие нагрузки и ручной native
+GUI smoke в этой финальной проверке не выполнялись. Файловый протокол, форматы,
+production-код и тесты при документальном закрытии не менялись.
+
+Статусы и ссылки согласованы в implementation-plan, README и индексе docs;
+architecture §45 уже корректен после `cedf844`. Закрытие оформляется отдельным
+документационным commit без изменения истории `cedf844` и без push.
+Принятие ограничено 05.2: вся задача 05 не завершена и не принята,
+05.3–05.5 — NOT STARTED.

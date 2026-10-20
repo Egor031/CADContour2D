@@ -54,8 +54,11 @@
 
 ### Task 05
 
-- [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md#independent-verification-and-acceptance) — **ACCEPTED** после независимой проверки исправлений H1/H2; вся задача 05 не завершена, 05.2–05.5 — NOT STARTED.
+- [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md#independent-verification-and-acceptance) — **ACCEPTED** после независимой проверки исправлений H1/H2.
+- [05.2 Save / Save As](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance) — **ACCEPTED** после финальной независимой проверки `cedf844`; R1/R2 закрыты.
 - [Наблюдение по Operations-тесту](reports/task-05/persistence-foundation.md#operations-test-observation) — UNRESOLVED OBSERVATION / NOT CONFIRMED DEFECT.
+
+Вся задача 05 не завершена и не принята; 05.3–05.5 — NOT STARTED.
 
 ## Benchmark evidence
 

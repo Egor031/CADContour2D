@@ -251,12 +251,12 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1 — ACCEPTED. Вся задача 05 не завершена и не принята.**
+**Статус: 05.1 и 05.2 — ACCEPTED. Вся задача 05 не завершена и не принята.**
 
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
-| 05.2 | Save / Save As | READY FOR FINAL VERIFICATION |
+| 05.2 | Save / Save As | ACCEPTED |
 | 05.3 | Open и частичная доступность | NOT STARTED |
 | 05.4 | Autosave / Recovery | NOT STARTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
@@ -274,7 +274,9 @@ project-owned paths и shared immutable physical binding без автомати
 проверки и ограничения — [отчёт 05.1](reports/task-05/persistence-foundation.md).
 В 05.2 реализованы C++ Save/Save As, copy/atomic publication, saved baseline и dirty
 tracking; текущие проверки и ограничения — [отчёт 05.2](reports/task-05/save-implementation.md).
-Замечания ревью R1/R2 исправлены и проверены; окончательное принятие 05.2 выполняется отдельно.
+05.2 принята 2026-10-20 после финальной независимой проверки исправлений R1/R2
+на commit `cedf844d9ff85f389b68287caa763e143983f894`; замечания закрыты,
+существенных новых проблем нет. [Заключение и проверки](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
 Open, recovery и GUI-интеграция Save остаются задачами 05.3–05.5.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
