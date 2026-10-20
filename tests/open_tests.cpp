@@ -21,6 +21,14 @@
 #include <Windows.h>
 #include <sddl.h>
 
+// Patch only this test executable's imports. Qt DLLs and production sources stay
+// unchanged; each scope restores the slots after the operation's native join.
+extern "C" {
+extern decltype(&GetFileInformationByHandle) __imp_GetFileInformationByHandle;
+extern decltype(&GetFileInformationByHandleEx) __imp_GetFileInformationByHandleEx;
+extern decltype(&GetFileAttributesW) __imp_GetFileAttributesW;
+}
+
 using namespace cadcontour;
 using namespace cadcontour::test;
 using namespace cadcontour::persistence;
@@ -105,6 +113,188 @@ protected:
         EXPECT_EQ(controller.pointCacheAvailability()->access, expected);
     }
 };
+
+template<class Function> class ScopedImport {
+public:
+    ScopedImport(Function &slot, Function replacement) : slot_(slot), original_(slot)
+    { assign(replacement); }
+    ~ScopedImport() { assign(original_); }
+    Function original() const noexcept { return original_; }
+private:
+    void assign(Function value) noexcept
+    {
+        DWORD protection = 0, ignored = 0;
+        if (!VirtualProtect(&slot_, sizeof(slot_), PAGE_READWRITE, &protection)) std::terminate();
+        slot_ = value;
+        if (!VirtualProtect(&slot_, sizeof(slot_), protection, &ignored)) std::terminate();
+    }
+    Function &slot_;
+    Function original_;
+};
+
+class ObservationFault {
+public:
+    enum class Mode { Healthy, FirstIdentityIO, SecondIdentityIO, SecondIdentityResource,
+        FirstIdentityResource, ChangedIdentity, ResolverIO, ResolverUnsafe, ResolverMissing,
+        SecondBasicIO, SecondBasicResource, FirstBasicIO, FirstBasicResource };
+    ObservationFault(ProjectController &controller, const QString &path, Mode mode)
+        : controller_(controller), path_(QDir::toNativeSeparators(path).toStdWString()), mode_(mode),
+          identity_(__imp_GetFileInformationByHandle, information),
+          basic_(__imp_GetFileInformationByHandleEx, basicInformation),
+          attributes_(__imp_GetFileAttributesW, attributes)
+    { active_ = this; }
+    ~ObservationFault()
+    {
+        // Also restore imports safely if a fatal assertion leaves work pending.
+        if (controller_.operation().active) {
+            controller_.cancelOperation();
+            if (!finish(controller_)) OperationTestAccess::runner(controller_).drain();
+        }
+        active_ = nullptr;
+    }
+    int identityCalls() const { return identityCalls_; }
+    int basicCalls() const { return basicCalls_; }
+    int pathCalls() const { return pathCalls_; }
+private:
+    static BOOL WINAPI information(HANDLE handle, LPBY_HANDLE_FILE_INFORMATION output)
+    {
+        auto &self = *active_;
+        const auto call = ++self.identityCalls_;
+        const bool first = call == 1;
+        const bool second = call == 2;
+        const bool io = (first && self.mode_ == Mode::FirstIdentityIO) || (second && self.mode_ == Mode::SecondIdentityIO);
+        const bool resource = (first && self.mode_ == Mode::FirstIdentityResource)
+            || (second && self.mode_ == Mode::SecondIdentityResource);
+        if (io || resource) { SetLastError(resource ? ERROR_NOT_ENOUGH_MEMORY : ERROR_UNEXP_NET_ERR); return FALSE; }
+        const auto result = self.identity_.original()(handle, output);
+        if (result && second && self.mode_ == Mode::ChangedIdentity) output->nFileIndexLow ^= 1;
+        return result;
+    }
+    static BOOL WINAPI basicInformation(HANDLE handle, FILE_INFO_BY_HANDLE_CLASS kind, LPVOID output, DWORD size)
+    {
+        auto &self = *active_;
+        if (kind == FileBasicInfo) {
+            const auto call = ++self.basicCalls_;
+            const bool io = (call == 1 && self.mode_ == Mode::FirstBasicIO) || (call == 2 && self.mode_ == Mode::SecondBasicIO);
+            const bool resource = (call == 1 && self.mode_ == Mode::FirstBasicResource)
+                || (call == 2 && self.mode_ == Mode::SecondBasicResource);
+            if (io || resource) { SetLastError(resource ? ERROR_NOT_ENOUGH_MEMORY : ERROR_UNEXP_NET_ERR); return FALSE; }
+        }
+        return self.basic_.original()(handle, kind, output, size);
+    }
+    static DWORD WINAPI attributes(LPCWSTR path)
+    {
+        auto &self = *active_;
+        if (_wcsicmp(path, self.path_.c_str()) == 0 && ++self.pathCalls_ == 2) {
+            if (self.mode_ == Mode::ResolverIO) { SetLastError(ERROR_ACCESS_DENIED); return INVALID_FILE_ATTRIBUTES; }
+            if (self.mode_ == Mode::ResolverMissing) { SetLastError(ERROR_FILE_NOT_FOUND); return INVALID_FILE_ATTRIBUTES; }
+            if (self.mode_ == Mode::ResolverUnsafe) return FILE_ATTRIBUTE_REPARSE_POINT;
+        }
+        return self.attributes_.original()(path);
+    }
+    static inline ObservationFault *active_ = nullptr;
+    ProjectController &controller_;
+    std::wstring path_;
+    Mode mode_;
+    std::atomic<int> identityCalls_ = 0, basicCalls_ = 0, pathCalls_ = 0;
+    ScopedImport<decltype(&GetFileInformationByHandle)> identity_;
+    ScopedImport<decltype(&GetFileInformationByHandleEx)> basic_;
+    ScopedImport<decltype(&GetFileAttributesW)> attributes_;
+};
+
+class R1Observation : public Open, public testing::WithParamInterface<std::tuple<bool, ObservationFault::Mode>> {};
+TEST_P(R1Observation, ClassifiesObservationAndRecoversWithoutChangingPublishedContent)
+{
+    const auto [recheckOnly, mode] = GetParam();
+    const auto initialState = controller.project();
+    ASSERT_EQ(controller.setCell(0.5).outcome, CommandOutcome::Applied);
+    ASSERT_EQ(controller.setCell(0.75).outcome, CommandOutcome::Applied);
+    ASSERT_EQ(controller.undo().outcome, CommandOutcome::Applied);
+    const auto stamp = controller.project()->operationStamp();
+    const auto binding = controller.project()->dataset()->location;
+    const auto saved = SaveTestAccess::saved(controller);
+    const auto history = ProjectControllerTestAccess::count(controller);
+    const auto historyIndex = ProjectControllerTestAccess::index(controller);
+    const auto manifestBytes = bytes(target), cacheBytes = bytes(cachePath);
+    using Mode = ObservationFault::Mode;
+    const bool resource = mode == Mode::FirstIdentityResource || mode == Mode::SecondIdentityResource
+        || mode == Mode::FirstBasicResource || mode == Mode::SecondBasicResource;
+    auto start = [&] {
+        OpenRequest request{target}; request.replacementConfirmed = true;
+        return recheckOnly ? controller.recheckPointCache(limits) : controller.openProject(request);
+    };
+    {
+        ObservationFault fault(controller, cachePath, mode);
+        ASSERT_EQ(start().outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(controller));
+        const bool firstFailure = mode == Mode::FirstIdentityIO || mode == Mode::FirstIdentityResource
+            || mode == Mode::FirstBasicIO || mode == Mode::FirstBasicResource;
+        const bool pathFailure = mode == Mode::ResolverIO || mode == Mode::ResolverUnsafe || mode == Mode::ResolverMissing;
+        EXPECT_EQ(fault.identityCalls(), firstFailure || pathFailure ? 1 : 2);
+        if (mode == Mode::FirstBasicIO || mode == Mode::FirstBasicResource
+            || mode == Mode::SecondBasicIO || mode == Mode::SecondBasicResource || mode == Mode::Healthy)
+            EXPECT_EQ(fault.basicCalls(), firstFailure ? 1 : 2);
+        EXPECT_EQ(fault.pathCalls(), firstFailure ? 1 : 2);
+        if (resource) {
+            ASSERT_TRUE(controller.operation().failure);
+            EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
+            EXPECT_EQ(controller.operation().failure->category, FailureCategory::ResourceUnavailable);
+            ASSERT_TRUE(controller.operation().failure->openError);
+            EXPECT_EQ(controller.operation().failure->openError->code, ErrorCode::ResourceExhausted);
+            EXPECT_TRUE(controller.operation().failure->openError->detail.contains("Win32 8"));
+            EXPECT_EQ(controller.project(), initialState); EXPECT_EQ(controller.savedProject(), saved.get());
+        } else {
+            ASSERT_EQ(controller.operation().status, OperationStatus::Succeeded);
+            auto expected = CacheAccess::FileIO;
+            if (mode == Mode::Healthy) expected = CacheAccess::AvailableLimited;
+            if (mode == Mode::ChangedIdentity) expected = CacheAccess::Corrupt;
+            if (mode == Mode::ResolverUnsafe) expected = CacheAccess::UnsafePath;
+            if (mode == Mode::ResolverMissing) expected = CacheAccess::Missing;
+            EXPECT_EQ(controller.pointCacheAvailability()->access, expected);
+            if (expected == CacheAccess::FileIO) {
+                ASSERT_TRUE(controller.pointCacheAvailability()->pathError);
+                EXPECT_EQ(controller.pointCacheAvailability()->pathError->code, ErrorCode::FileIO);
+                EXPECT_TRUE(controller.pointCacheAvailability()->pathError->detail.contains(
+                    mode == Mode::ResolverIO ? "Win32 5" : "Win32 59"));
+                EXPECT_FALSE(controller.pointCacheAvailability()->cacheError);
+            }
+            EXPECT_EQ(controller.savedProject()->datasetIdentity.has_value(), mode == Mode::Healthy);
+            if (mode != Mode::Healthy) {
+                EXPECT_EQ(controller.setCell(0.25).outcome, CommandOutcome::Rejected);
+                EXPECT_EQ(controller.saveProject().outcome, CommandOutcome::Rejected);
+            }
+        }
+        if (recheckOnly || resource) {
+            EXPECT_EQ(controller.project(), initialState); EXPECT_EQ(controller.project()->operationStamp(), stamp);
+            EXPECT_DOUBLE_EQ(controller.project()->cell(), 0.5); EXPECT_TRUE(controller.isDirty());
+            EXPECT_TRUE(controller.canUndo()); EXPECT_TRUE(controller.canRedo());
+            EXPECT_EQ(controller.project()->dataset()->location, binding);
+            EXPECT_EQ(ProjectControllerTestAccess::count(controller), history);
+            EXPECT_EQ(ProjectControllerTestAccess::index(controller), historyIndex);
+        } else {
+            EXPECT_NE(controller.project()->runtimeIdentity(), stamp.projectIdentity);
+            EXPECT_FALSE(controller.isDirty()); EXPECT_FALSE(controller.canUndo()); EXPECT_FALSE(controller.canRedo());
+        }
+        EXPECT_EQ(controller.savedProject()->snapshot.snapshotId, saved->snapshot.snapshotId);
+        EXPECT_EQ(controller.savedProject()->manifestDigest, saved->manifestDigest);
+        EXPECT_EQ(controller.project()->projectId(), original.projectId);
+    }
+    EXPECT_EQ(bytes(target), manifestBytes); EXPECT_EQ(bytes(cachePath), cacheBytes);
+    // Remove the fault and re-run the same request; availability must recover.
+    ASSERT_EQ(start().outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+    EXPECT_EQ(controller.pointCacheAvailability()->access, CacheAccess::AvailableLimited);
+    EXPECT_TRUE(controller.savedProject()->datasetIdentity);
+    EXPECT_EQ(controller.pointCacheAvailability()->reads.pointPages, 0);
+    EXPECT_EQ(controller.pointCacheAvailability()->reads.readBytes, 73728);
+    EXPECT_EQ(bytes(target), manifestBytes); EXPECT_EQ(bytes(cachePath), cacheBytes);
+}
+INSTANTIATE_TEST_SUITE_P(R1, R1Observation, testing::Combine(testing::Bool(), testing::Values(
+    ObservationFault::Mode::Healthy, ObservationFault::Mode::FirstIdentityIO,
+    ObservationFault::Mode::SecondIdentityIO, ObservationFault::Mode::SecondIdentityResource,
+    ObservationFault::Mode::FirstIdentityResource, ObservationFault::Mode::ChangedIdentity,
+    ObservationFault::Mode::ResolverIO, ObservationFault::Mode::ResolverUnsafe, ObservationFault::Mode::ResolverMissing,
+    ObservationFault::Mode::SecondBasicIO, ObservationFault::Mode::SecondBasicResource,
+    ObservationFault::Mode::FirstBasicIO, ObservationFault::Mode::FirstBasicResource)));
 
 TEST_F(Open, RoundTripNewSessionExactCellSourceBaselineAndRepeatedSaveWithoutCopy)
 {

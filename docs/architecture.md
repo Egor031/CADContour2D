@@ -1247,6 +1247,14 @@ UnsafePath; диагностические cache/path errors сохраняют�
 Принятый импорт тоже не объявляется полностью проверенным Reader validation.
 Resource admission failure не подменяется частичным success: прежний сеанс сохраняется.
 
+Отказ Win32-запроса identity не является доказательством corruption: обычный отказ
+даёт FileIO, известный отказ памяти/системных ресурсов — ResourceExhausted без
+публикации candidate. GetLastError фиксируется сразу после неуспешного API;
+исходный код сохраняется в diagnostic существующего Error. Только две успешно
+полученные различающиеся identity считаются изменением файла. Оба наблюдения
+resolver сохраняют его категории: FileIO, Missing при `exists=false`, UnsafePath
+при обнаруженном нарушении path safety.
+
 Ready переносит только immutable LoadedProject metadata, без файловых guards.
 Owner готовит ProjectState с точным saved cell через constructor (revision = 0),
 новой runtime identity, прежним ProjectId и новым пустым QUndoStack. Все allocations

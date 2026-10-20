@@ -56,10 +56,10 @@
 
 - [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md#independent-verification-and-acceptance) — **ACCEPTED** после независимой проверки исправлений H1/H2.
 - [05.2 Save / Save As](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance) — **ACCEPTED** после финальной независимой проверки `cedf844`; R1/R2 закрыты.
-- [05.3 Open и частичная доступность](reports/task-05/open-implementation.md) — **READY FOR INDEPENDENT REVIEW**; ограниченный Open без полного scan, восстановление baseline и явный recheck.
+- [05.3 Open и частичная доступность](reports/task-05/open-implementation.md#k-r1--проверка-и-исправление) — **R1 FIXED — READY FOR INDEPENDENT VERIFICATION**; исправлена классификация повторных filesystem observations, 26 новых regressions.
 - [Наблюдение по Operations-тесту](reports/task-05/persistence-foundation.md#operations-test-observation) — UNRESOLVED OBSERVATION / NOT CONFIRMED DEFECT.
 
-Вся задача 05 не завершена и не принята; 05.3 ожидает независимого ревью,
+Вся задача 05 не завершена и не принята; 05.3 ожидает повторной независимой проверки R1,
 05.4–05.5 — NOT STARTED.
 
 ## Benchmark evidence

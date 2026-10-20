@@ -11,16 +11,31 @@
 namespace cadcontour::persistence {
 namespace {
 Error ioError(const QString &detail) { return {ErrorCode::FileIO, {}, detail.left(256)}; }
+Error systemError(const QString &detail, DWORD code)
+{
+    const bool resource = code == ERROR_NOT_ENOUGH_MEMORY || code == ERROR_OUTOFMEMORY
+        || code == ERROR_NO_SYSTEM_RESOURCES || code == ERROR_NOT_ENOUGH_QUOTA;
+    return {resource ? ErrorCode::ResourceExhausted : ErrorCode::FileIO, {},
+        QStringLiteral("%1 (Win32 %2)").arg(detail).arg(code)};
+}
 struct ReadLease {
     HANDLE handle = INVALID_HANDLE_VALUE;
     ~ReadLease() { if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle); }
-    std::optional<DatasetFileIdentity> identity() const
+    Result<DatasetFileIdentity> identity() const
     {
         BY_HANDLE_FILE_INFORMATION info{};
         FILE_BASIC_INFO basic{};
-        if (!GetFileInformationByHandle(handle, &info)
-            || !GetFileInformationByHandleEx(handle, FileBasicInfo, &basic, sizeof(basic))
-            || (info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT))) return {};
+        if (!GetFileInformationByHandle(handle, &info)) {
+            const auto code = GetLastError();
+            return systemError(QStringLiteral("Cannot read dataset file identity"), code);
+        }
+        if (!GetFileInformationByHandleEx(handle, FileBasicInfo, &basic, sizeof(basic))) {
+            const auto code = GetLastError();
+            return systemError(QStringLiteral("Cannot read dataset basic file information"), code);
+        }
+        if (info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT))
+            return Error{ErrorCode::InvalidReference, QStringLiteral("path"),
+                QStringLiteral("Dataset handle refers to a directory or reparse point")};
         return DatasetFileIdentity{info.dwVolumeSerialNumber,
             (std::uint64_t(info.nFileIndexHigh) << 32) | info.nFileIndexLow,
             (std::uint64_t(info.nFileSizeHigh) << 32) | info.nFileSizeLow,
@@ -41,31 +56,35 @@ Result<LoadedProject> probe(std::shared_ptr<SavedProject> saved, cache::Resource
         return Error{ErrorCode::ResourceExhausted, {}, QStringLiteral("Limited dataset check requires a reader budget and two file handles")};
     auto availability = std::make_shared<CacheAvailability>();
     saved->datasetIdentity.reset();
+    auto unavailable = [&](Error error) -> Result<LoadedProject> {
+        if (error.code == ErrorCode::ResourceExhausted) return error;
+        availability->access = error.code == ErrorCode::FileIO ? CacheAccess::FileIO : CacheAccess::UnsafePath;
+        availability->pathError = std::move(error);
+        return LoadedProject{std::move(saved), std::move(availability)};
+    };
     const auto &descriptor = saved->snapshot.datasets.at(0);
     const auto root = QString::fromStdWString(saved->content.location->storageDirectory.wstring());
     auto resolved = resolveDatasetPath(root, descriptor.relativePath);
-    if (!resolved) {
-        availability->access = resolved.error().code == ErrorCode::FileIO ? CacheAccess::FileIO : CacheAccess::UnsafePath;
-        availability->pathError = resolved.error();
-    } else if (!resolved.value().exists) {
+    if (!resolved) return unavailable(resolved.error());
+    if (!resolved.value().exists) {
         availability->access = CacheAccess::Missing;
     } else {
         // Deny ordinary write/delete while observing identity and reading the envelope/root.
         ReadLease lease;
         lease.handle = CreateFileW(QDir::toNativeSeparators(resolved.value().absolutePath).toStdWString().c_str(),
             GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
-        const auto openError = GetLastError();
+        if (lease.handle == INVALID_HANDLE_VALUE) {
+            const auto code = GetLastError();
+            return unavailable(systemError(QStringLiteral("Cannot lease dataset"), code));
+        }
         const auto identity = lease.identity();
-        if (lease.handle == INVALID_HANDLE_VALUE || !identity) {
-            availability->access = CacheAccess::FileIO;
-            availability->pathError = ioError(QStringLiteral("Cannot lease dataset (Win32 %1)")
-                .arg(lease.handle == INVALID_HANDLE_VALUE ? openError : GetLastError()));
-        } else {
+        if (!identity) return unavailable(identity.error());
+        {
             // The resolver's observation is repeated immediately before path-based Reader I/O.
             resolved = resolveDatasetPath(root, descriptor.relativePath);
-            if (!resolved || !resolved.value().exists) {
-                availability->access = CacheAccess::UnsafePath;
-                availability->pathError = resolved ? ioError(QStringLiteral("Dataset disappeared")) : resolved.error();
+            if (!resolved) return unavailable(resolved.error());
+            if (!resolved.value().exists) {
+                availability->access = CacheAccess::Missing;
             } else {
                 auto reader = cache::CacheReader::open(resolved.value().absolutePath, limits, cancel, context);
                 if (!reader) {
@@ -76,14 +95,21 @@ Result<LoadedProject> probe(std::shared_ptr<SavedProject> saved, cache::Resource
                     availability->access = e.code == cache::ErrorCode::UnsupportedFormat ? CacheAccess::Unsupported
                         : e.code == cache::ErrorCode::CorruptCache || e.code == cache::ErrorCode::IncompleteCache
                             ? CacheAccess::Corrupt : CacheAccess::FileIO;
-                } else if (!sameMetadata(reader.value()->metadata(), descriptor.metadata)
-                           || identity != lease.identity()) {
+                } else if (!sameMetadata(reader.value()->metadata(), descriptor.metadata)) {
                     availability->access = CacheAccess::Corrupt;
                     availability->cacheError = cache::makeError(cache::ErrorCode::CorruptCache,
                         cache::Phase::CacheRead, cache::Operation::Decode, QStringLiteral("Dataset metadata differs from manifest"));
                 } else {
-                    availability->reads = reader.value()->statistics();
-                    saved->datasetIdentity = identity;
+                    const auto repeatedIdentity = lease.identity();
+                    if (!repeatedIdentity) return unavailable(repeatedIdentity.error());
+                    if (identity.value() != repeatedIdentity.value()) {
+                        availability->access = CacheAccess::Corrupt;
+                        availability->cacheError = cache::makeError(cache::ErrorCode::CorruptCache,
+                            cache::Phase::CacheRead, cache::Operation::Decode, QStringLiteral("Dataset file identity changed while checking"));
+                    } else {
+                        availability->reads = reader.value()->statistics();
+                        saved->datasetIdentity = identity.value();
+                    }
                 }
             }
         }

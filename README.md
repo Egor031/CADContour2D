@@ -195,15 +195,15 @@ cmake --build --preset windows-debug --target CADContour2D import_application_te
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
-Актуальная проверка после 05.3: в той же CMD-среде выполнены `cmake --build --preset
+Актуальная проверка после исправления R1 в 05.3: в той же CMD-среде выполнены `cmake --build --preset
 windows-debug --target all all_qmllint --parallel 4` и соответствующая команда
 `windows-release`, затем полный `ctest --preset <preset> -L production --output-on-failure`.
-В каждой конфигурации **583 passed / 0 failed / 1 skipped из 584**. Новый `open_tests`
+В каждой конфигурации **609 passed / 0 failed / 1 skipped из 610**. `open_tests`
 включается при BUILD_TESTING и входит в production; отдельно проверены
 `ctest --preset windows-debug -R ^OpenApplication --output-on-failure` и вариант
-`windows-release` — **58/58** в каждом. Единственный SKIP — file-symlink privilege
+`windows-release` — **84/84** в каждом, включая 26 новых R1 regressions. Единственный SKIP — file-symlink privilege
 1314; junction, ACL и cross-volume Open/Save As прошли.
-[Команды, результаты и ограничения 05.3](docs/reports/task-05/open-implementation.md#f-tests-and-regression).
+[Команды, результаты и ограничения исправления R1](docs/reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
 Далее сохранены исторические результаты предыдущих этапов.
 
 Задача 02 после исправления R1: **132/132 PASS в Debug и Release** — 32 domain/application/coordinate, 51 operation, 35 view model, 13 production QML integration и один dependency smoke. Production tests и отдельный `operation_probe` включаются при `BUILD_TESTING` независимо от генератора. Фильтр `-L production` исключает его полную регрессию. `all_qmllint` прошёл для production и verification QML в обеих конфигурациях.
@@ -481,8 +481,9 @@ build\windows-release\operation_probe.exe
 задача 05 целиком не завершена. **05.2 — ACCEPTED** после финальной независимой
 проверки исправлений R1/R2 на `cedf844`.
 [Заключение по 05.2](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
-**05.3 — READY FOR INDEPENDENT REVIEW**: C++ Open/partial availability реализованы
-и проверены. 05.4 Recovery и 05.5 GUI Save/Open не начаты.
+**05.3 — R1 FIXED — READY FOR INDEPENDENT VERIFICATION**: после FIXES REQUIRED
+исправлена классификация повторных filesystem failures; повторная независимая
+проверка ещё не выполнена. 05.4 Recovery и 05.5 GUI Save/Open не начаты.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -735,5 +736,15 @@ junction, перенос C: → D:, dirty/Undo, shutdown/reentry и оба ис�
 Большие performance/Peak Working Set, UNC и power-loss проверки не выполнялись.
 Форматы v1 и Save permission/receipt сохранены. [Отчёт A–J](docs/reports/task-05/open-implementation.md),
 [протокол](docs/architecture.md#282-open-и-частичная-доступность-053).
-**READY FOR INDEPENDENT REVIEW**; 05.3 ещё не принята, задача 05 не завершена.
+Первоначальный статус: **READY FOR INDEPENDENT REVIEW**; 05.3 ещё не принята,
+задача 05 не завершена.
+
+Независимое ревью исходной 05.3 выявило R1/P2: отказ повторной identity ошибочно
+становился Corrupt, FileIO повторного resolver — UnsafePath. R1 независимо подтверждено
+и исправлено: native error сохраняется сразу, FileIO/Missing/UnsafePath различаются,
+известный resource failure сохраняет прежний сеанс. Без изменения форматов, Save
+и lifecycle. Baseline RED: 10 PASS / 16 FAIL, после исправления новые cases 26/26;
+Open 84/84, production 609 PASS / 0 FAIL / 1 SKIP в Debug и Release.
+[Доказательства и результаты R1](docs/reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
+**R1 FIXED — READY FOR INDEPENDENT VERIFICATION**; 05.3 ещё не принята.
 

@@ -1,5 +1,9 @@
 # Task 05.3 — Open и частичная доступность
 
+Исходная реализация `396662d` получила **FIXES REQUIRED** по замечанию R1/P2.
+Проверка и исправление R1 описаны в [§K](#k-r1--проверка-и-исправление).
+Разделы A–J ниже сохраняют исторические результаты реализации до этого ревью.
+
 ## A. Baseline
 
 Дата: 2026-10-20. Branch `main`, исходный HEAD
@@ -243,3 +247,207 @@ Cancellation кооперативна: уже выполняющийся OS read
 **READY FOR INDEPENDENT REVIEW.** Реализация 05.3 и необходимые доступные проверки
 завершены. 05.3 ещё не принята; вся задача 05 не завершена. 05.4 Autosave/Recovery
 и 05.5 GUI не начаты. Следующий этап — независимое ревью 05.3 в отдельном контексте.
+
+## K. R1 — проверка и исправление
+
+### A. Baseline
+
+Дата: 2026-10-20. Branch `main`, исходный HEAD
+`396662d3e7a17abc5fab124f90a7f6ea0df8b69c`, рабочее дерево и index чистые.
+Это реализация 05.3, получившая независимый вердикт FIXES REQUIRED по одному R1/P2;
+других подтверждённых замечаний в предоставленном заключении нет. 05.3 не принята.
+
+Проверены AGENTS.md, актуальные README/requirements §32/architecture §§28.2,39,
+этот отчёт, `project_open.cpp/.h`, `project_storage.cpp/.h`, persistence Error/Result,
+controller mapping openError, Open tests и существующая MSVC/Qt сборочная среда.
+Значения Win32 resource codes проверены по установленному Windows SDK 10.0.26100.0
+`D:/Windows Kits/10/Include/10.0.26100.0/shared/winerror.h`.
+
+### B. Verification of R1
+
+**R1.1 — CONFIRMED.** Open (`loadProject`) и Recheck (`recheckPointCache`) вызывают
+общий probe. ReadLease получает identity через GetFileInformationByHandle, затем
+GetFileInformationByHandleEx(FileBasicInfo). Прежде любой API failure или неподходящие
+attributes возвращали пустой optional без причины отказа. После успешной первой
+identity выражение `identity != lease.identity()` считало пустой повторный результат
+несовпадением и выставляло Corrupt с сообщением о metadata mismatch. Native error
+в этой ветке терялся; первое наблюдение тоже не различало системные ресурсы и I/O.
+
+**R1.2 — CONFIRMED.** Повторный resolveDatasetPath мог вернуть FileIO, однако probe
+безусловно выставлял UnsafePath. `exists=false` также ошибочно становилось UnsafePath.
+Первое наблюдение resolver уже различало FileIO и path violation. Исходный resolver
+сохраняет native error в diagnostic, поэтому его ошибку можно передать без догадок.
+
+Сначала изменены **только tests/open_tests.cpp**: production-код и обе библиотеки
+оставались исходными. Локальные scopes заменяют три import slots только тестового
+executable (оба identity API и GetFileAttributesW), подают отказ точно на нужном
+наблюдении и восстанавливают slots после native completion/join. Qt DLLs и системные
+библиотеки не изменяются. Случайные filesystem races и production test seams не нужны.
+
+На baseline в **Debug и Release: 10 passed / 16 failed / 0 skipped из 26**, CTest exit 1.
+Отказ повторной identity с 59 воспроизвёл Corrupt вместо FileIO; ошибка 8 не давала
+ожидаемый ResourceExhausted failure; access denied при повторном resolver давал
+UnsafePath вместо FileIO. Контроли успешного Open/Recheck, первого обычного API failure,
+действительного различия двух успешно возвращённых identity и unsafe path прошли.
+Заключение ревьюера независимо подтверждено; расхождения с ним не обнаружены.
+
+Исправление production необходимо: недоказанное повреждение/небезопасность — ложная
+диагностика, способная привести пользователя к ненужной замене исправного cache;
+ресурсный отказ должен оставлять прежний сеанс, а не публиковать partial candidate.
+Файлы при исходной ошибке не перезаписывались и недоступный cache не становился
+доступным. Для ordinary I/O по-прежнему уместен partial Open по валидному manifest.
+
+### C. Root Cause
+
+Внутренний optional объединял несовместимые смыслы: API failure и отсутствующее
+валидное наблюдение. Сравнение с прежним значением выполнялось до проверки причины
+отсутствия. Повторный resolver аналогично объединял ошибку наблюдения и обнаруженную
+небезопасность в одну ветвь. Существующие 58 Open cases проверяли реальные
+sharing/ACL/junction и corruption, но не управляемый отказ **второго** наблюдения
+после успешного первого; эти реальные отказы обычно останавливали probe раньше.
+
+### D. Changes
+
+Production ограничен `src/persistence/project_open.cpp`:
+
+- ReadLease::identity возвращает существующий Result<DatasetFileIdentity> с причиной
+  отказа вместо optional. GetLastError копируется в DWORD непосредственно после
+  каждого неуспешного Win32 вызова, до QString/другого API.
+- Native codes 8, 14, 1450, 1816 отображаются в существующий ResourceExhausted;
+  остальные API failures — FileIO. Код сохраняется как `Win32 N` в существующем
+  Error.detail, без расширения публичного Error или парсинга текста.
+- Только успешная повторная identity сравнивается с первой. Фактическое различие
+  сохраняет безопасный Corrupt с отдельной диагностикой изменения file identity.
+  Metadata mismatch и настоящие Reader corruption/unsupported проверки сохранены.
+- Общая локальная ветвь обработки Error сохраняет FileIO/UnsafePath; ResourceExhausted
+  возвращается как operation failure. Оба resolver observations используют одинаковое
+  отображение, `exists=false` означает Missing. Наблюдённые directory/reparse attributes
+  остаются UnsafePath. Ошибка CreateFile также захватывается немедленно.
+
+Tests изменены только в `tests/open_tests.cpp`; CMake, публичные headers, форматы v1,
+Save 05.2, controller и OperationRunner не менялись. Новой общей Win32 infrastructure,
+зависимостей, вычислений, дополнительных файловых чтений или production hooks нет.
+Documentation changes: это дополнение, краткое уточнение architecture §28.2 и
+актуальные результаты/статусы в README, docs index и implementation-plan.
+
+### E. Regression Tests
+
+13 сценариев выполняются через C++ application API в двух вариантах: Open и Recheck,
+всего 26 новых cases. Mode numbers ниже соответствуют порядку enum ObservationFault::Mode
+(GoogleTest отображает enum как four-byte value в именах параметров).
+
+| Mode | Сценарий | Baseline, каждый путь | Исправленное поведение |
+|---|---|---|---|
+| 0 | Оба identity observations успешны и совпадают | PASS | AvailableLimited |
+| 1,11 | Первый identity/BasicInfo API → 59 | PASS | FileIO + Win32 59 |
+| 2,9 | Второй identity/BasicInfo API → 59 | FAIL | FileIO + Win32 59, без ложного cacheError |
+| 3,10 | Второй identity/BasicInfo API → 8 | FAIL | ResourceExhausted + Win32 8, прежний сеанс |
+| 4,12 | Первый identity/BasicInfo API → 8 | FAIL | ResourceExhausted + Win32 8, прежний сеанс |
+| 5 | Два успешных identity результата различаются | PASS | Corrupt, cache не доступен |
+| 6 | Второй resolver observation → access denied (5) | FAIL | FileIO + исходный Error |
+| 7 | Второй resolver observation подтверждает reparse | PASS | UnsafePath |
+| 8 | Второй resolver observation → file not found (2) | FAIL | Missing |
+
+Контроль различия identity возвращает два успешных Win32 результата с разными file
+IDs; он не изменяет физический cache под read lease. Counters подтверждают точный
+номер запроса и отсутствие случайного отказа первого вместо второго.
+После снятия каждой подмены тот же запрос успешно возвращает AvailableLimited.
+
+Assertions проверяют неизменность manifest/cache bytes, отсутствие фиктивной
+datasetIdentity при partial access, запрет cell/Save при недоступности; published
+snapshotId/digest/ProjectId. Для Recheck и resource failure дополнительно проверены
+прежние ProjectState pointer, stamp, cell, binding, Undo/Redo count/index и dirty;
+resource failure сохраняет сам saved baseline pointer. Ordinary I/O при Open остаётся
+успешной подтверждённой заменой на partial session с пустой history и clean state —
+это принятый контракт 05.3, не потеря прежнего сеанса при operation failure.
+Recovery проверяет 73 728 Reader bytes и ноль point pages.
+
+На исправленном коде отдельный R1-прогон: **26 / 0 / 0 в обеих конфигурациях**.
+Существующие header/footer/root damage, unsupported, actual ACL/sharing и junction
+cases остаются в полном Open suite без ослабления.
+
+### F. Build and Tests
+
+Все значения passed / failed / skipped; Persistence/Save и Operation/Import ниже —
+поднаборы полного production, а не дополнительные отдельные прогоны.
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Сборка `all` | PASS | PASS |
+| Новые R1 regressions отдельно | 26 / 0 / 0 | 26 / 0 / 0 |
+| Полный Open suite | 84 / 0 / 0 | 84 / 0 / 0 |
+| Persistence/Save | 70 / 0 / 1 из 71 | 70 / 0 / 1 из 71 |
+| Operation/Import/ASC/confirmation/GUI | 206 / 0 / 0 | 206 / 0 / 0 |
+| Production CTest | 609 / 0 / 1 из 610 | 609 / 0 / 1 из 610 |
+| `all_qmllint` | PASS | PASS |
+| Diff checks | PASS (общий diff) | PASS (общий diff) |
+
+Полный production занял 141.92 s Debug / 76.91 s Release. В нём также прошли все
+14 QML integration cases. Единственный SKIP в обеих конфигурациях — прежний
+`Persistence.StoragePath.FileSymlinkEscape`, Win32 1314, а не новая регрессия.
+Новых FAIL/SKIP после исправления нет. Сборки и lint без новых diagnostics.
+Большие caches/многогигабайтные benchmarks не создавались и не запускались.
+
+Команды выполнялись из корня в существующей MSVC/Qt среде:
+
+```bat
+build\task02-env.cmd cmake --build --preset windows-debug --target open_tests --parallel 4
+build\task02-env.cmd cmake --build --preset windows-release --target open_tests --parallel 4
+build\task02-env.cmd ctest --preset windows-debug -R R1Observation --output-on-failure
+build\task02-env.cmd ctest --preset windows-release -R R1Observation --output-on-failure
+build\task02-env.cmd cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+build\task02-env.cmd cmake --build --preset windows-release --target all all_qmllint --parallel 4
+build\task02-env.cmd ctest --preset windows-debug -R ^OpenApplication --output-on-failure
+build\task02-env.cmd ctest --preset windows-release -R ^OpenApplication --output-on-failure
+build\task02-env.cmd ctest --preset windows-debug -L production --output-on-failure
+build\task02-env.cmd ctest --preset windows-release -L production --output-on-failure
+git diff --check
+git diff --cached --check
+```
+
+R1-only команды выполнены сначала RED на исходном коде, затем GREEN после исправления.
+Логи в игнорируемом build: `r053-{debug,release}-red-build.log`, `-red.log`,
+`-green-build.log`, `-green.log`, `-build-final.log`, `-open-final.log`, `-production.log`;
+у CTest также соответствующие `-console.log`. Для каждого CTest использован
+`--output-log D:/ZherlitsynEE/CADContour2D/build/r053-<config>-<suite>.log`.
+
+### G. Compatibility and Data Safety
+
+Limited Open и повторная проверка по-прежнему не запускают validate/scanAll/copy,
+не пишут и не удаляют datasets. Число наблюдений успешного пути и Reader reads не
+увеличились. Partial I/O/Missing/UnsafePath блокируют зависимые команды; ошибка
+классификации никогда не превращается в AvailableLimited. Реальные corruption и
+unsupported format обнаруживаются прежним Reader. Resolver path/reparse protections
+не изменены, принятое удержание datasets сохраняется.
+
+SavedProject/domain restoration, saved content/digest, dirty/Undo/Redo, replacement
+gate, cancellation, native completion, shutdown и Save permission/receipt не менялись.
+Resource errors используют уже существующий application failure mapping, сохраняя
+предыдущий сеанс. Lifecycle/regression coverage проверяется полным production.
+
+### H. Documentation and Git
+
+Просмотрен полный diff: production — только локальная обработка ошибок probe,
+tests — только новые R1 fixtures/cases; публичные headers, Save, runner и resolver
+не изменены. `git diff --check` и `git diff --cached --check` прошли. В index только
+связанные исходники/tests/docs; несвязанных пользовательских изменений не было.
+Отдельный локальный commit — `fix filesystem observation error classification during open`.
+Commit hash сообщается в ответе после commit; self-referential hash в этот документ
+не записывается. Push запрещён заданием и не выполняется. 05.4/05.5 не затрагиваются.
+
+### I. Remaining Limitations
+
+Отказы повторных Win32 API детерминированно внедрены в тестовом executable, а не
+получены физическим отключением SMB/исчерпанием всей системной памяти. Это проверка
+обработки соответствующего результата API, не simulation всех сетевых отказов.
+Native code остаётся в diagnostic существующего Error, без нового публичного поля.
+Resolver предоставляет FileIO с native diagnostic без структурированной resource
+категории; его сообщение не парсится для угадывания resource error. Уже принятые
+filesystem/TOCTOU и limited-validation ограничения 05.3 не являются новыми дефектами.
+
+### J. Final Assessment
+
+**R1 FIXED — READY FOR INDEPENDENT VERIFICATION.** R1.1/R1.2 независимо подтверждены,
+обе первопричины исправлены, regression sensitivity доказана RED → FIX → GREEN,
+Debug/Release проверки успешны. Требуется повторная независимая проверка; 05.3
+и вся задача 05 не объявляются ACCEPTED. 05.4/05.5 не начаты.

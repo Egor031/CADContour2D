@@ -257,7 +257,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
 | 05.2 | Save / Save As | ACCEPTED |
-| 05.3 | Open и частичная доступность | READY FOR INDEPENDENT REVIEW |
+| 05.3 | Open и частичная доступность | R1 FIXED — READY FOR INDEPENDENT VERIFICATION |
 | 05.4 | Autosave / Recovery | NOT STARTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
 
@@ -284,7 +284,10 @@ cache оставляет доступными metadata; C++ guards запрещ�
 Open/recheck не запускают полную validation, scan, копирование или вычисления.
 Протокол — [architecture §28.2](architecture.md#282-open-и-частичная-доступность-053),
 проверки и ограничения — [отчёт 05.3](reports/task-05/open-implementation.md).
-05.3 готова к независимому ревью, но не принята. Recovery и GUI-интеграция Save/Open
+Независимое ревью 05.3 потребовало исправить R1/P2 (классификация filesystem failures).
+R1 независимо подтверждено и исправлено, RED → FIX → GREEN и Debug/Release проверки
+успешны; [дополнение R1](reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
+05.3 готова к повторной независимой проверке, но не принята. Recovery и GUI-интеграция Save/Open
 остаются задачами 05.4–05.5; вся задача 05 не завершена.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
