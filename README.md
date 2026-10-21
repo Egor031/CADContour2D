@@ -203,7 +203,10 @@ windows-debug --target all all_qmllint --parallel 4` и соответствую
 `ctest --preset windows-debug -R ^OpenApplication --output-on-failure` и вариант
 `windows-release` — **84/84** в каждом, включая 26 новых R1 regressions. Единственный SKIP — file-symlink privilege
 1314; junction, ACL и cross-volume Open/Save As прошли.
-[Команды, результаты и ограничения исправления R1](docs/reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
+[Команды и история исправления R1](docs/reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
+Результаты независимо подтверждены на `1415a6a`; **05.3 — ACCEPTED** 2026-10-21.
+[Независимая проверка и границы принятия](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
+При документальном закрытии сборки и тесты не повторялись.
 Далее сохранены исторические результаты предыдущих этапов.
 
 Задача 02 после исправления R1: **132/132 PASS в Debug и Release** — 32 domain/application/coordinate, 51 operation, 35 view model, 13 production QML integration и один dependency smoke. Production tests и отдельный `operation_probe` включаются при `BUILD_TESTING` независимо от генератора. Фильтр `-L production` исключает его полную регрессию. `all_qmllint` прошёл для production и verification QML в обеих конфигурациях.
@@ -470,20 +473,21 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**Задачи 01–04 и этапы 05.1–05.2: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задачи 01–04 и этапы 05.1–05.3: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 Задача 04 принята 2026-10-19 после финального независимого ревью:
 **REVIEW PASSED — TASK 04 ACCEPTABLE** на HEAD
 `a227f3865f5bbd3068eb7e8eb95febc3e2ce241d`. Подтверждённых дефектов P0–P3 и
 существенных неподтверждённых рисков — 0; обязательных исправлений нет.
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
-В задаче 05 приняты этапы 05.1 — Persistence Foundation и 05.2 — Save / Save As;
+В задаче 05 приняты этапы 05.1–05.3;
 задача 05 целиком не завершена. **05.2 — ACCEPTED** после финальной независимой
 проверки исправлений R1/R2 на `cedf844`.
 [Заключение по 05.2](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
-**05.3 — R1 FIXED — READY FOR INDEPENDENT VERIFICATION**: после FIXES REQUIRED
-исправлена классификация повторных filesystem failures; повторная независимая
-проверка ещё не выполнена. 05.4 Recovery и 05.5 GUI Save/Open не начаты.
+**05.3 — ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`;
+R1.1/R1.2 — FIXED и закрыты, итог ревью — **READY FOR ACCEPTANCE**.
+[Заключение по 05.3](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
+05.4 Recovery и 05.5 GUI Save/Open — NOT STARTED.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -621,8 +625,7 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. В задаче 05 приняты 05.1–05.2; C++ Open/partial availability
-реализованы в 05.3 и ожидают независимого ревью; GUI Save/Open и recovery ещё не реализованы;
+и ограничения. В задаче 05 приняты 05.1–05.3; GUI Save/Open и recovery ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -729,15 +732,15 @@ metadata и диагностику. C++ закрывает cell/Save/завис�
 AvailableLimited не означает полную integrity validation. Последующий Save повторяет
 filesystem checks и переиспользует неизменённый cache без копирования.
 
-Debug/Release build/lint — PASS; новые Open tests **58/58** и полный production
+Исходная проверка `396662d`: Debug/Release build/lint — PASS;
+новые Open tests **58/58** и полный production
 **583 passed / 0 failed / 1 skipped** в каждой конфигурации. SKIP — существующий
 file-symlink test без privilege 1314. Проверены реальные Windows ACL/sharing failures,
 junction, перенос C: → D:, dirty/Undo, shutdown/reentry и оба исхода Uncertain Save.
 Большие performance/Peak Working Set, UNC и power-loss проверки не выполнялись.
 Форматы v1 и Save permission/receipt сохранены. [Отчёт A–J](docs/reports/task-05/open-implementation.md),
 [протокол](docs/architecture.md#282-open-и-частичная-доступность-053).
-Первоначальный статус: **READY FOR INDEPENDENT REVIEW**; 05.3 ещё не принята,
-задача 05 не завершена.
+Исторический статус реализации до ревью: **READY FOR INDEPENDENT REVIEW**.
 
 Независимое ревью исходной 05.3 выявило R1/P2: отказ повторной identity ошибочно
 становился Corrupt, FileIO повторного resolver — UnsafePath. R1 независимо подтверждено
@@ -746,5 +749,10 @@ junction, перенос C: → D:, dirty/Undo, shutdown/reentry и оба ис�
 и lifecycle. Baseline RED: 10 PASS / 16 FAIL, после исправления новые cases 26/26;
 Open 84/84, production 609 PASS / 0 FAIL / 1 SKIP в Debug и Release.
 [Доказательства и результаты R1](docs/reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
-**R1 FIXED — READY FOR INDEPENDENT VERIFICATION**; 05.3 ещё не принята.
+Повторная независимая проверка на `1415a6a7b3ccd5bb2e7a719c4ed3f70f773e44ae`
+подтвердила R1.1/R1.2 — **FIXED**, RED → GREEN и результаты Debug/Release;
+новых подтверждённых дефектов нет. Итог ревью — **READY FOR ACCEPTANCE**.
+**05.3 — ACCEPTED** пользователем 2026-10-21.
+[Независимая проверка, результаты и ограничения](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
+05.1–05.3 — ACCEPTED; 05.4–05.5 — NOT STARTED. Вся задача 05 не завершена.
 

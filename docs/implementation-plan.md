@@ -251,13 +251,13 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1 и 05.2 — ACCEPTED. Вся задача 05 не завершена и не принята.**
+**Статус: 05.1–05.3 — ACCEPTED; 05.4–05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
 
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
 | 05.2 | Save / Save As | ACCEPTED |
-| 05.3 | Open и частичная доступность | R1 FIXED — READY FOR INDEPENDENT VERIFICATION |
+| 05.3 | Open и частичная доступность | ACCEPTED |
 | 05.4 | Autosave / Recovery | NOT STARTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
 
@@ -287,8 +287,12 @@ Open/recheck не запускают полную validation, scan, копиро
 Независимое ревью 05.3 потребовало исправить R1/P2 (классификация filesystem failures).
 R1 независимо подтверждено и исправлено, RED → FIX → GREEN и Debug/Release проверки
 успешны; [дополнение R1](reports/task-05/open-implementation.md#k-r1--проверка-и-исправление).
-05.3 готова к повторной независимой проверке, но не принята. Recovery и GUI-интеграция Save/Open
-остаются задачами 05.4–05.5; вся задача 05 не завершена.
+05.3 принята пользователем 2026-10-21 после повторной независимой проверки commit
+`1415a6a7b3ccd5bb2e7a719c4ed3f70f773e44ae`: R1.1/R1.2 — FIXED и закрыты,
+вердикт ревью — **READY FOR ACCEPTANCE**, новых подтверждённых дефектов нет.
+[Итоги независимой проверки и границы принятия](reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
+Recovery и GUI-интеграция Save/Open остаются задачами 05.4–05.5 — NOT STARTED;
+вся задача 05 не завершена.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.

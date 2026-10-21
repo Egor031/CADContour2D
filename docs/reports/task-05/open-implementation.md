@@ -1,8 +1,13 @@
 # Task 05.3 — Open и частичная доступность
 
+**05.3 — ACCEPTED** пользователем 2026-10-21 на проверенном commit
+`1415a6a7b3ccd5bb2e7a719c4ed3f70f773e44ae`. R1.1/R1.2 — **FIXED** и закрыты
+после повторной независимой проверки; итог ревью — **READY FOR ACCEPTANCE**.
+Окончательные результаты и границы принятия — в [§L](#l-independent-verification-and-acceptance).
+
 Исходная реализация `396662d` получила **FIXES REQUIRED** по замечанию R1/P2.
 Проверка и исправление R1 описаны в [§K](#k-r1--проверка-и-исправление).
-Разделы A–J ниже сохраняют исторические результаты реализации до этого ревью.
+Разделы A–K ниже сохраняют историю реализации и исправлений до повторной независимой проверки.
 
 ## A. Baseline
 
@@ -451,3 +456,66 @@ filesystem/TOCTOU и limited-validation ограничения 05.3 не явл�
 обе первопричины исправлены, regression sensitivity доказана RED → FIX → GREEN,
 Debug/Release проверки успешны. Требуется повторная независимая проверка; 05.3
 и вся задача 05 не объявляются ACCEPTED. 05.4/05.5 не начаты.
+
+## L. Independent verification and acceptance
+
+Дата принятия пользователем: **2026-10-21**. **05.3 — ACCEPTED** на проверенном
+commit реализации и исправлений `1415a6a7b3ccd5bb2e7a719c4ed3f70f773e44ae`.
+Проверенный диапазон исправления — `396662d..1415a6a`; исходное независимое ревью
+реализации `396662d` и исправления R1 сохранены в предыдущих разделах.
+
+Повторная независимая проверка подтвердила **R1.1 — FIXED, R1.2 — FIXED**;
+оба замечания закрыты. Отказы обоих Win32 API получения identity отделены от
+реального несовпадения успешно полученных значений, исходная причина отказа
+сохраняется. Повторный resolver различает FileIO, Missing и UnsafePath без
+ослабления path safety. Новых подтверждённых дефектов и существенных регрессий
+не обнаружено. Вердикт независимого ревьюера — **READY FOR ACCEPTANCE**;
+пользователь принял этап.
+
+Результаты уже выполненной независимой проверки, passed / failed / skipped:
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Инкрементальная сборка `all` | PASS | PASS |
+| Независимый RED на `396662d` с новыми тестами | 10 / 16 / 0 | 10 / 16 / 0 |
+| R1 regressions после исправления, отдельно | 26 / 0 / 0 | 26 / 0 / 0 |
+| Полный Open suite, отдельно | 84 / 0 / 0 | 84 / 0 / 0 |
+| Persistence/Save, поднабор production | 70 / 0 / 1 из 71 | 70 / 0 / 1 из 71 |
+| Operation/Import/ASC/confirmation/GUI, поднабор production | 206 / 0 / 0 | 206 / 0 / 0 |
+| Полный production CTest | 609 / 0 / 1 из 610 | 609 / 0 / 1 из 610 |
+| Production QML integration, поднабор production | 14 / 0 / 0 | 14 / 0 / 0 |
+| `all_qmllint` | PASS | PASS |
+| Git diff/status checks | PASS (общая проверка) | PASS (общая проверка) |
+
+RED независимо воспроизведён в изолированных executable: точная копия
+`project_open.cpp` из `396662d` связана с новыми test objects без замены штатных
+библиотек или tracked-файлов. Blob hash копии совпал с Git; linker maps подтвердили
+происхождение `loadProject` и `recheckPointCache` из baseline object. Ожидаемые
+16 FAIL исходного кода и 26/26 PASS исправленного подтверждают чувствительность
+тестов, включая Open и Recheck. Журналы, XML и linker maps независимых прогонов
+сохранены локально в игнорируемом `build/review053-r1-20261021/`;
+временные исходники, response files, objects и RED executable удалены.
+
+Успешные сборки и тесты выполнены в штатной MSVC/Qt среде вне песочницы с разрешением.
+
+Единственный SKIP — ранее известный `Persistence.StoragePath.FileSymlinkEscape`,
+Win32 **1314**, нет privilege создания file symlink. Он не считается PASS.
+Cross-volume Open/Save As, реальные junction, ACL и sharing cases прошли.
+
+Принятие ограничено C++ Open/Recheck и partial availability в текущем составе данных:
+
+- AvailableLimited подтверждает только ограниченную проверку envelope/root/metadata,
+  а не целостность всех point pages и RecordId; автоматической полной validation нет.
+- Отказы API проверены детерминированным fault injection, без физического отключения
+  SMB или исчерпания системной памяти. Реальные UNC/SMB failures, power loss и большие
+  resource/performance benchmarks в повторной проверке не выполнялись.
+- Сохраняются документированные TOCTOU/cooperative-access ограничения и conservative
+  retention без GC. GUI Save/Open и Autosave/Recovery не входят в принятую 05.3.
+
+При документальном закрытии production-код, тесты, CMake и форматы не менялись;
+новые сборки, CTest, fault injection и benchmarks не запускались. Использованы
+подтверждённые результаты завершённой независимой проверки; на этом шаге
+проверяются документация, ссылки, статусы и Git diff.
+
+**05.1–05.3 — ACCEPTED; 05.4–05.5 — NOT STARTED. Вся задача 05 не завершена
+и не принята целиком.**
