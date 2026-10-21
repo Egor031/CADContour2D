@@ -18,6 +18,10 @@ struct LoadedProject {
     std::shared_ptr<const CacheAvailability> availability;
 };
 
+// Metadata-only binding shared by Open and Recovery; no filesystem access.
+Result<std::shared_ptr<const SavedProject>> bindProjectSnapshot(ProjectSnapshot snapshot,
+    QString directory, QString manifestPath = {}, QByteArray digest = {});
+
 // Read-only, bounded metadata I/O. No source access, scans, copies or temporary files.
 Result<LoadedProject> loadProject(const QString &manifestPath, ManifestLimits limits,
     cache::ResourceLimits readerLimits, cache::CacheReader::CancelCheck cancel = nullptr, void *context = nullptr);

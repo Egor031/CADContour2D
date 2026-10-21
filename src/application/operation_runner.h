@@ -38,6 +38,7 @@ struct OperationContext {
     PublicationDecision decision = PublicationDecision::Pending;
     ReadyOutcome outcome;
     std::optional<persistence::SaveCommitResult> saveReceipt;
+    std::optional<persistence::RecoveryReceipt> recoveryReceipt;
 };
 } // namespace detail
 
@@ -105,6 +106,10 @@ signals:
     void saveFinished(cadcontour::OperationId id,
                       std::shared_ptr<const cadcontour::persistence::SavedProject> prepared,
                       cadcontour::persistence::SaveCommitResult receipt);
+    void recoveryFinished(cadcontour::OperationId id,
+        std::shared_ptr<const cadcontour::persistence::RecoveryRecord> record,
+        std::shared_ptr<const cadcontour::persistence::RecoveryLease> lease,
+        cadcontour::persistence::RecoveryReceipt receipt);
     void released(cadcontour::OperationId id, cadcontour::WorkerStatus status,
                   cadcontour::OperationFailure failure, bool cleanupWarning);
 private:

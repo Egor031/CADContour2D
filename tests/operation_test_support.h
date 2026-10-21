@@ -47,6 +47,15 @@ inline bool finish(ProjectController &controller)
     return spinUntil([&] { OperationTestAccess::poll(controller); return !controller.operation().active; });
 }
 
+// A different controller/process wait can deliver the post-import Autosave tick.
+// Explicit callers retry after the background worker's native completion.
+inline bool finishBackgroundAutosave(ProjectController &controller)
+{
+    if (!controller.operation().active || controller.operation().kind != OperationKind::Autosave) return true;
+    controller.cancelOperation(); // may already have irrevocable publication permission
+    return finish(controller);
+}
+
 struct ControlledWork {
 private:
     struct Data {

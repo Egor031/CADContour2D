@@ -487,7 +487,8 @@ build\windows-release\operation_probe.exe
 **05.3 — ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`;
 R1.1/R1.2 — FIXED и закрыты, итог ревью — **READY FOR ACCEPTANCE**.
 [Заключение по 05.3](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.4 Recovery и 05.5 GUI Save/Open — NOT STARTED.
+05.4 Autosave/Recovery — READY FOR INDEPENDENT REVIEW, [отчёт](docs/reports/task-05/autosave-recovery.md).
+05.5 GUI Save/Open/Recovery и сквозная приёмка — NOT STARTED.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -625,7 +626,7 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. В задаче 05 приняты 05.1–05.3; GUI Save/Open и recovery ещё не реализованы;
+и ограничения. В задаче 05 приняты 05.1–05.3; GUI Save/Open ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -636,7 +637,7 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 и Windows reparse points. Новый импорт получает постоянный ProjectId; cell и Undo/Redo
 его сохраняют. Shared immutable DatasetLocation удерживает физическое расположение
 без удаления принятых cache при Close/замене. Binary Point Cache v1, worker gate и GUI
-сохранены. Save/Save As, Open, копирование cache, autosave/recovery ещё не реализованы.
+сохранены. В границы 05.1 не входили Save/Save As, Open, копирование cache и autosave/recovery.
 
 Точная схема и ограничения — [Project Manifest v1](docs/project-manifest-format.md),
 результаты проверок — [отчёт 05.1](docs/reports/task-05/persistence-foundation.md).
@@ -645,7 +646,7 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 H1/H2 — FIXED, итог ревью — **05.1 — READY FOR ACCEPTANCE**; новых блокирующих
 дефектов нет. [Итоги и границы принятия](docs/reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
 Задача 05 целиком не завершена; текущие реализации 05.2–05.3 описаны ниже,
-05.4–05.5 — NOT STARTED.
+05.4 описан ниже; 05.5 — NOT STARTED.
 
 По результатам уже выполненной повторной независимой проверки сборки Debug/Release
 и `all_qmllint` — PASS; итоговый production CTest в каждой конфигурации —
@@ -754,5 +755,31 @@ Open 84/84, production 609 PASS / 0 FAIL / 1 SKIP в Debug и Release.
 новых подтверждённых дефектов нет. Итог ревью — **READY FOR ACCEPTANCE**.
 **05.3 — ACCEPTED** пользователем 2026-10-21.
 [Независимая проверка, результаты и ограничения](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.1–05.3 — ACCEPTED; 05.4–05.5 — NOT STARTED. Вся задача 05 не завершена.
+05.1–05.3 — ACCEPTED; 05.4 описан ниже; 05.5 — NOT STARTED. Вся задача 05 не завершена.
+
+### Autosave / Recovery — 05.4
+
+C++ `ProjectController` автоматически сохраняет metadata после успешного Import/Save
+и по таймеру 60 секунд при изменениях. Неизменённое persistent content не записывается;
+Busy пропускается без очереди. Autosave не меняет explicit baseline, dirty и Undo/Redo.
+Отдельный recovery v1 в AppLocalDataLocation атомарно публикуется после write/flush
+через существующий managed worker, с отменой до permission и persisted receipt.
+
+`discoverRecovery`, `restoreRecovery`, `rejectRecovery` различают активный/прерванный/
+закрытый сеанс, повреждённую запись, совпадение/изменение/конфликт с explicit save.
+Restore сохраняет ProjectId и точный cell, создаёт новый runtime session с пустой
+историей и bounded cache availability; конфликт требует Save As. Неподтверждённый
+Close/Shutdown сохраняет recovery, подтверждённый Discard фиксируется отдельно.
+Datasets не копируются и не удаляются; полного cache scan/validate/rebuild нет.
+
+GUI workflow — 05.5; GC, power-loss и hostile filesystem protection не заявлены.
+Контракты — [architecture §31.1](docs/architecture.md#311-c-autosave--recovery-054),
+формат, команды, фактические проверки и ограничения —
+[отчёт 05.4](docs/reports/task-05/autosave-recovery.md).
+Debug/Release build и `all_qmllint` — PASS. Финальный production CTest в каждой
+конфигурации: **667 passed / 0 failed / 1 skipped** из 668; Recovery — **58/58**, включая
+**7 process crash tests**. SKIP — существующий file-symlink test без Windows privilege
+(1314). Autosave/discovery проверены с эксклюзивно закрытым cache и удалённым source;
+restore читает 73 728 bytes, ноль point pages. Детали и промежуточные failures — в отчёте.
+**05.4 — READY FOR INDEPENDENT REVIEW**; 05.5 и вся задача 05 не завершены.
 

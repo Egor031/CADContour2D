@@ -64,7 +64,8 @@ Result<LoadedProject> probe(std::shared_ptr<SavedProject> saved, cache::Resource
     };
     const auto &descriptor = saved->snapshot.datasets.at(0);
     const auto root = QString::fromStdWString(saved->content.location->storageDirectory.wstring());
-    auto resolved = resolveDatasetPath(root, descriptor.relativePath);
+    const auto relative = QString::fromStdWString(saved->content.location->relativeCachePath.generic_wstring());
+    auto resolved = resolveDatasetPath(root, relative);
     if (!resolved) return unavailable(resolved.error());
     if (!resolved.value().exists) {
         availability->access = CacheAccess::Missing;
@@ -81,7 +82,7 @@ Result<LoadedProject> probe(std::shared_ptr<SavedProject> saved, cache::Resource
         if (!identity) return unavailable(identity.error());
         {
             // The resolver's observation is repeated immediately before path-based Reader I/O.
-            resolved = resolveDatasetPath(root, descriptor.relativePath);
+            resolved = resolveDatasetPath(root, relative);
             if (!resolved) return unavailable(resolved.error());
             if (!resolved.value().exists) {
                 availability->access = CacheAccess::Missing;
@@ -135,10 +136,20 @@ Result<LoadedProject> loadProject(const QString &path, ManifestLimits limits,
     auto snapshot = readManifest(file, limits, &digest);
     if (!snapshot) return snapshot.error();
     file.close(); // dataset probe's two-handle budget excludes this completed metadata read
+    auto saved = bindProjectSnapshot(std::move(snapshot.value()), root, manifest.value().absolutePath, std::move(digest));
+    if (!saved) return saved.error();
+    return probe(std::make_shared<SavedProject>(*saved.value()), readerLimits, cancel, context);
+}
+
+Result<std::shared_ptr<const SavedProject>> bindProjectSnapshot(ProjectSnapshot snapshot,
+    QString root, QString path, QByteArray digest)
+{
+    if (!QDir::isAbsolutePath(root) || QDir::cleanPath(root) != root || root.contains(u'\0'))
+        return Error{ErrorCode::InvalidReference, {}, QStringLiteral("Invalid dataset root")};
     auto saved = std::make_shared<SavedProject>();
-    saved->snapshot = std::move(snapshot.value());
+    saved->snapshot = std::move(snapshot);
     saved->manifestDigest = std::move(digest);
-    saved->manifestPath = manifest.value().absolutePath;
+    saved->manifestPath = std::move(path);
     const auto &s = saved->snapshot;
     const auto &d = s.datasets.at(0);
     saved->content = ImportedDataset{d.metadata.id,
@@ -146,7 +157,7 @@ Result<LoadedProject> loadProject(const QString &path, ManifestLimits limits,
             s.storageId.toString(QUuid::WithoutBraces).toStdString(), root.toStdWString(), d.relativePath.toStdWString()}),
         s.source.path.toStdWString(), s.source.bytes, s.source.lines, d.metadata.pointCount,
         {d.metadata.bounds.minX, d.metadata.bounds.minY}, {d.metadata.bounds.maxX, d.metadata.bounds.maxY}, d.metadata.hasNonZeroZ};
-    return probe(std::move(saved), readerLimits, cancel, context);
+    return std::shared_ptr<const SavedProject>(std::move(saved));
 }
 
 Result<LoadedProject> recheckPointCache(const SavedProject &saved, cache::ResourceLimits limits,

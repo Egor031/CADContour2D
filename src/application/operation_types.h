@@ -4,6 +4,7 @@
 #include "io/asc_xyz_importer.h"
 #include "persistence/save_transaction.h"
 #include "persistence/project_open.h"
+#include "persistence/recovery_store.h"
 
 #include <QTemporaryDir>
 #include <QUuid>
@@ -34,8 +35,9 @@ enum class OperationStatus { Idle, Starting, Running, Cancelling, Finishing,
 enum class ShutdownState { Open, Closing, Ready };
 enum class FailureCategory { InvalidInput, ResourceUnavailable, ExecutionFailure };
 enum class FailureReason { PreparationFailed, LaunchFailed, NativeObservationFailed, OutOfMemory, StandardException,
-                           UnknownException, InvalidProduct, PublicationFailed, ImportFailed, CandidatePreparationFailed, SaveFailed, OpenFailed };
-enum class OperationKind { Verification, Import, Save, Open, RecheckCache };
+                           UnknownException, InvalidProduct, PublicationFailed, ImportFailed, CandidatePreparationFailed, SaveFailed, OpenFailed, RecoveryFailed };
+enum class OperationKind { Verification, Import, Save, Open, RecheckCache, Autosave,
+                           DiscoverRecovery, RestoreRecovery, RejectRecovery, CloseRecovery };
 
 struct OperationFailure {
     FailureCategory category = FailureCategory::ExecutionFailure;
@@ -46,6 +48,7 @@ struct OperationFailure {
     std::optional<cache::Error> importError; // preserves parser/cache category, phase and source location
     std::optional<persistence::SaveError> saveError;
     std::optional<persistence::Error> openError;
+    std::optional<persistence::Error> recoveryError;
     static OperationFailure make(FailureReason reason, OperationPhase phase,
                                  const char *detail = nullptr) noexcept;
 };
@@ -101,6 +104,9 @@ struct WorkerOutcome {
     std::unique_ptr<WorkerImportProduct> imported;
     std::unique_ptr<persistence::SaveTransaction> save;
     std::shared_ptr<const persistence::LoadedProject> loaded;
+    std::unique_ptr<persistence::RecoveryTransaction> recovery;
+    std::shared_ptr<const persistence::RestoredRecovery> restored;
+    std::shared_ptr<const std::vector<persistence::RecoveryCandidate>> discovered;
     static WorkerOutcome success(std::unique_ptr<VerificationProduct> product) noexcept;
     static WorkerOutcome success(std::unique_ptr<WorkerImportProduct> product) noexcept;
     static WorkerOutcome success(std::unique_ptr<persistence::SaveTransaction> product) noexcept;
@@ -118,6 +124,10 @@ struct ReadyOutcome {
     std::optional<ImportReadyProduct> imported;
     std::shared_ptr<const persistence::SavedProject> save;
     std::shared_ptr<const persistence::LoadedProject> loaded;
+    std::shared_ptr<const persistence::RecoveryRecord> recovery;
+    std::shared_ptr<const persistence::RecoveryLease> recoveryLease;
+    std::shared_ptr<const persistence::RestoredRecovery> restored;
+    std::shared_ptr<const std::vector<persistence::RecoveryCandidate>> discovered;
 };
 
 struct OperationState {

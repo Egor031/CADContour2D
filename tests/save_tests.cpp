@@ -499,6 +499,7 @@ TEST_F(Save, ConcurrentProcessesUseTheSameDirectoryLock)
     if (!waiting || child.state() == QProcess::NotRunning) {
         child.kill(); child.waitForFinished(); FAIL() << "Child did not reach commit barrier";
     }
+    ASSERT_TRUE(finishBackgroundAutosave(controller));
     EXPECT_EQ(controller.saveProject({target}).outcome, CommandOutcome::Applied);
     EXPECT_TRUE(finish(controller));
     EXPECT_EQ(controller.operation().status, OperationStatus::Failed);

@@ -138,7 +138,8 @@ TEST_F(ImportApplication, PersistentIdentityIsIndependentAcrossRuntimeInstancesA
     ASSERT_NE(other.project(), nullptr);
     EXPECT_EQ(other.project()->runtimeIdentity(), controller.project()->runtimeIdentity());
     EXPECT_NE(other.project()->projectId(), first);
-    controller.importAscXyz(request(true));
+    ASSERT_TRUE(finishBackgroundAutosave(controller));
+    ASSERT_EQ(controller.importAscXyz(request(true)).outcome, CommandOutcome::Applied);
     ASSERT_TRUE(finish(controller));
     EXPECT_NE(controller.project()->projectId(), first);
 }

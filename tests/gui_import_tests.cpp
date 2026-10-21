@@ -97,6 +97,7 @@ protected:
     }
     void beginReplacement(const QString &path)
     {
+        ASSERT_TRUE(finishBackgroundAutosave(controller));
         click("newProjectButton"); select(path);
         ASSERT_TRUE(visible("replacementDialog"));
     }

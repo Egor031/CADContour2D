@@ -187,13 +187,18 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
             failure.systemCode = context->nativeCompletion.error();
             outcome = WorkerOutcome::failed(failure);
         } else {
-            outcome = control.cancelled() ? WorkerOutcome::cancelled() : work(snapshot, control);
+            outcome = control.cancelled() && snapshot.kind != OperationKind::CloseRecovery
+                ? WorkerOutcome::cancelled() : work(snapshot, control);
         }
         const auto products = int(bool(outcome.product)) + int(bool(outcome.imported)) + int(bool(outcome.save))
-            + int(bool(outcome.loaded));
-        if (outcome.status == WorkerStatus::Succeeded && (products != 1
+            + int(bool(outcome.loaded)) + int(bool(outcome.recovery)) + int(bool(outcome.restored))
+            + int(bool(outcome.discovered));
+        if (outcome.status == WorkerStatus::Succeeded && (products != (snapshot.kind == OperationKind::CloseRecovery ? 0 : 1)
             || (snapshot.kind == OperationKind::Save) != bool(outcome.save)
-            || (snapshot.kind == OperationKind::Open || snapshot.kind == OperationKind::RecheckCache) != bool(outcome.loaded)))
+            || (snapshot.kind == OperationKind::Open || snapshot.kind == OperationKind::RecheckCache) != bool(outcome.loaded)
+            || (snapshot.kind == OperationKind::Autosave || snapshot.kind == OperationKind::RejectRecovery) != bool(outcome.recovery)
+            || (snapshot.kind == OperationKind::RestoreRecovery) != bool(outcome.restored)
+            || (snapshot.kind == OperationKind::DiscoverRecovery) != bool(outcome.discovered)))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
         if (outcome.status == WorkerStatus::Succeeded && outcome.imported && !validImportTransport(*outcome.imported))
             outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
@@ -214,6 +219,12 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         if (outcome.save)
             context->outcome.save = outcome.save->prepared();
         context->outcome.loaded = std::move(outcome.loaded);
+        if (outcome.recovery) {
+            context->outcome.recovery = outcome.recovery->prepared();
+            context->outcome.recoveryLease = outcome.recovery->lease();
+        }
+        context->outcome.restored = std::move(outcome.restored);
+        context->outcome.discovered = std::move(outcome.discovered);
         context->ready = true;
         if (context->zRequest) { // also clear a request if a test hook/worker threw
             context->zRequest.reset();
@@ -271,6 +282,19 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
             context->outcome.failure = failure;
         }
     }
+    if (decision == PublicationDecision::Accept && outcome.recovery) {
+        const auto receipt = outcome.recovery->commit();
+        std::lock_guard lock(context->mutex);
+        context->recoveryReceipt = receipt;
+        context->cleanupWarning = context->cleanupWarning || receipt.cleanupWarning;
+        if (!receipt.published) {
+            context->outcome.status = WorkerStatus::Failed;
+            auto failure = OperationFailure::make(FailureReason::RecoveryFailed, OperationPhase::Finalizing);
+            failure.recoveryError = receipt.error;
+            context->outcome.failure = std::move(failure);
+        }
+    }
+    outcome.recovery.reset();
     outcome.save.reset();
     outcome.imported.reset();
     // Product destruction and all scratch/capture cleanup run outside the mutex, on worker.
@@ -426,6 +450,8 @@ void OperationRunner::poll()
     context_.reset();
     if (context->saveReceipt)
         emit saveFinished(id, context->outcome.save, *context->saveReceipt);
+    if (context->recoveryReceipt)
+        emit recoveryFinished(id, context->outcome.recovery, context->outcome.recoveryLease, *context->recoveryReceipt);
     emit released(id, status, failure, warning);
 }
 

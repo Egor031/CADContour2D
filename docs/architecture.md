@@ -1107,7 +1107,7 @@ directory и относительным dataset path; ProjectSession больш�
 допускается накопление caches. До Accept cleanup по-прежнему принадлежит worker
 PendingCache/QTemporaryDir; irreversible gate и worker finalization не изменены.
 Save/Save As реализованы в 05.2 (§28.1), Open — в 05.3 (§28.2);
-Recovery и автоматическая GC не реализованы. При аварии процесса могут остаться непринятые attempt/scratch
+Recovery реализован в 05.4 (§31); автоматической GC нет. При аварии процесса могут остаться непринятые attempt/scratch
 files; автоматического scavenger нет.
 
 `ProjectState` остаётся Qt-независимой domain model без I/O. Его постоянный `ProjectId`
@@ -1358,6 +1358,75 @@ Autosave не должен без необходимости перезапис�
 После аварийного завершения программа должна иметь возможность обнаружить recovery state и предложить пользователю восстановление.
 
 Точная периодичность autosave является настройкой реализации, а не архитектурным контрактом.
+
+### 31.1. C++ Autosave / Recovery (05.4)
+
+`ProjectController::autosave()` использует тот же OperationRunner. Триггеры:
+успешный Import/Save после native join и QTimer (начальный интервал 60 секунд).
+При Busy попытка пропускается без очереди snapshots. Явная операция отзывает
+pending Autosave и возвращает Busy до native completion; caller повторяет её после
+освобождения worker. После irrevocable Accept необходимо дождаться receipt.
+Cell/Undo/Redo не инвалидируют snapshot; более поздние правки сохраняются в state.
+Отсутствие изменений определяется `matchesSavedContent`, а не runtime revision;
+смена explicit baseline/path также требует обновить recovery. Dirty, baseline,
+domain binding и история не меняются. Сохраняется только применённое domain state.
+
+Storage — `AppLocalDataLocation/projects/recovery/<session UUID>.pc2drecovery`.
+Переопределённый C++ storage root изолирует и recovery. Отдельный recovery v1 envelope
+содержит checksum, lifecycle, snapshot и physical dataset reference, optional explicit
+baseline с exact digest/path. Snapshots используют прежний manifest codec с точным
+binary64; форматы `.pc2dproj` и Point Cache v1 не изменены. Physical reference хранится
+отдельно, поскольку до первого Save cache расположен в принятом import storage.
+По умолчанию recovery ограничен 12 MiB, discovery — 1024 записями и 64 MiB metadata
+admission (включая прочитанные explicit baselines), каждый manifest —
+прежними 4 MiB/4096 tokens/depth 32. Это admission budgets metadata, не размер облака.
+
+Worker готовит QSaveFile с direct-write fallback=false, выполняет write/flush и ждёт
+Ready permission. Controller проверяет OperationId/context epoch/runtime identity;
+после Accept worker делает atomic commit. Только persisted receipt становится
+последним recovery controller. Кооперативный QLockFile, expected digest и удержание
+каталога native handle защищают публикацию; failure/cancel до commit сохраняют
+предыдущую запись. Cleanup failure после commit — warning, опубликованное сохраняется.
+
+`discoverRecovery()` читает только bounded metadata в worker, не меняя текущий проект
+или файлы. Active определяется эксклюзивным Windows kernel event с session UUID
+(Global namespace). RecoveryLease удерживается worker/controller, исчезает при
+crash, закрытие HANDLE не требует файлового I/O. Timestamps не доказывают актуальность.
+Различаются Active/Interrupted/Closed/Rejected/Invalid; отдельно —
+Unsaved/MatchesExplicit/Modified/Conflict/Unknown по content и exact baseline digest.
+Недоступный/изменившийся explicit save обрабатывается консервативно как Conflict.
+
+`restoreRecovery(RecoveryRequest)` повторно проверяет record/digest/paths, захватывает
+marker и переиспользует bounded cache probe и atomic owner exchange из Open.
+ProjectId/cell/metadata сохраняются; runtime identity новая, Undo/Redo пусты. Прежний
+проект сохраняется до Accept; confirmation/context/cancellation/reentry guards те же,
+что у Open. Partial availability и запрет зависимых операций сохраняются; recovered
+unsaved допускает явный bounded recheck без создания saved baseline. Closed candidate
+до Ready атомарно маркируется Open с тем же state/references: авария сразу после
+Accept обнаружима. Отмена последующего Accept может оставить консервативный Interrupted
+(незавершённая попытка восстановления), сохраняя целый candidate. Source recovery
+удерживается до следующего Autosave. При конфликте baseline отсоединён,
+`recoveryRequiresSaveAs()` запрещает обычный Save; независимый explicit save не меняется.
+
+`rejectRecovery(candidate)` фиксирует Rejected через permission/receipt; при ошибке
+candidate сохраняется. `closeProject(discardConfirmed=false)` и
+`requestShutdown(discardConfirmed=false)` сохраняют recovery. Только явный `true`
+фиксирует подтверждённый Discard. При Close/замене/shutdown lifecycle metadata
+маркируется Closed/Rejected в том же worker после завершения предыдущей операции.
+Shutdown Ready ждёт и этот worker; destructor fallback drain не требует GUI callbacks.
+Это ограниченный lifecycle I/O, не отменяемый общим shutdown cancellation. Ошибка
+маркировки сохраняет recovery и может оставить Interrupted. Низкоуровневый shutdown
+сохраняет последний опубликованный snapshot, не делает принудительного Save правок.
+GUI Save/Discard/Cancel и предложение восстановления относятся к 05.5.
+
+Autosave/discovery не открывают source/cache; restore/recheck читают только bounded
+envelope/root (73 728 bytes непустого cache v1, ноль point pages). Copy, scanAll,
+validate, импорт, PNG/reduced rebuild и geometry не вызываются. Accepted datasets
+сохраняются на диске независимо от shared_ptr/процесса; recovery фиксирует их ссылки,
+но не доказывает ownership для удаления. GC/scavenger не добавлены. Гарантии относятся
+к process crashes и обычным filesystem failures, не к физической потере питания,
+некооперативной подмене файлов или общему recovery root на разных компьютерах.
+Схема, проверки и ограничения — [отчёт 05.4](reports/task-05/autosave-recovery.md).
 
 ---
 
@@ -1632,9 +1701,9 @@ Compression не требуется для v1; возможное дальней
 
 - **Density Map Versions:** политика повторного построения с теми же параметрами, представление идентичности/provenance и связей datasets, persistence layout и UI переключения; обязательные контракты — §§9, 15, 23, 27–28. Автоматическое восстановление Precise Stage не утверждено (§6.2).
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
-- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2). Autosave/Recovery — отдельный следующий этап (§31), GUI Save/Open — 05.5.
+- **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.
-- **Autosave/Recovery:** период, триггеры, протокол записи и lifecycle (§31).
+- **Autosave/Recovery:** C++ storage/triggers/publication/lifecycle определены в §31.1; GUI-предложение восстановления и Save/Discard/Cancel — 05.5.
 - **Worker applicability:** механизм обеспечения инварианта §25.
 - **Precise methods:** локальные Open decision в [algorithms.md](algorithms.md#45-указатель-основных-open-decisions).
 - **DXF Version / NX Compatibility:** §38; окончательное решение после реальной проверки в целевом окружении.

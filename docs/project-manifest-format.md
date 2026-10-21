@@ -174,7 +174,7 @@ DatasetLocation ничего не удаляет, даже при уничтож
 AppData и будущие project-owned файлы сохраняются после Close, замены, очистки Undo и
 уничтожения controller. Scratch/PendingCache/QTemporaryDir до Accept принадлежат
 создавшему worker и сохраняют прежние cleanup правила. Неопределённые файлы не удаляются.
-Recovery persistent reachability и GC не реализованы; принятую retention policy
+Recovery persistent references реализованы отдельно в [architecture §31.1](architecture.md#311-c-autosave--recovery-054); GC нет. Принятую retention policy
 нельзя заменить удалением по одному лишь shared_ptr reference count.
 
 ## Гарантии публикации Save / Save As (05.2)

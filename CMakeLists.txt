@@ -41,6 +41,7 @@ add_library(cadcontour_persistence STATIC
     src/persistence/project_storage.h src/persistence/project_storage.cpp
     src/persistence/save_transaction.h src/persistence/save_transaction.cpp
     src/persistence/project_open.h src/persistence/project_open.cpp
+    src/persistence/recovery_store.h src/persistence/recovery_store.cpp
 )
 set_target_properties(cadcontour_persistence PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_persistence PUBLIC cadcontour_cache)

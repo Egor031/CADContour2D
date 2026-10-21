@@ -10,6 +10,19 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(recovery_tests operation_test_main.cpp recovery_tests.cpp)
+set_target_properties(recovery_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(recovery_tests PRIVATE cadcontour_application GTest::gtest)
+target_compile_options(recovery_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+add_executable(recovery_crash_probe recovery_crash_probe.cpp)
+set_target_properties(recovery_crash_probe PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(recovery_crash_probe PRIVATE cadcontour_application)
+target_compile_options(recovery_crash_probe PRIVATE /W4 /permissive- /fp:precise /utf-8)
+target_compile_definitions(recovery_tests PRIVATE RECOVERY_CRASH_PROBE_EXE="$<TARGET_FILE:recovery_crash_probe>")
+add_dependencies(recovery_tests recovery_crash_probe)
+gtest_discover_tests(recovery_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX RecoveryApplication.
+    PROPERTIES LABELS production TIMEOUT 45)
+
 add_executable(open_tests operation_test_main.cpp open_tests.cpp)
 set_target_properties(open_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(open_tests PRIVATE cadcontour_application GTest::gtest Advapi32)

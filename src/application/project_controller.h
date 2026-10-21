@@ -25,6 +25,13 @@ struct OpenRequest {
     bool replacementConfirmed = false;
     std::optional<ImportContext> expectedContext;
 };
+struct RecoveryRequest {
+    persistence::RecoveryCandidate candidate;
+    persistence::RecoveryLimits limits;
+    cache::ResourceLimits readerLimits{1ULL << 20, 0, 2};
+    bool replacementConfirmed = false;
+    std::optional<ImportContext> expectedContext;
+};
 
 class ProjectController : public QObject {
     Q_OBJECT
@@ -55,14 +62,21 @@ public:
     bool isDirty() const noexcept;
     const persistence::SavedProject *savedProject() const noexcept;
     const persistence::SavedProject *unconfirmedSave() const noexcept;
+    CommandResult autosave(); // timer tick: Busy is skipped, never queued
+    CommandResult discoverRecovery(persistence::RecoveryLimits limits = {});
+    const std::vector<persistence::RecoveryCandidate> &recoveryCandidates() const noexcept;
+    CommandResult restoreRecovery(RecoveryRequest request);
+    CommandResult rejectRecovery(persistence::RecoveryCandidate candidate, persistence::RecoveryLimits limits = {});
+    const persistence::RecoveryRecord *recoveryRecord() const noexcept;
+    bool recoveryRequiresSaveAs() const noexcept;
     // UI captures this before file selection; startImport rechecks it before launching.
     std::optional<ImportContext> importContext() const noexcept;
-    CommandResult closeProject();
+    CommandResult closeProject(bool discardConfirmed = false);
     CommandResult setCell(double value);
     CommandResult undo();
     CommandResult redo();
     CommandResult cancelOperation();
-    CommandResult requestShutdown();
+    CommandResult requestShutdown(bool discardConfirmed = false);
 
 signals:
     // Emitted once with both domain state and undo history settled; reentry is rejected.
@@ -70,12 +84,14 @@ signals:
     void operationChanged();
     void shutdownChanged();
     void nonZeroZConfirmationChanged();
+    void recoveryChanged();
 
 private:
     friend class ProjectControllerTestAccess;
     friend class OperationTestAccess;
     friend class SaveTestAccess;
     friend class OpenTestAccess;
+    friend class RecoveryTestAccess;
     class CommandScope;
     // Reverse destruction order: undo commands disappear before their referenced state.
     // DatasetLocation retains accepted files across session/controller destruction.
@@ -87,6 +103,10 @@ private:
         std::shared_ptr<const persistence::SavedProject> unconfirmed;
         std::shared_ptr<const persistence::CacheAvailability> availability =
             std::make_shared<const persistence::CacheAvailability>();
+        QUuid recoveryId = QUuid::createUuid();
+        std::shared_ptr<const persistence::RecoveryRecord> recovery;
+        std::shared_ptr<const persistence::RecoveryLease> recoveryLease;
+        bool recoveryConflict = false;
     };
     struct VerificationState {
         std::uint64_t generation = 0;
@@ -111,9 +131,29 @@ private:
     void finishOperation(OperationId id, WorkerStatus status, OperationFailure failure, bool warning);
     void finishCommand();
     void notifyNonZeroZConfirmation();
+    void processRecoveryReceipt(OperationId id, std::shared_ptr<const persistence::RecoveryRecord> record,
+        std::shared_ptr<const persistence::RecoveryLease> lease, persistence::RecoveryReceipt receipt);
+    void retireRecovery(bool discardConfirmed);
+    void finishRecoverySessions();
+    bool preemptAutosave();
 
     std::unique_ptr<ProjectSession> session_;
     QString storageRoot_;
+    QString recoveryRoot_;
+    QTimer autosaveTimer_;
+    QTimer autosaveSoon_;
+    struct RetiredRecovery {
+        QUuid id;
+        std::shared_ptr<const persistence::RecoveryLease> lease;
+        bool discard = false;
+    };
+    std::vector<RetiredRecovery> retiredRecoveries_;
+    std::shared_ptr<const std::vector<persistence::RecoveryCandidate>> recoveryCandidates_;
+    bool shutdownDiscard_ = false;
+    bool recoveryClosing_ = false;
+    std::function<persistence::Result<std::unique_ptr<persistence::RecoveryTransaction>>(
+        QString, persistence::RecoveryRecord, std::shared_ptr<const persistence::RecoveryLease>,
+        persistence::RecoveryLimits, std::function<bool()>)> recoveryPrepare_;
     QString importSourcePath_;
     OperationSnapshot snapshot_;
     std::uint64_t contextEpoch_ = 0;

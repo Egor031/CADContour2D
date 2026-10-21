@@ -251,14 +251,14 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1–05.3 — ACCEPTED; 05.4–05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
+**Статус: 05.1–05.3 — ACCEPTED; 05.4 — READY FOR INDEPENDENT REVIEW; 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
 
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
 | 05.2 | Save / Save As | ACCEPTED |
 | 05.3 | Open и частичная доступность | ACCEPTED |
-| 05.4 | Autosave / Recovery | NOT STARTED |
+| 05.4 | Autosave / Recovery | READY FOR INDEPENDENT REVIEW |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
 
 05.1 принята пользователем на commit `408757c9e26b4369b065ba9ee315d48a70336773`:
@@ -291,8 +291,13 @@ R1 независимо подтверждено и исправлено, RED �
 `1415a6a7b3ccd5bb2e7a719c4ed3f70f773e44ae`: R1.1/R1.2 — FIXED и закрыты,
 вердикт ревью — **READY FOR ACCEPTANCE**, новых подтверждённых дефектов нет.
 [Итоги независимой проверки и границы принятия](reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-Recovery и GUI-интеграция Save/Open остаются задачами 05.4–05.5 — NOT STARTED;
-вся задача 05 не завершена.
+05.4 реализует C++ Autosave/Recovery: отдельный versioned metadata record,
+atomic publication без копирования datasets, discovery/restore/reject, explicit
+baseline/conflict/partial availability и lifecycle в существующем worker gate.
+Протокол — [architecture §31.1](architecture.md#311-c-autosave--recovery-054),
+проверки и ограничения — [отчёт 05.4](reports/task-05/autosave-recovery.md).
+GUI-интеграция и сквозная пользовательская приёмка — 05.5, NOT STARTED;
+вся задача 05 не завершена и не принята.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.
