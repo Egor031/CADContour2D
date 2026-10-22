@@ -11,11 +11,14 @@
 | [Requirements](requirements.md) | Функциональные требования, ограничения и пользовательское поведение |
 | [Architecture](architecture.md) | Подсистемы, зависимости, владение состоянием, threading и persistence |
 | [Algorithms](algorithms.md) | Математические контракты, Required, Current approach и Open decisions |
+| [UX/UI Design](ui-design.md) | Единая подробная целевая UX/UI-спецификация: компоновка, команды, этапы, workflow и открытые UX-вопросы |
 | [Implementation Plan](implementation-plan.md) | Последовательность реализации, границы задач и актуальные статусы |
 | [Persistent Point Cache Format](point-cache-format.md) | Binary layout v1, codec, Writer/Reader, spatial queries и validation |
 | [Project Manifest v1](project-manifest-format.md) | Строгая JSON schema, точные числа, metadata budgets, пути и retention 05.1 |
 
 План реализации не имеет приоритета над требованиями, архитектурой и алгоритмами.
+UX/UI Design действует в пределах их контрактов; согласование интерфейса не означает
+реализацию функций и не меняет статусы задач.
 Обзор проекта и проверенные команды сборки — в [корневом README](../README.md).
 
 ## Инструменты разработки
