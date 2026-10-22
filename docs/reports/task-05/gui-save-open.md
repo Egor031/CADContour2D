@@ -1,5 +1,10 @@
 # Task 05.5A — GUI Save/Open и безопасный жизненный цикл
 
+Независимое ревью исходного commit `d45358a` завершилось **NEEDS FIXES** (R1/O1).
+Разделы исходной реализации ниже сохраняют исторические результаты, а не объявляют
+замечания закрытыми. Исправления и текущие проверки —
+[Independent recheck fixes](#independent-recheck-fixes).
+
 ## Baseline
 
 2026-10-22, ветка `main`, HEAD
@@ -221,3 +226,156 @@ anchors отдельно не проверялись. Временный environ
 логи проверок остаются в ignored `build/`. Несвязанных пользовательских изменений
 на baseline не было. Локальный commit следует стилю истории; hash — в итоговом ответе.
 Push, PR, deployment и переход к 05.5B не выполняются.
+
+## Independent recheck fixes
+
+### A. Baseline
+
+Ветка `main`, исходный HEAD `d45358a4e095c956ea51018ca2b4375ddbc73a2c`,
+рабочее дерево и index чистые. Область — подтверждённые R1/O1 и отрицательная
+регрессия обычного Failed Save. Повторная реализация 05.5A и 05.5B не выполнялись.
+
+### B. R1 Verification
+
+На исходном production-коде новые тесты детерминированно воспроизвели R1 в Debug
+и Release: **0 PASS / 2 FAIL** в каждой конфигурации, до и после permission Autosave.
+После старого Discard вводился `1e-`, затем разрешалось завершение worker.
+Import запускался ровно один раз без нового решения, менял session/history,
+сбрасывал поле в `1` и терял selection token. Assertions на сохранность draft,
+прежнего проекта и отсутствие Import падали. Исходная диагностика сохранена:
+`build/055a-r1-red-{debug,release}.log`.
+
+Причина: `advanceWorkflow()` завершал Import workflow до actual admission,
+а retry `pendingImport_` вызывал `startSelectedImport()` напрямую. Тем самым
+действовавшее согласие на старое состояние переживало появление нового draft.
+
+Workflow теперь удерживается до definitive admission/failure/cancellation.
+Retry проходит тот же `advanceWorkflow()` и проверяет новый draft. После
+pre-dispatch notification есть финальная проверка поля: вложенный observer
+может изменить его, поэтому управление возвращается в тот же workflow.
+Прежний deferred protocol, его guards и command-transition wake сохранены.
+Очереди, polling, новые context/token механизмы и блокировка ввода при Autosave
+не добавлены. `clearSelection()` согласованно завершает удерживаемый workflow;
+Close/Exit могут явно отозвать отложенный Import без обхода нового draft/dirty.
+
+При Apply новой persistent-правки прежний Discard отзывается. Stamp/context
+обновляются до проверки следующего draft, в том числе если он появился внутри
+notification самого Apply. Ошибка Apply сохраняет выбранный файл и ввод,
+показывает ошибку и новый token решения; Cancel отменяет намерение и оставляет
+поле для исправления. Устаревший ответ не применяет Discard к новому тексту.
+
+Регрессии через production QML/controller: оба состояния permission; валидный
+и невалидный поздний ввод; Apply/Discard/Cancel; новое dirty после Apply;
+повторные старые ответы и новый token; вложенная доставка до dispatch,
+в terminal Autosave, на stale reply и в notification Apply. Проверяются
+выбранный файл, проект/history, текст/курсор/выделение и число actual Import.
+Существующие N1/revocation/destruction/Close/Shutdown tests не ослаблены.
+
+### C. O1 Verification
+
+Причина подтверждена управляемой доставкой штатного post-Import Autosave:
+старый оракул детерминированно упал **1/1** в Debug и Release на ожидании
+«Импорт завершён» у уже другой текущей операции. Это воспроизведение допустимого
+порядка событий, а не заявление о частоте естественного падения.
+Логи — `build/055a-o1-red-{debug,release}.log`.
+
+Тест сохраняет terminal notification именно Import: OperationId, Succeeded,
+Accept, worker status, identity принятого проекта и видимое сообщение QML.
+После этого намеренно дожидается запуска Autosave. Исходный содержательный
+assertion «Импорт завершён» проверяет сохранённый terminal feedback; текущая
+операция также обязана иметь непустую отличающуюся обратную связь. Metadata,
+cache availability и независимость от source проверяются по принятому проекту.
+Production-контракт показывает текущую операцию, включая Autosave; менять GUI
+ради удержания текста прошлой операции не потребовалось. Assertion не удалён
+и не заменён проверкой произвольного success.
+
+### D. Failed Save Regression
+
+Три сценария: Close, Open и Import с выбором Save. Существующий Save fault seam
+удерживает ManifestWrite и возвращает write failure до publication. Во время
+ожидания вводится невалидный draft; сохраняются ошибка, курсор и выделение.
+Проверяются именно Failed / FileIO, отсутствие `unconfirmedSave`, прежние
+baseline/session/history/dirty, сохранность ввода и отсутствие continuation
+или ложного success. Старые callbacks ничего не запускают; новый явный Save
+после устранения fault успешно сохраняет тот же проект. Прежний Uncertain test
+сохранён отдельно.
+
+### E. Tests
+
+Проверки окончательных исходников выполнялись с Qt 6.12.0/MSVC, CMake presets
+`windows-debug` и `windows-release`, после загрузки `vcvars64` и путей Qt/CMake/Ninja.
+Ниже `<cfg>` обозначает каждую из этих двух конфигураций (`debug`, `release`):
+
+```text
+cmake --build --preset windows-<cfg> --target all all_qmllint
+ctest --preset windows-<cfg> -R FileGui
+ctest --preset windows-<cfg> -R AscGui
+ctest --preset windows-<cfg> -L production
+ctest --preset windows-<cfg> -R FirstImportUsesAcceptedMetadataAndRetainsTerminalSuccess --repeat until-fail:20
+ctest --preset windows-<cfg> -R R1NewDraftBeforeAdmissionRequiresAnotherDecision --repeat until-fail:20
+ctest --preset windows-<cfg> -R R1NestedNotificationAndStaleAnswersCannotAdmitNewDraft --repeat until-fail:10
+build/windows-<cfg>/operation_probe.exe --auto close
+build/windows-<cfg>/operation_probe.exe --auto quit
+git diff --check
+```
+
+| Проверка | Debug | Release |
+|---|---|---|
+| `all` + `all_qmllint` | PASS | PASS |
+| FileGui, включая 25 новых случаев | 58 PASS / 0 FAIL | 58 PASS / 0 FAIL |
+| AscGui, Import/lifecycle | 80 PASS / 0 FAIL | 80 PASS / 0 FAIL |
+| Production, 754 теста | 753 PASS / 0 FAIL / 1 SKIP | 753 PASS / 0 FAIL / 1 SKIP |
+| O1, один тест × 20 | 20 PASS / 0 FAIL | 20 PASS / 0 FAIL |
+| R1, два состояния permission × 20 | 40 PASS / 0 FAIL | 40 PASS / 0 FAIL |
+| R1, восемь reentry случаев × 10 | 80 PASS / 0 FAIL | 80 PASS / 0 FAIL |
+| Probe Close / Quit | exit 0 / exit 0 | exit 0 / exit 0 |
+
+Режим GUI-проверок — offscreen/software/Basic. Каждый probe вернул
+`status=6` (Cancelled), `decision=2` (Discard), `shutdown=2` (Ready).
+Повторы используют `until-fail`, а не повторение до успеха; намеренные RED-прогоны
+R1/O1 сохранены отдельно и не включены в результаты окончательного кода.
+
+`TEMP`/`TMP` — `C:\Users\User\AppData\Local\Temp`, build расположен на `D:`.
+`OpenApplication.Open.CrossVolumeDirectoryTransfer` и
+`SaveApplication.Save.SaveAsAcrossAvailableWindowsVolumes` прошли в обоих
+production-прогонах, межтомных SKIP нет. Единственный SKIP в обеих конфигурациях —
+`Persistence.StoragePath.FileSymlinkEscape`: Windows privilege unavailable,
+system code **1314** (Debug — подробный production log, Release — также адресный
+`ctest -R FileSymlinkEscape -V`). Время полного production: Debug 274.79 с,
+Release 164.10 с.
+
+В итоговых incremental build/qmllint логах предупреждений и ошибок нет.
+Чистая пересборка здесь не выполнялась; прежний сторонний C4702 в `fmt/base.h`
+не объявляется исправленным. Warnings и критерии тестов не подавлялись.
+
+Логи окончательных прогонов: `build/055a-recheck-build-<cfg>.log`,
+`055a-recheck-file-<cfg>.log`, `055a-recheck-import-<cfg>.log`,
+`055a-recheck-production-<cfg>.log`, `055a-recheck-{o1,r1,nested}-repeat-<cfg>.log`,
+`055a-recheck-probe-<cfg>-{close,quit}.log` (все в ignored `build/`).
+
+### F. Scope and Limitations
+
+Production изменён только в `project_file_workflow.cpp` и `project_view_model.cpp`.
+Тесты — `gui_file_tests.cpp` и `gui_import_tests.cpp`; документация — этот отчёт.
+Controller/runner, persistence formats, cache v1, snapshot publication,
+cancellation, native completion/join и Recovery retention не менялись.
+Новых зависимостей нет; GUI Recovery/startup decision не затронуты.
+Прежние ограничения ручной приёмки native FileDialog/фокуса/DPI сохраняются.
+Известная нестабильность Recovery `Applied`/`NoChange` не исправлялась и не
+объявляется устранённой при успешных повторах других сценариев.
+
+### G. Status
+
+**READY FOR INDEPENDENT RECHECK.** R1 воспроизведён до исправления и покрыт
+регрессиями; O1 имеет оракул конкретного принятого Import; обычный Failed Save
+проверен для трёх продолжений. Все запрошенные автоматические проверки прошли
+с указанным symlink SKIP. 05.5A, 05.5 и задача 05 не объявляются принятыми;
+исправления предназначены тому же независимому ревьюеру для целевой повторной
+проверки R1/O1.
+
+### H. Git
+
+Полный diff просмотрен; `git diff --check` и staged diff check — PASS.
+Временный environment wrapper удалён; диагностика остаётся в ignored `build/`.
+В локальный commit включены только пять перечисленных файлов. Его hash и итоговый
+Git status приводятся в ответе. Push/PR и переход к 05.5B не выполнялись.

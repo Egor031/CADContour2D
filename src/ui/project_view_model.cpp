@@ -114,7 +114,7 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
         [this, controller = QPointer<ProjectController>(&controller)] {
             if (!controller) return;
             const QPointer<ProjectViewModel> lifetime(this);
-            if (pendingImport_) startSelectedImport(*pendingImport_);
+            if (pendingImport_ && intent_ != Intent::Import) startSelectedImport(*pendingImport_);
             if (lifetime) advanceWorkflow();
         }, Qt::QueuedConnection);
     connect(&controller_, &ProjectController::nonZeroZConfirmationChanged, this, [this] {
@@ -244,6 +244,10 @@ void ProjectViewModel::newProject()
 
 void ProjectViewModel::clearSelection()
 {
+    if (intent_ == Intent::Import) {
+        endWorkflow();
+        return;
+    }
     selectionContext_.reset();
     selectionToken_.clear();
     selectedPath_.clear();
@@ -253,8 +257,8 @@ void ProjectViewModel::clearSelection()
 
 void ProjectViewModel::refreshImportUi()
 {
-    if (intent_ == Intent::Import && !advancingWorkflow_ && !waitingSave_
-        && currentStamp() != workflowStamp_) {
+    if (intent_ == Intent::Import && (closing() || (!advancingWorkflow_ && !waitingSave_
+        && currentStamp() != workflowStamp_))) {
         endWorkflow();
         return;
     }
@@ -336,6 +340,12 @@ void ProjectViewModel::startSelectedImport(bool confirmed)
     if (!selectionContext_ || selectionContext_ != controller_.importSelectionContext()) {
         importErrorMessage_ = QStringLiteral("Контекст изменился. Выберите файл заново.");
         clearSelection();
+        return;
+    }
+    // A pre-dispatch observer may have edited the field through nested delivery.
+    // Return to the same workflow before asking the controller for admission.
+    if (intent_ == Intent::Import && hasDraft()) {
+        workflowRetry_ = true;
         return;
     }
     if (!controller_.importContext()) {

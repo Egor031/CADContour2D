@@ -411,3 +411,224 @@ TEST_F(FileGui, AutosaveDoesNotAcceptDraftOrClearDirtyAndExplicitSaveSurvivesBus
     modified(); draft("bad"); ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied); settle();
     EXPECT_TRUE(model.dirty()); EXPECT_EQ(control("cellInput")->property("text").toString(), "bad");
 }
+
+namespace {
+class DeferredImportScenario : public FileGui {
+protected:
+    ControlledWork barrier;
+    QObject observer;
+    OperationStamp stamp{};
+    OperationId autosaveId = 0, started = 0, finishedImport = 0;
+    QString incoming, selection, dirtyDecision;
+    int imports = 0, importCompletions = 0;
+    bool dispatchNotified = false;
+
+    void TearDown() override
+    {
+        barrier.complete.set();
+        FileGui::TearDown();
+    }
+    void prepare(bool afterPermission, std::function<void()> atDispatch = {})
+    {
+        firstSave(); modified(); stamp = controller.project()->operationStamp();
+        incoming = area.filePath("next.xyz");
+        QFile file(incoming); ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+        ASSERT_EQ(file.write("8 9 0\n"), 6); file.close();
+        click("newProjectButton"); selection = model.selectionToken();
+        control("importFileDialog")->setProperty("selectedFile", QUrl::fromLocalFile(incoming));
+        invoke("importFileDialog", "accepted");
+        if (afterPermission) OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
+            [&](PublicationDecision decision) { if (decision == PublicationDecision::Accept) {
+                barrier.entered.set(); barrier.complete.wait(); } });
+        ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied);
+        autosaveId = controller.operation().id;
+        const auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
+        ASSERT_TRUE(waitContext(context, true));
+        if (afterPermission) { OperationTestAccess::poll(controller); barrier.entered.wait(); }
+        QObject::connect(&controller, &ProjectController::operationChanged, &observer, [&] {
+            const auto &operation = controller.operation();
+            if (operation.kind != OperationKind::Import) return;
+            if (operation.id != started) { started = operation.id; ++imports; }
+            if (!operation.active && operation.id != finishedImport) { finishedImport = operation.id; ++importCompletions; }
+        });
+        if (atDispatch) QObject::connect(&model, &ProjectViewModel::importUiChanged, &observer, [&, atDispatch] {
+            if (dispatchNotified || model.selectionToken() != selection || model.replacementPending()
+                || !model.workflowPrompt().isEmpty()) return;
+            dispatchNotified = true;
+            atDispatch();
+        });
+        click("replaceConfirmButton"); ASSERT_EQ(model.workflowPrompt(), "dirty");
+        dirtyDecision = model.workflowToken(); click("decisionDiscardButton");
+        ASSERT_TRUE(control("cellInput")->property("enabled").toBool());
+    }
+    void expectPreserved(const QString &input)
+    {
+        ASSERT_TRUE(controller.project()); EXPECT_TRUE(controller.project()->accepts(stamp));
+        EXPECT_TRUE(controller.canUndo()); EXPECT_TRUE(model.dirty());
+        EXPECT_EQ(model.cellDraft(), input); EXPECT_EQ(control("cellInput")->property("text").toString(), input);
+        EXPECT_EQ(model.selectionToken(), selection); EXPECT_EQ(model.replacementFileName(), "next.xyz");
+        EXPECT_EQ(imports, 0);
+    }
+    void awaitDraft()
+    {
+        barrier.complete.set();
+        ASSERT_TRUE(spinUntil([&] { OperationTestAccess::poll(controller);
+            return model.workflowPrompt() == "draft" || (model.sourceName() == "next.xyz" && !controller.operation().active); }));
+        EXPECT_EQ(model.workflowPrompt(), "draft");
+    }
+};
+}
+
+class DeferredImportDraft : public DeferredImportScenario, public testing::WithParamInterface<bool> {};
+TEST_P(DeferredImportDraft, R1NewDraftBeforeAdmissionRequiresAnotherDecision)
+{
+    prepare(GetParam()); draft("1e-");
+    awaitDraft(); expectPreserved("1e-");
+    if (model.workflowPrompt() == "draft") answer("cancel");
+}
+INSTANTIATE_TEST_SUITE_P(BeforeAndAfterAutosavePermission, DeferredImportDraft, testing::Bool());
+
+class DeferredImportChoices : public DeferredImportScenario, public testing::WithParamInterface<std::tuple<bool, bool, int>> {};
+TEST_P(DeferredImportChoices, R1LatestDraftAndPersistentChangesNeedTheirOwnConsent)
+{
+    const auto [afterPermission, valid, decision] = GetParam();
+    prepare(afterPermission);
+    const auto input = valid ? QStringLiteral("3") : QStringLiteral("1e-");
+    draft(input); auto *field = control("cellInput");
+    QMetaObject::invokeMethod(field, "select", Qt::DirectConnection, Q_ARG(int, 0), Q_ARG(int, 1));
+    const auto cursor = field->property("cursorPosition"), start = field->property("selectionStart"), end = field->property("selectionEnd");
+    awaitDraft(); expectPreserved(input);
+    EXPECT_EQ(field->property("cursorPosition"), cursor); EXPECT_EQ(field->property("selectionStart"), start); EXPECT_EQ(field->property("selectionEnd"), end);
+    const auto token = model.workflowToken();
+    model.answerWorkflow(dirtyDecision, "discard");
+    model.confirmReplacement(selection, true); model.selectImportFile(selection, QUrl::fromLocalFile(incoming));
+    EXPECT_EQ(model.workflowToken(), token); expectPreserved(input);
+    if (decision == 0) {
+        click("decisionAcceptButton");
+        if (!valid) {
+            EXPECT_EQ(model.workflowPrompt(), "draft"); EXPECT_NE(model.workflowToken(), token);
+            EXPECT_FALSE(model.errorMessage().isEmpty()); expectPreserved(input);
+            model.answerWorkflow(token, "discard"); EXPECT_EQ(model.workflowPrompt(), "draft");
+            click("decisionCancelButton");
+        } else {
+            EXPECT_DOUBLE_EQ(model.cell(), 3); EXPECT_EQ(model.workflowPrompt(), "dirty");
+            EXPECT_EQ(imports, 0); EXPECT_EQ(model.selectionToken(), selection);
+            model.answerWorkflow(dirtyDecision, "discard"); model.answerWorkflow(token, "discard");
+            EXPECT_EQ(model.workflowPrompt(), "dirty"); EXPECT_EQ(imports, 0);
+            click("decisionDiscardButton");
+        }
+    } else if (decision == 1) click("decisionDiscardButton");
+    else click("decisionCancelButton");
+    const bool allowed = decision == 1 || (decision == 0 && valid);
+    if (allowed) {
+        ASSERT_TRUE(spinUntil([&] { OperationTestAccess::poll(controller); return model.sourceName() == "next.xyz" && !controller.operation().active; }));
+        EXPECT_EQ(imports, 1); EXPECT_EQ(importCompletions, 1); EXPECT_NE(controller.project()->runtimeIdentity(), stamp.projectIdentity);
+        EXPECT_FALSE(controller.canUndo()); EXPECT_EQ(model.cellDraft(), "1");
+    } else {
+        settle(); EXPECT_TRUE(controller.project()->accepts(stamp)); EXPECT_TRUE(model.dirty());
+        EXPECT_EQ(model.cellDraft(), input); EXPECT_TRUE(controller.canUndo());
+        EXPECT_FALSE(model.workflowPending()); EXPECT_TRUE(model.selectionToken().isEmpty()); EXPECT_EQ(imports, 0);
+        if (!valid && decision == 0) { draft("4"); click("applyButton"); EXPECT_DOUBLE_EQ(model.cell(), 4); EXPECT_EQ(imports, 0); }
+    }
+    model.answerWorkflow(token, "discard"); model.confirmReplacement(selection, true);
+    QCoreApplication::processEvents(); EXPECT_EQ(imports, allowed ? 1 : 0);
+}
+INSTANTIATE_TEST_SUITE_P(PermissionValidityAndApplyDiscardCancel, DeferredImportChoices,
+    testing::Combine(testing::Bool(), testing::Bool(), testing::Range(0, 3)));
+
+class DeferredImportReentry : public DeferredImportScenario, public testing::WithParamInterface<std::tuple<bool, int>> {};
+TEST_P(DeferredImportReentry, R1NestedNotificationAndStaleAnswersCannotAdmitNewDraft)
+{
+    const auto [afterPermission, delivery] = GetParam();
+    const auto inject = [&] {
+        draft("1e-");
+        for (int i = 0; i != 8; ++i) {
+            model.answerWorkflow(dirtyDecision, "discard"); model.confirmReplacement(selection, true);
+            QCoreApplication::processEvents();
+        }
+    };
+    prepare(afterPermission, delivery == 0 ? std::function<void()>(inject) : std::function<void()>{});
+    bool terminalNotified = false;
+    if (delivery == 1) QObject::connect(&controller, &ProjectController::operationChanged, &observer, [&] {
+        if (terminalNotified || controller.operation().id != autosaveId || controller.operation().active) return;
+        terminalNotified = true; inject();
+    });
+    if (delivery >= 2) draft("3");
+    awaitDraft();
+    if (delivery == 0) EXPECT_TRUE(dispatchNotified);
+    if (delivery == 1) EXPECT_TRUE(terminalNotified);
+    const auto token = model.workflowToken();
+    if (delivery == 2) {
+        draft("1e-"); model.answerWorkflow(token, "discard");
+        EXPECT_NE(model.workflowToken(), token); EXPECT_EQ(model.workflowPrompt(), "draft");
+    }
+    bool appliedNotified = false;
+    if (delivery == 3) {
+        QObject::connect(&model, &ProjectViewModel::stateChanged, &observer, [&] {
+            if (appliedNotified || model.cell() != 3) return;
+            appliedNotified = true; inject();
+        });
+        click("decisionAcceptButton");
+        EXPECT_TRUE(appliedNotified); EXPECT_DOUBLE_EQ(model.cell(), 3);
+        EXPECT_EQ(controller.project()->runtimeIdentity(), stamp.projectIdentity);
+        stamp = controller.project()->operationStamp();
+        EXPECT_EQ(model.workflowPrompt(), "draft");
+    }
+    model.answerWorkflow(dirtyDecision, "discard");
+    if (delivery == 2) { model.answerWorkflow(token, "apply"); model.answerWorkflow(token, "cancel"); }
+    expectPreserved("1e-");
+    if (delivery == 3) {
+        click("decisionDiscardButton"); EXPECT_EQ(model.workflowPrompt(), "dirty");
+        EXPECT_EQ(imports, 0); EXPECT_EQ(model.selectionToken(), selection);
+    }
+    click("decisionCancelButton"); settle(); EXPECT_EQ(imports, 0);
+}
+INSTANTIATE_TEST_SUITE_P(PermissionAndPreDispatchTerminalStaleReplyOrApply, DeferredImportReentry,
+    testing::Combine(testing::Bool(), testing::Range(0, 4)));
+
+class FailedSaveContinuation : public FileGui, public testing::WithParamInterface<int> {};
+TEST_P(FailedSaveContinuation, FailedManifestWriteCannotContinueCloseOpenOrImport)
+{
+    firstSave(); modified(); const auto stamp = controller.project()->operationStamp();
+    const auto baseline = controller.savedProject()->snapshot.snapshotId;
+    ControlledWork barrier;
+    SaveTestAccess::configure(controller, [&](persistence::SavePhase phase) {
+        if (phase == persistence::SavePhase::ManifestWrite) { barrier.entered.set(); barrier.complete.wait(); }
+    }, [](QIODevice &, const char *, qint64) -> qint64 { return -1; });
+    QString selection;
+    if (GetParam() == 0) action("closeProjectAction");
+    else if (GetParam() == 1) { action("openAction"); choose(path()); }
+    else {
+        const auto incoming = area.filePath("after-failure.xyz");
+        QFile file(incoming); ASSERT_TRUE(file.open(QIODevice::WriteOnly)); ASSERT_EQ(file.write("8 9 0\n"), 6); file.close();
+        click("newProjectButton"); selection = model.selectionToken();
+        control("importFileDialog")->setProperty("selectedFile", QUrl::fromLocalFile(incoming)); invoke("importFileDialog", "accepted");
+        click("replaceConfirmButton");
+    }
+    ASSERT_EQ(model.workflowPrompt(), "dirty"); const auto oldDecision = model.workflowToken();
+    click("decisionAcceptButton"); barrier.entered.wait();
+    const auto saveId = controller.operation().id;
+    draft("1e-"); click("applyButton"); const auto error = model.errorMessage();
+    auto *field = control("cellInput"); QMetaObject::invokeMethod(field, "select", Qt::DirectConnection, Q_ARG(int, 0), Q_ARG(int, 2));
+    const auto cursor = field->property("cursorPosition"), start = field->property("selectionStart"), end = field->property("selectionEnd");
+    barrier.complete.set();
+    settle();
+    EXPECT_EQ(controller.operation().id, saveId); EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
+    ASSERT_TRUE(controller.operation().failure); ASSERT_TRUE(controller.operation().failure->saveError);
+    EXPECT_EQ(controller.operation().failure->saveError->code, persistence::SaveErrorCode::FileIO);
+    EXPECT_FALSE(controller.unconfirmedSave()); EXPECT_EQ(controller.savedProject()->snapshot.snapshotId, baseline);
+    EXPECT_TRUE(controller.project()->accepts(stamp)); EXPECT_TRUE(controller.canUndo()); EXPECT_TRUE(model.dirty());
+    EXPECT_EQ(model.cellDraft(), "1e-"); EXPECT_EQ(model.errorMessage(), error); EXPECT_FALSE(error.isEmpty());
+    EXPECT_EQ(field->property("cursorPosition"), cursor); EXPECT_EQ(field->property("selectionStart"), start); EXPECT_EQ(field->property("selectionEnd"), end);
+    EXPECT_TRUE(window->isVisible()); EXPECT_FALSE(model.workflowPending()); EXPECT_TRUE(model.canSave());
+    EXPECT_TRUE(model.fileMessage().contains(QStringLiteral("Ошибка")));
+    EXPECT_FALSE(model.fileMessage().contains(QStringLiteral("Проект сохранён.")));
+    model.answerWorkflow(oldDecision, "save"); model.confirmReplacement(selection, true);
+    QCoreApplication::processEvents(); EXPECT_EQ(controller.operation().id, saveId);
+    SaveTestAccess::configure(controller);
+    action("saveAction"); ASSERT_EQ(model.workflowPrompt(), "draft"); click("decisionDiscardButton"); settle();
+    EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded); EXPECT_FALSE(model.dirty());
+    EXPECT_EQ(controller.project()->runtimeIdentity(), stamp.projectIdentity); EXPECT_TRUE(controller.canUndo());
+    EXPECT_EQ(model.sourceName(), "source.xyz"); EXPECT_TRUE(model.fileMessage().contains(QStringLiteral("Проект сохранён.")));
+}
+INSTANTIATE_TEST_SUITE_P(CloseOpenImport, FailedSaveContinuation, testing::Range(0, 3));

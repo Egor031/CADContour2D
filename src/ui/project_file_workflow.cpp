@@ -89,6 +89,11 @@ void ProjectViewModel::beginWorkflow(Intent intent)
     if (!actionsEnabled()) return;
     if (workflowPending()) {
         if (workflowSaveId_ && (intent == Intent::Exit || intent == Intent::Close)) intent_ = intent;
+        else if (intent_ == Intent::Import && pendingImport_ && (intent == Intent::Exit || intent == Intent::Close)) {
+            const QPointer<ProjectViewModel> lifetime(this);
+            endWorkflow();
+            if (lifetime) beginWorkflow(intent);
+        }
         return;
     }
     // Exit/Close supersede an unsubmitted file choice. The old callback loses its token.
@@ -145,8 +150,13 @@ void ProjectViewModel::answerWorkflow(const QString &token, const QString &answe
     }
     workflowToken_.clear();
     workflowPrompt_.clear();
-    if (answer == QStringLiteral("cancel") || currentStamp() != workflowStamp_ || approvedDraft_ != cellDraft_) {
+    if (answer == QStringLiteral("cancel") || currentStamp() != workflowStamp_) {
         endWorkflow();
+        return;
+    }
+    if (approvedDraft_ != cellDraft_) {
+        if (intent_ == Intent::Import) promptWorkflow(QStringLiteral("draft"));
+        else endWorkflow();
         return;
     }
     const QPointer<ProjectViewModel> lifetime(this);
@@ -158,10 +168,15 @@ void ProjectViewModel::answerWorkflow(const QString &token, const QString &answe
             applyCell(cellDraft_);
             if (!lifetime) return;
             advancingWorkflow_ = wasAdvancing;
-            if (hasDraft()) { endWorkflow(); return; }
+            if (currentStamp() != workflowStamp_) discardApproved_ = false;
             workflowStamp_ = currentStamp();
             workflowContext_ = controller_.fileCommandContext();
             if (intent_ == Intent::Import) selectionContext_ = workflowContext_;
+            if (hasDraft()) {
+                if (intent_ == Intent::Import) promptWorkflow(QStringLiteral("draft"));
+                else endWorkflow();
+                return;
+            }
         } else if (answer == QStringLiteral("discard")) {
             cellDraft_ = cellText();
             setErrorMessage({});
@@ -248,10 +263,9 @@ void ProjectViewModel::advanceWorkflow()
                 && savePath_.isEmpty()) { promptWorkflow(QStringLiteral("save")); return; }
         }
         if (!saveRequested_ && intent_ == Intent::Import) {
-            // The established protocol retains intent through Autosave and nested delivery.
-            intent_ = Intent::None;
-            emit workflowChanged();
-            if (lifetime) startSelectedImport(true);
+            // Keep the workflow until actual admission: a deferred retry must
+            // resolve any newer draft before using the retained confirmation.
+            startSelectedImport(true);
             return;
         }
         if (operationActive()) {

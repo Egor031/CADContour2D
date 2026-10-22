@@ -134,6 +134,21 @@ TEST_F(GuiImport, StartupCancelAndNewButtonOfferExactlyOneSelection)
 
 TEST_F(GuiImport, FirstImportUsesAcceptedMetadataAndRetainsTerminalSuccess)
 {
+    OperationState terminalImport;
+    QString terminalFeedback;
+    bool terminalVisible = false;
+    std::uint64_t acceptedIdentity = 0;
+    int terminals = 0;
+    QObject observer;
+    QObject::connect(&controller, &ProjectController::operationChanged, &observer, [&] {
+        const auto &operation = controller.operation();
+        if (operation.kind != OperationKind::Import || operation.active || operation.id == terminalImport.id) return;
+        ++terminals;
+        terminalImport = operation;
+        terminalFeedback = text("operationLabel");
+        terminalVisible = model.operationVisible();
+        if (controller.project()) acceptedIdentity = controller.project()->runtimeIdentity();
+    });
     const auto path = source("-1.2345678901234567 1e-100 0\n1e100 -7.125 0\n");
     select(path);
     ASSERT_TRUE(finish(controller));
@@ -148,8 +163,18 @@ TEST_F(GuiImport, FirstImportUsesAcceptedMetadataAndRetainsTerminalSuccess)
     EXPECT_EQ(model.cellText(), "1");
     EXPECT_FALSE(controller.canUndo()); EXPECT_FALSE(controller.canRedo());
     EXPECT_EQ(model.densityMapStatusText(), QStringLiteral("Карта плотности отсутствует"));
+    // Deliberately deliver the scheduled Autosave: its current status is not the Import oracle.
+    ASSERT_TRUE(spinUntil([&] { return controller.operation().kind == OperationKind::Autosave; }));
+    EXPECT_EQ(terminals, 1); EXPECT_NE(terminalImport.id, 0);
+    EXPECT_EQ(terminalImport.status, OperationStatus::Succeeded);
+    EXPECT_EQ(terminalImport.decision, PublicationDecision::Accept);
+    EXPECT_EQ(terminalImport.workerStatus, WorkerStatus::Succeeded);
+    EXPECT_EQ(acceptedIdentity, controller.project()->runtimeIdentity());
+    EXPECT_TRUE(terminalVisible);
+    EXPECT_TRUE(terminalFeedback.contains(QStringLiteral("Импорт завершён")));
     EXPECT_TRUE(model.operationVisible());
-    EXPECT_TRUE(text("operationLabel").contains(QStringLiteral("Импорт завершён")));
+    EXPECT_FALSE(text("operationLabel").isEmpty());
+    EXPECT_NE(text("operationLabel"), terminalFeedback);
     EXPECT_TRUE(QFile::remove(path));
     EXPECT_TRUE(model.hasDataset()); // source independence
 }
