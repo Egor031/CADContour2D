@@ -62,9 +62,10 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 
 GUI выбора ASC/XYZ, подтверждения замены/Z и карточка dataset реализованы в 04.4A.
 В 05.2–05.4 реализованы C++ Save/Save As/Open `.pc2dproj`, восстановление параметров,
-частично доступного состояния и Autosave/Recovery. Исправления замечаний ревью 05.4
-направляются на повторную независимую проверку; GUI Save/Open/Recovery и сквозная
-приёмка относятся к 05.5 (NOT STARTED). Обычная работа после импорта не требует
+частично доступного состояния и Autosave/Recovery; **05.1–05.4 — ACCEPTED**.
+GUI Save/Open/Recovery, полноценный startup recovery workflow, пользовательские
+Save/Discard/Cancel и сквозная приёмка относятся к **05.5 (NOT STARTED)**.
+Задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**. Обычная работа после импорта не требует
 исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
 
@@ -196,7 +197,7 @@ cmake --build --preset windows-debug --target CADContour2D import_application_te
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
-Актуальные результаты исправлений 05.4, включая N1, — в разделе
+Актуальные результаты независимой проверки и принятие 05.4 — в разделе
 [Autosave / Recovery](#autosave--recovery--054).
 Историческая проверка после исправления R1 в 05.3: в той же CMD-среде выполнены `cmake --build --preset
 windows-debug --target all all_qmllint --parallel 4` и соответствующая команда
@@ -476,22 +477,25 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**Задачи 01–04 и этапы 05.1–05.3: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
+**Задачи 01–04 и этапы 05.1–05.4: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 
 Задача 04 принята 2026-10-19 после финального независимого ревью:
 **REVIEW PASSED — TASK 04 ACCEPTABLE** на HEAD
 `a227f3865f5bbd3068eb7e8eb95febc3e2ce241d`. Подтверждённых дефектов P0–P3 и
 существенных неподтверждённых рисков — 0; обязательных исправлений нет.
 Ключевые проверки, ограничения и решение — в [записи о принятии](docs/reports/task-04/acceptance.md).
-В задаче 05 приняты этапы 05.1–05.3;
-задача 05 целиком не завершена. **05.2 — ACCEPTED** после финальной независимой
+В задаче 05 приняты этапы 05.1–05.4;
+задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**. **05.2 — ACCEPTED** после финальной независимой
 проверки исправлений R1/R2 на `cedf844`.
 [Заключение по 05.2](docs/reports/task-05/save-implementation.md#k-independent-verification-and-acceptance).
 **05.3 — ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`;
 R1.1/R1.2 — FIXED и закрыты, итог ревью — **READY FOR ACCEPTANCE**.
 [Заключение по 05.3](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.4 Autosave/Recovery — READY FOR INDEPENDENT VERIFICATION после исправления N1, [отчёт](docs/reports/task-05/autosave-recovery.md#l-n1--вложенная-доставка-событий-при-отложенном-import).
-05.5 GUI Save/Open/Recovery и сквозная приёмка — NOT STARTED.
+**05.4 Autosave/Recovery — ACCEPTED** 2026-10-22 после независимой проверки `b086cad`;
+вердикт — **READY FOR ACCEPTANCE**, H1–H3/N1 — FIXED и закрыты.
+[Принятие, результаты и неблокирующее наблюдение о нестабильности теста](docs/reports/task-05/autosave-recovery.md#m-acceptance).
+05.5 GUI Save/Open/Recovery, startup recovery workflow, Save/Discard/Cancel
+и сквозная приёмка — **NOT STARTED**.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -629,7 +633,7 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. В задаче 05 приняты 05.1–05.3; GUI Save/Open ещё не реализованы;
+и ограничения. В задаче 05 приняты 05.1–05.4; GUI Save/Open ещё не реализованы;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -648,8 +652,8 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 независимого ревью, исправления H1/H2 и повторной независимой проверки.
 H1/H2 — FIXED, итог ревью — **05.1 — READY FOR ACCEPTANCE**; новых блокирующих
 дефектов нет. [Итоги и границы принятия](docs/reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
-Задача 05 целиком не завершена; текущие реализации 05.2–05.3 описаны ниже,
-05.4 описан ниже; 05.5 — NOT STARTED.
+Задача 05 целиком — IN PROGRESS / NOT ACCEPTED; принятые этапы 05.2–05.4
+описаны ниже; 05.5 — NOT STARTED.
 
 По результатам уже выполненной повторной независимой проверки сборки Debug/Release
 и `all_qmllint` — PASS; итоговый production CTest в каждой конфигурации —
@@ -758,7 +762,8 @@ Open 84/84, production 609 PASS / 0 FAIL / 1 SKIP в Debug и Release.
 новых подтверждённых дефектов нет. Итог ревью — **READY FOR ACCEPTANCE**.
 **05.3 — ACCEPTED** пользователем 2026-10-21.
 [Независимая проверка, результаты и ограничения](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.1–05.3 — ACCEPTED; 05.4 описан ниже; 05.5 — NOT STARTED. Вся задача 05 не завершена.
+05.1–05.4 — ACCEPTED; принятие 05.4 описано ниже; 05.5 — NOT STARTED.
+Задача 05 целиком — IN PROGRESS / NOT ACCEPTED.
 
 ### Autosave / Recovery — 05.4
 
@@ -779,13 +784,21 @@ GUI workflow — 05.5; GC, power-loss и hostile filesystem protection не за
 Контракты — [architecture §31.1](docs/architecture.md#311-c-autosave--recovery-054),
 формат, команды, фактические проверки и ограничения —
 [отчёт 05.4](docs/reports/task-05/autosave-recovery.md).
-Debug/Release build и `all_qmllint` — PASS. Финальный production CTest в каждой
-конфигурации после N1: **694 passed / 0 failed / 1 skipped** из 695;
+Финальная независимая проверка commit `b086cad990e65b5c8265798fbec296da85fec303`:
+Debug/Release build `all` и `all_qmllint` — PASS; итоговый production CTest в каждой
+конфигурации — **694 passed / 0 failed / 1 skipped** из 695;
 целевые N1 + H1/H2 — **25/25**, Recovery — **64/64**, включая
-**7 process crash tests**. SKIP — существующий file-symlink test без Windows privilege
+**7/7 process crash tests**, независимый probe — **29/29** в каждой конфигурации.
+SKIP — существующий `StoragePath.FileSymlinkEscape` без Windows privilege
 (1314). Autosave/discovery проверены с эксклюзивно закрытым cache и удалённым source;
 restore читает 73 728 bytes, ноль point pages. Детали и промежуточные failures — в отчёте.
-**05.4 — READY FOR INDEPENDENT VERIFICATION** после исправления N1;
-повторная независимая проверка и принятие ещё не выполнены. 05.5 — NOT STARTED,
-вся задача 05 не завершена.
+Независимый ревьюер сохранил неблокирующее наблюдение: Recovery-тест иногда получает
+допустимый `NoChange` вместо ожидаемого `Applied`, когда Autosave уже сохранил snapshot
+после Save As. Это известная нестабильность тестового сценария, **не исправленный
+дефект**; синхронизация/допустимые исходы теста требуют последующего уточнения.
+[Подробности независимой проверки и ограничения](docs/reports/task-05/autosave-recovery.md#m-acceptance).
+**05.4 — ACCEPTED** пользователем 2026-10-22, вердикт ревью — **READY FOR ACCEPTANCE**;
+H1–H3/N1 — FIXED и закрыты. При документальном закрытии сборки и CTest не повторялись.
+GUI Save/Open/Recovery, полноценный startup recovery workflow и Save/Discard/Cancel —
+**05.5, NOT STARTED**; задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**.
 

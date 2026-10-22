@@ -251,14 +251,14 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1–05.3 — ACCEPTED; 05.4 — READY FOR INDEPENDENT VERIFICATION (исправления H1–H3 и N1); 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
+**Статус: 05.1–05.4 — ACCEPTED; 05.5 — NOT STARTED. Задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
 
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
 | 05.2 | Save / Save As | ACCEPTED |
 | 05.3 | Open и частичная доступность | ACCEPTED |
-| 05.4 | Autosave / Recovery | READY FOR INDEPENDENT VERIFICATION |
+| 05.4 | Autosave / Recovery | ACCEPTED |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
 
 05.1 принята пользователем на commit `408757c9e26b4369b065ba9ee315d48a70336773`:
@@ -294,15 +294,23 @@ R1 независимо подтверждено и исправлено, RED �
 05.4 реализует C++ Autosave/Recovery: отдельный versioned metadata record,
 atomic publication без копирования datasets, discovery/restore/reject, explicit
 baseline/conflict/partial availability и lifecycle в существующем worker gate.
-После вердикта FIXES REQUIRED исправлены H1–H3: сохранение конфликта между
-восстановлениями, выбор Import во время Autosave и актуальность README.
-Исправления направляются на повторную независимую проверку; 05.4 не принята.
-Повторное ревью подтвердило H1/H3 как FIXED; обнаруженный N1 в deferred Import
-при nested event delivery независимо подтверждён и исправлен, ожидает повторной проверки.
+После первоначального FIXES REQUIRED исправлены H1–H3; повторное ревью выявило N1
+в deferred Import при nested event delivery, который также исправлен.
+05.4 принята пользователем **2026-10-22** после финальной независимой проверки commit
+`b086cad990e65b5c8265798fbec296da85fec303`: **READY FOR ACCEPTANCE**;
+H1–H3/N1 — **FIXED и закрыты**. В Debug и Release build `all`/`all_qmllint` — PASS,
+production — **694 PASS / 0 FAIL / 1 SKIP**, Recovery — **64/64**, process crash —
+**7/7**, целевые N1 + H1/H2 — **25/25**, независимый probe — **29/29**.
+Известная нестабильность Recovery-теста (допустимый NoChange после автоматического
+Autosave вместо ожидаемого Applied) сохранена как неблокирующее наблюдение ревьюера;
+синхронизация/допустимые исходы теста требуют последующего уточнения.
+Результаты относятся к завершённому ревью; при документальном закрытии сборки
+и CTest не повторялись. [Принятие, наблюдение и ограничения](reports/task-05/autosave-recovery.md#m-acceptance).
 Протокол — [architecture §31.1](architecture.md#311-c-autosave--recovery-054),
 проверки и ограничения — [отчёт 05.4](reports/task-05/autosave-recovery.md).
-GUI-интеграция и сквозная пользовательская приёмка — 05.5, NOT STARTED;
-вся задача 05 не завершена и не принята.
+GUI Save/Open/Recovery, полноценный startup recovery workflow, диалоги
+Save/Discard/Cancel и сквозная пользовательская приёмка — **05.5, NOT STARTED**;
+задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**.
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.
@@ -311,7 +319,7 @@ GUI-интеграция и сквозная пользовательская п
 - **Результат:** импортированный проект открывается без исходного ASC/XYZ.
 - **Проверка:** round-trip с восстановлением сохранённого выбранного `cell`, перенос project directory, недоступный source, неизвестная версия, отсутствующий/повреждённый cache и частично доступный проект, прерывание записи по фазам; сохранность последнего explicit save и предыдущего recovery.
 - **Критерий завершения:** опубликованное состояние не ссылается на частичные datasets; отказ сохранения не уничтожает последнее корректное сохранение.
-- **Открытые решения:** recovery triggers и lifecycle, GUI Save/Discard/Cancel. Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.2](architecture.md#281-явные-save--save-as-052). Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
+- **Открытые решения:** GUI Save/Open/Recovery, startup recovery workflow и Save/Discard/Cancel (05.5). Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.2](architecture.md#281-явные-save--save-as-052), C++ recovery storage/triggers/publication/lifecycle — в [§31.1](architecture.md#311-c-autosave--recovery-054). Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
 
 Далее каждая задача расширяет сериализацию **своих** данных. В 06–10 Save/Open и recovery охватывают все версии с независимыми правками; очистка истории и runtime-буферов не удаляет сохранённые версии, автоматического ограничения их количества нет. Persistence не откладывается отдельным большим этапом до конца.
 

@@ -57,11 +57,13 @@
 - [05.1 Persistence Foundation](reports/task-05/persistence-foundation.md#independent-verification-and-acceptance) — **ACCEPTED** после независимой проверки исправлений H1/H2.
 - [05.2 Save / Save As](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance) — **ACCEPTED** после финальной независимой проверки `cedf844`; R1/R2 закрыты.
 - [05.3 Open и частичная доступность](reports/task-05/open-implementation.md#l-independent-verification-and-acceptance) — **ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`; R1.1/R1.2 — FIXED и закрыты.
-- [05.4 Autosave / Recovery](reports/task-05/autosave-recovery.md#l-n1--вложенная-доставка-событий-при-отложенном-import) — **READY FOR INDEPENDENT VERIFICATION** после N1. Debug/Release: production 694 PASS / 0 FAIL / 1 SKIP, целевые N1 + H1/H2 25/25, Recovery 64/64, включая 7 process crash tests; build/lint — PASS.
+- [05.4 Autosave / Recovery](reports/task-05/autosave-recovery.md#m-acceptance) — **ACCEPTED** 2026-10-22 после независимой проверки `b086cad`, вердикт **READY FOR ACCEPTANCE**; H1–H3/N1 — FIXED и закрыты. Debug/Release: build/lint — PASS, production 694 PASS / 0 FAIL / 1 SKIP, Recovery 64/64, process crash 7/7, целевые N1 + H1/H2 25/25, независимый probe 29/29. В отчёте сохранено неблокирующее наблюдение о нестабильности теста; при документальном закрытии сборки/CTest не повторялись.
 - [Наблюдение по Operations-тесту](reports/task-05/persistence-foundation.md#operations-test-observation) — UNRESOLVED OBSERVATION / NOT CONFIRMED DEFECT.
 
-05.1–05.3 — ACCEPTED. Вся задача 05 не завершена и не принята;
-05.4 — READY FOR INDEPENDENT VERIFICATION; 05.5 — NOT STARTED.
+05.1–05.4 — **ACCEPTED**; задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**.
+Принята C++ реализация Autosave/Recovery с чтением v1 и публикацией v2;
+GUI Save/Open/Recovery, полноценный startup recovery workflow, пользовательские
+Save/Discard/Cancel и сквозная приёмка — **05.5, NOT STARTED**.
 
 ## Benchmark evidence
 
