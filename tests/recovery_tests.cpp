@@ -206,6 +206,75 @@ TEST_F(Recovery, MissingExplicitSaveIsConflict)
     EXPECT_EQ(candidate().relation, RecoveryRelation::Conflict); restore(candidate());
     EXPECT_TRUE(controller->recoveryRequiresSaveAs());
 }
+TEST_F(Recovery, ConflictSurvivesAutosaveRestartUndoAndFailedSaveAs)
+{
+    save(); controller->setCell(.5); autosave(); restart();
+    ProjectController other(area.path() + "/other");
+    ASSERT_EQ(other.openProject({savedPath}).outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(other));
+    other.setCell(.25); ASSERT_EQ(other.saveProject().outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(other));
+    RecoveryTestAccess::timers(other);
+    const auto explicitBytes = bytes(savedPath);
+    restore(candidate());
+    ASSERT_TRUE(controller->recoveryRequiresSaveAs());
+    controller->setCell(.125); autosave(); restart(); restore(candidate());
+    EXPECT_TRUE(controller->recoveryRequiresSaveAs());
+    EXPECT_TRUE(controller->isDirty()); EXPECT_FALSE(controller->savedProject());
+    EXPECT_EQ(controller->saveProject().outcome, CommandOutcome::Rejected);
+    EXPECT_EQ(controller->saveProject({savedPath}).outcome, CommandOutcome::Rejected);
+    controller->setCell(.0625); autosave(); controller->undo(); autosave(); restart(); restore(candidate());
+    EXPECT_TRUE(controller->recoveryRequiresSaveAs()); EXPECT_DOUBLE_EQ(controller->project()->cell(), .125);
+    // Even matching the independently saved content does not resolve an established conflict.
+    controller->setCell(.25); autosave(); restart(); restore(candidate());
+    EXPECT_TRUE(controller->recoveryRequiresSaveAs()); EXPECT_FALSE(controller->savedProject());
+    const auto destination = area.path() + "/resolved/project.pc2dproj";
+    SaveTestAccess::configure(*controller, {}, [](QIODevice &, const char *, qint64) { return qint64(-1); });
+    ASSERT_EQ(controller->saveProjectAs({area.path() + "/failed/project.pc2dproj"}).outcome, CommandOutcome::Applied);
+    ASSERT_TRUE(finish(*controller));
+    EXPECT_EQ(controller->operation().status, OperationStatus::Failed);
+    EXPECT_TRUE(controller->recoveryRequiresSaveAs()); EXPECT_FALSE(controller->savedProject());
+    controller->setCell(.125); autosave(); restart(); restore(candidate());
+    EXPECT_TRUE(controller->recoveryRequiresSaveAs());
+    ASSERT_EQ(controller->saveProjectAs({destination}).outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(*controller));
+    ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded); RecoveryTestAccess::timers(*controller);
+    EXPECT_FALSE(controller->recoveryRequiresSaveAs()); EXPECT_FALSE(controller->isDirty());
+    ASSERT_TRUE(controller->savedProject()); EXPECT_EQ(controller->savedProject()->manifestPath, destination);
+    EXPECT_EQ(controller->project()->dataset()->location, controller->savedProject()->content.location);
+    autosave(); restart(); restore(candidate());
+    EXPECT_FALSE(controller->recoveryRequiresSaveAs()); EXPECT_FALSE(controller->isDirty());
+    controller->setCell(.5); autosave(); restart(); restore(candidate());
+    EXPECT_FALSE(controller->recoveryRequiresSaveAs()); EXPECT_TRUE(controller->isDirty());
+    ASSERT_EQ(controller->saveProject().outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(*controller));
+    EXPECT_EQ(controller->operation().status, OperationStatus::Succeeded); EXPECT_FALSE(controller->isDirty());
+    EXPECT_EQ(bytes(savedPath), explicitBytes);
+}
+
+class RecoveryLegacy : public Recovery, public testing::WithParamInterface<int> {};
+TEST_P(RecoveryLegacy, ReadsVersionOneAndUpgradesWithoutLosingBaseline)
+{
+    if (GetParam() != 0) save();
+    controller->setCell(.5); autosave();
+    const auto path = recordPath(); restart();
+    auto parts = bytes(path).split('\n');
+    parts[0] = "PC2D-RECOVERY 1"; parts.removeAt(9);
+    parts.removeLast(); parts.removeLast();
+    auto legacy = parts.join('\n') + '\n';
+    legacy += QCryptographicHash::hash(legacy, QCryptographicHash::Sha256).toHex() + '\n';
+    write(path, legacy);
+    if (GetParam() == 2) ASSERT_TRUE(QFile::remove(savedPath));
+    const auto c = candidate();
+    EXPECT_EQ(c.relation, GetParam() == 0 ? RecoveryRelation::Unsaved
+        : GetParam() == 1 ? RecoveryRelation::Modified : RecoveryRelation::Conflict);
+    EXPECT_EQ(bytes(path), legacy); // discovery does not migrate or rewrite
+    restore(c);
+    EXPECT_TRUE(bytes(path).startsWith("PC2D-RECOVERY 2\n"));
+    EXPECT_DOUBLE_EQ(controller->project()->cell(), .5);
+    EXPECT_EQ(controller->recoveryRequiresSaveAs(), GetParam() == 2);
+    EXPECT_EQ(bool(controller->savedProject()), GetParam() == 1);
+    controller->setCell(.125); autosave(); restart(); restore(candidate());
+    EXPECT_EQ(controller->recoveryRequiresSaveAs(), GetParam() == 2);
+    EXPECT_EQ(bool(controller->savedProject()), GetParam() == 1);
+}
+INSTANTIATE_TEST_SUITE_P(UnsavedModifiedConflict, RecoveryLegacy, testing::Range(0, 3));
 TEST_F(Recovery, RejectIsDurableAndRetainsUnprovenDatasetOwnership)
 {
     autosave(); const auto cachePath = QString::fromStdWString(controller->project()->dataset()->cachePath().wstring());
@@ -435,7 +504,8 @@ TEST_P(RecoveryInvalid, InvalidRecordsAreReportedWithoutMutation)
     else if (GetParam() == 3) { parts[3] = QByteArray("D:/root/../escape").toBase64(); }
     else if (GetParam() == 4) { parts[4] = QByteArray("datasets/CON.pc2dcache").toBase64(); }
     else if (GetParam() == 5) { parts[5] = QByteArray("{}").toBase64(); }
-    else { parts[8] = "bad"; parts[6] = QByteArray("D:/project.pc2dproj").toBase64(); }
+    else if (GetParam() == 6) { parts[8] = "bad"; parts[6] = QByteArray("D:/project.pc2dproj").toBase64(); }
+    else { parts[9] = GetParam() == 7 ? "2" : "1"; } // invalid flag / absent conflict provenance
     if (GetParam() != 0) {
         parts.removeLast(); parts.removeLast();
         content = parts.join('\n') + '\n';
@@ -444,7 +514,7 @@ TEST_P(RecoveryInvalid, InvalidRecordsAreReportedWithoutMutation)
     write(path, content); const auto c = candidate(); EXPECT_EQ(c.session, RecoverySessionState::Invalid); EXPECT_TRUE(c.error);
     EXPECT_EQ(bytes(path), content); EXPECT_FALSE(controller->project());
 }
-INSTANTIATE_TEST_SUITE_P(SchemaAndPaths, RecoveryInvalid, testing::Range(0, 7));
+INSTANTIATE_TEST_SUITE_P(SchemaAndPaths, RecoveryInvalid, testing::Range(0, 9));
 TEST_F(Recovery, DiscoveryResourceBudgetsAreEnforced)
 {
     autosave(); RecoveryLimits limits; limits.maxRecords = 0; EXPECT_FALSE(discoverRecovery(root(), limits));

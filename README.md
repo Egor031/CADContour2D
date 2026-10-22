@@ -61,9 +61,10 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 В новом проекте выбранный `cell` начинается с 1 мм без наследования прежнего значения. Это изменяемый пользователем параметр последующего явного построения Density Map; импорт не требует `cell` и карту не строит. Изменение выбранного `cell` не меняет существующие карты; каждая версия хранит собственные параметры построения. Автоматическая рекомендация `cell` — потенциальная тема исследования без выбранного алгоритма и утверждённой необходимости, не зависимость задач 04 или 06.
 
 GUI выбора ASC/XYZ, подтверждения замены/Z и карточка dataset реализованы в 04.4A.
-В 05.2–05.3 реализованы C++ Save/Save As/Open `.pc2dproj`, восстановление параметров
-и частично доступного состояния; GUI сохранения/открытия и Autosave/Recovery
-остаются следующими частями задачи 05. Обычная работа после импорта не требует
+В 05.2–05.4 реализованы C++ Save/Save As/Open `.pc2dproj`, восстановление параметров,
+частично доступного состояния и Autosave/Recovery. Исправления замечаний ревью 05.4
+направляются на повторную независимую проверку; GUI Save/Open/Recovery и сквозная
+приёмка относятся к 05.5 (NOT STARTED). Обычная работа после импорта не требует
 исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
 
@@ -195,7 +196,9 @@ cmake --build --preset windows-debug --target CADContour2D import_application_te
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
-Актуальная проверка после исправления R1 в 05.3: в той же CMD-среде выполнены `cmake --build --preset
+Актуальные результаты исправлений H1–H3 в 05.4 — в разделе
+[Autosave / Recovery](#autosave--recovery--054).
+Историческая проверка после исправления R1 в 05.3: в той же CMD-среде выполнены `cmake --build --preset
 windows-debug --target all all_qmllint --parallel 4` и соответствующая команда
 `windows-release`, затем полный `ctest --preset <preset> -L production --output-on-failure`.
 В каждой конфигурации **609 passed / 0 failed / 1 skipped из 610**. `open_tests`
@@ -487,7 +490,7 @@ build\windows-release\operation_probe.exe
 **05.3 — ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`;
 R1.1/R1.2 — FIXED и закрыты, итог ревью — **READY FOR ACCEPTANCE**.
 [Заключение по 05.3](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.4 Autosave/Recovery — READY FOR INDEPENDENT REVIEW, [отчёт](docs/reports/task-05/autosave-recovery.md).
+05.4 Autosave/Recovery — READY FOR INDEPENDENT VERIFICATION после исправлений H1–H3, [отчёт](docs/reports/task-05/autosave-recovery.md#k-исправления-после-независимого-ревью-h1h3).
 05.5 GUI Save/Open/Recovery и сквозная приёмка — NOT STARTED.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
@@ -762,7 +765,7 @@ Open 84/84, production 609 PASS / 0 FAIL / 1 SKIP в Debug и Release.
 C++ `ProjectController` автоматически сохраняет metadata после успешного Import/Save
 и по таймеру 60 секунд при изменениях. Неизменённое persistent content не записывается;
 Busy пропускается без очереди. Autosave не меняет explicit baseline, dirty и Undo/Redo.
-Отдельный recovery v1 в AppLocalDataLocation атомарно публикуется после write/flush
+Отдельный recovery v2 (с чтением v1) в AppLocalDataLocation атомарно публикуется после write/flush
 через существующий managed worker, с отменой до permission и persisted receipt.
 
 `discoverRecovery`, `restoreRecovery`, `rejectRecovery` различают активный/прерванный/
@@ -777,9 +780,12 @@ GUI workflow — 05.5; GC, power-loss и hostile filesystem protection не за
 формат, команды, фактические проверки и ограничения —
 [отчёт 05.4](docs/reports/task-05/autosave-recovery.md).
 Debug/Release build и `all_qmllint` — PASS. Финальный production CTest в каждой
-конфигурации: **667 passed / 0 failed / 1 skipped** из 668; Recovery — **58/58**, включая
+конфигурации после исправлений H1–H3: **681 passed / 0 failed / 1 skipped** из 682;
+целевые H1/H2 — **12/12**, Recovery — **64/64**, включая
 **7 process crash tests**. SKIP — существующий file-symlink test без Windows privilege
 (1314). Autosave/discovery проверены с эксклюзивно закрытым cache и удалённым source;
 restore читает 73 728 bytes, ноль point pages. Детали и промежуточные failures — в отчёте.
-**05.4 — READY FOR INDEPENDENT REVIEW**; 05.5 и вся задача 05 не завершены.
+**05.4 — READY FOR INDEPENDENT VERIFICATION** после исправлений H1–H3;
+повторная независимая проверка и принятие ещё не выполнены. 05.5 — NOT STARTED,
+вся задача 05 не завершена.
 

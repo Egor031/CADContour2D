@@ -37,6 +37,7 @@ struct RecoveryRecord {
     std::shared_ptr<const SavedProject> state;
     std::shared_ptr<const SavedProject> baseline;
     QByteArray digest;
+    bool requiresSaveAs = false; // established conflict; baseline is provenance, not a saved state
 };
 struct RecoveryCandidate {
     QUuid sessionId;

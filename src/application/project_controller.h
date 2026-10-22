@@ -71,6 +71,8 @@ public:
     bool recoveryRequiresSaveAs() const noexcept;
     // UI captures this before file selection; startImport rechecks it before launching.
     std::optional<ImportContext> importContext() const noexcept;
+    // Intent applicability during notifications/Autosave, independent of admission.
+    std::optional<ImportContext> importSelectionContext() const noexcept;
     CommandResult closeProject(bool discardConfirmed = false);
     CommandResult setCell(double value);
     CommandResult undo();
@@ -167,6 +169,7 @@ private:
     OperationRunner runner_;
     OperationState operation_;
     OperationId lastOperationId_ = 0;
+    OperationId lastImportContextOperation_ = 0;
     ShutdownState shutdown_ = ShutdownState::Open;
     QElapsedTimer operationClock_;
     std::function<void(VerificationState &)> finalize_;

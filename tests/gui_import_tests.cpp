@@ -1,16 +1,19 @@
 #include "ui/project_view_model.h"
 #include "operation_test_support.h"
 #include "project_test_access.h"
+#include "recovery_test_access.h"
 
 #include <QDir>
 #include <QFile>
 #include <QQmlApplicationEngine>
+#include <QQmlExpression>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTemporaryDir>
 #include <gtest/gtest.h>
 
 #include <limits>
+#include <tuple>
 #include <vector>
 
 using namespace cadcontour;
@@ -284,6 +287,106 @@ TEST_F(GuiImport, StaleReplacementAndSelectionCallbacksCannotStartImport)
     controller.closeProject();
     model.selectImportFile(selection, QUrl::fromLocalFile(source()));
     EXPECT_EQ(controller.operation().id, id); EXPECT_EQ(controller.project(), nullptr);
+}
+
+class AutosaveImportUi : public GuiImport, public testing::WithParamInterface<std::tuple<bool, bool>> {};
+TEST_P(AutosaveImportUi, KeepsSelectionAndImportsWhenConfirmedDuringAutosave)
+{
+    const auto [confirmationOpen, afterAccept] = GetParam();
+    initial(); ASSERT_TRUE(finishBackgroundAutosave(controller)); RecoveryTestAccess::timers(controller);
+    controller.setCell(.5);
+    const auto path = source("8 9 0\n", "next.xyz");
+    if (!confirmationOpen) {
+        QQmlExpression options(qmlContext(control("importFileDialog")), control("importFileDialog"),
+            QStringLiteral("options = NativeDialogs.FileDialog.DontUseNativeDialog"));
+        options.evaluate(); ASSERT_FALSE(options.hasError());
+        ASSERT_TRUE(window->setProperty("fileDialogEnabled", true));
+    }
+    click("newProjectButton");
+    const auto token = model.selectionToken(); ASSERT_FALSE(token.isEmpty());
+    if (confirmationOpen) select(path);
+    ControlledWork barrier;
+    if (afterAccept) OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
+        [&](PublicationDecision decision) { if (decision == PublicationDecision::Accept) {
+            barrier.entered.set(); barrier.complete.wait(); } });
+    ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied);
+    const auto autosaveId = controller.operation().id;
+    const auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
+    ASSERT_TRUE(waitContext(context, true)); // no poll/permission until the assertions below
+    if (afterAccept) { OperationTestAccess::poll(controller); barrier.entered.wait(); }
+    EXPECT_EQ(model.selectionToken(), token);
+    if (confirmationOpen) {
+        EXPECT_TRUE(model.replacementPending()); EXPECT_TRUE(visible("replacementDialog"));
+        EXPECT_EQ(model.replacementFileName(), "next.xyz");
+    } else {
+        EXPECT_TRUE(model.selectingFile());
+        EXPECT_TRUE(visible("importFileDialog"));
+        EXPECT_EQ(control("importFileDialog")->property("requestToken").toString(), token);
+        select(path);
+        EXPECT_TRUE(model.replacementPending());
+    }
+    int completedImports = 0;
+    OperationState completedImport;
+    QObject observer;
+    QObject::connect(&controller, &ProjectController::operationChanged, &observer, [&] {
+        if (controller.operation().kind == OperationKind::Import && !controller.operation().active) {
+            ++completedImports; completedImport = controller.operation();
+        }
+    });
+    model.confirmReplacement(token, true);
+    EXPECT_EQ(model.selectionToken(), token); // retained until native completion/retry
+    EXPECT_EQ(controller.operation().cancellationRequested, !afterAccept);
+    EXPECT_TRUE(controller.operation().active); EXPECT_EQ(controller.operation().kind, OperationKind::Autosave);
+    barrier.complete.set();
+    ASSERT_TRUE(spinUntil([&] { OperationTestAccess::poll(controller);
+        return model.sourceName() == "next.xyz" && !controller.operation().active; }));
+    EXPECT_EQ(completedImports, 1);
+    EXPECT_EQ(completedImport.status, OperationStatus::Succeeded);
+    EXPECT_EQ(completedImport.kind, OperationKind::Import); EXPECT_GT(completedImport.id, autosaveId);
+    EXPECT_TRUE(model.selectionToken().isEmpty()); EXPECT_FALSE(model.replacementPending());
+    const auto id = controller.operation().id;
+    model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true);
+    EXPECT_EQ(controller.operation().id, id);
+}
+INSTANTIATE_TEST_SUITE_P(FileAndConfirmationBeforeAndAfterAccept, AutosaveImportUi,
+    testing::Combine(testing::Bool(), testing::Bool()));
+
+class InvalidatedAutosaveImport : public GuiImport, public testing::WithParamInterface<int> {};
+TEST_P(InvalidatedAutosaveImport, PendingImportCannotSurviveInputCloseOrShutdownChange)
+{
+    initial(); ASSERT_TRUE(finishBackgroundAutosave(controller)); RecoveryTestAccess::timers(controller);
+    controller.setCell(.5);
+    const auto path = source("8 9 0\n", "next.xyz");
+    beginReplacement(path); const auto token = model.selectionToken();
+    ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied);
+    auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
+    ASSERT_TRUE(waitContext(context, true));
+    model.confirmReplacement(token, true);
+    if (GetParam() == 0) { controller.setCell(2); controller.undo(); }
+    else if (GetParam() == 1) controller.closeProject();
+    else controller.requestShutdown();
+    EXPECT_TRUE(model.selectionToken().isEmpty());
+    ASSERT_TRUE(finish(controller)); QCoreApplication::processEvents();
+    model.confirmReplacement(token, true); model.selectImportFile(token, QUrl::fromLocalFile(path));
+    EXPECT_NE(model.sourceName(), "next.xyz"); EXPECT_NE(controller.operation().kind, OperationKind::Import);
+}
+INSTANTIATE_TEST_SUITE_P(InputCloseShutdown, InvalidatedAutosaveImport, testing::Range(0, 3));
+
+TEST_F(GuiImport, CompletedAutosavePreservesSelectionUntilActualProjectReplacement)
+{
+    initial(); ASSERT_TRUE(finishBackgroundAutosave(controller)); RecoveryTestAccess::timers(controller);
+    controller.setCell(.5); click("newProjectButton"); const auto token = model.selectionToken();
+    ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(model.selectionToken(), token); EXPECT_TRUE(model.selectingFile());
+    const auto oldIdentity = controller.project()->runtimeIdentity();
+    const auto path = source("8 9 0\n", "next.xyz");
+    ASSERT_EQ(controller.importAscXyz({path, {8ULL << 20, 64ULL << 20, 8}, true}).outcome, CommandOutcome::Applied);
+    EXPECT_TRUE(model.selectionToken().isEmpty());
+    ASSERT_TRUE(finish(controller)); RecoveryTestAccess::timers(controller);
+    EXPECT_NE(controller.project()->runtimeIdentity(), oldIdentity);
+    const auto id = controller.operation().id;
+    model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true);
+    EXPECT_EQ(controller.operation().id, id);
 }
 
 TEST_F(GuiImport, UncUrlIsAcceptedAtUiBoundaryWithoutContactingNetwork)

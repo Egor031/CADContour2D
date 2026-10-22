@@ -42,11 +42,11 @@ QByteArray encodedManifest(const SavedProject &project, RecoveryLimits limits)
 }
 QByteArray encode(const RecoveryRecord &r, RecoveryLimits limits)
 {
-    if (r.sessionId.isNull() || !r.state || !r.state->content.location || (r.baseline &&
+    if (r.sessionId.isNull() || !r.state || !r.state->content.location || (r.requiresSaveAs && !r.baseline) || (r.baseline &&
         (r.baseline->snapshot.projectId != r.state->snapshot.projectId
          || !absolutePath(r.baseline->manifestPath) || r.baseline->manifestDigest.size() != 32)))
         throw error(ErrorCode::InvalidValue, QStringLiteral("Invalid recovery state/baseline"));
-    QByteArray out = "PC2D-RECOVERY 1\n" + r.sessionId.toString(QUuid::WithoutBraces).toLatin1() + '\n';
+    QByteArray out = "PC2D-RECOVERY 2\n" + r.sessionId.toString(QUuid::WithoutBraces).toLatin1() + '\n';
     out += r.disposition == RecoveryDisposition::Open ? "open\n"
         : r.disposition == RecoveryDisposition::Closed ? "closed\n" : "rejected\n";
     out += directory(*r.state).toUtf8().toBase64() + '\n';
@@ -57,6 +57,7 @@ QByteArray encode(const RecoveryRecord &r, RecoveryLimits limits)
     out += (r.baseline ? r.baseline->manifestPath.toUtf8().toBase64() : QByteArray{}) + '\n';
     out += (r.baseline ? encodedManifest(*r.baseline, limits).toBase64() : QByteArray{}) + '\n';
     out += (r.baseline ? r.baseline->manifestDigest.toHex() : QByteArray{}) + '\n';
+    out += r.requiresSaveAs ? "1\n" : "0\n";
     out += hash(out).toHex() + '\n';
     if (!limits.maxRecordBytes || std::uint64_t(out.size()) > limits.maxRecordBytes)
         throw error(ErrorCode::ResourceExhausted, QStringLiteral("Recovery record exceeds admission budget"));
@@ -80,13 +81,15 @@ QString pathText(const QByteArray &bytes)
 std::shared_ptr<const RecoveryRecord> decode(const QByteArray &bytes, QUuid expected, RecoveryLimits limits)
 {
     const auto parts = bytes.split('\n');
-    if (parts.size() != 11 || !parts.back().isEmpty())
-        throw error(ErrorCode::InvalidValue, QStringLiteral("Incomplete recovery envelope"));
-    if (parts[0] != "PC2D-RECOVERY 1")
+    const bool legacy = parts[0] == "PC2D-RECOVERY 1";
+    if (!legacy && parts[0] != "PC2D-RECOVERY 2")
         throw error(ErrorCode::UnsupportedVersion, QStringLiteral("Unsupported recovery format/version"));
+    const auto checksumLine = legacy ? 9 : 10;
+    if (parts.size() != checksumLine + 2 || !parts.back().isEmpty())
+        throw error(ErrorCode::InvalidValue, QStringLiteral("Incomplete recovery envelope"));
     if (parts[1] != expected.toString(QUuid::WithoutBraces).toLatin1()
-        || expected.isNull() || parts[9].size() != 64
-        || hash(bytes.left(bytes.size() - 65)).toHex() != parts[9])
+        || expected.isNull() || parts[checksumLine].size() != 64
+        || hash(bytes.left(bytes.size() - 65)).toHex() != parts[checksumLine])
         throw error(ErrorCode::InvalidValue, QStringLiteral("Recovery identity/checksum mismatch"));
     auto r = std::make_shared<RecoveryRecord>();
     r->sessionId = expected;
@@ -121,6 +124,13 @@ std::shared_ptr<const RecoveryRecord> decode(const QByteArray &bytes, QUuid expe
         r->baseline = std::move(baseline.value());
     } else if (!parts[7].isEmpty() || !parts[8].isEmpty())
         throw error(ErrorCode::InvalidValue, QStringLiteral("Incomplete explicit baseline"));
+    if (!legacy) {
+        if (parts[9] != "0" && parts[9] != "1")
+            throw error(ErrorCode::InvalidValue, QStringLiteral("Invalid recovery conflict flag"));
+        r->requiresSaveAs = parts[9] == "1";
+        if (r->requiresSaveAs && !r->baseline)
+            throw error(ErrorCode::InvalidValue, QStringLiteral("Missing recovery conflict provenance"));
+    }
     r->digest = hash(bytes);
     return r;
 }
@@ -169,6 +179,7 @@ bool equal(const SavedProject &a, const SavedProject &b)
 { return matchesSavedContent(ProjectState(1, a.snapshot.projectId, a.content, a.snapshot.cell), b); }
 RecoveryRelation relation(const RecoveryRecord &r, const std::shared_ptr<const SavedProject> &now)
 {
+    if (r.requiresSaveAs) return RecoveryRelation::Conflict;
     if (!r.baseline) return RecoveryRelation::Unsaved;
     if (!now) return RecoveryRelation::Conflict;
     if (equal(*r.state, *now)) return RecoveryRelation::MatchesExplicit;
@@ -375,11 +386,12 @@ Result<RestoredRecovery> restoreRecovery(const QString &root, const RecoveryCand
             baseline = std::move(observed);
         }
         if (cancel && cancel(context)) return error(ErrorCode::InvalidValue, QStringLiteral("Recovery acceptance cancelled"));
-        if (r->disposition == RecoveryDisposition::Closed) {
+        if (r->disposition == RecoveryDisposition::Closed || (kind == RecoveryRelation::Conflict && !r->requiresSaveAs)) {
             // Persist the new attempt before exposing its candidate. Even a crash
             // immediately after owner Accept leaves an interrupted, complete record.
-            // Only lifecycle metadata changes; the original state and references stay.
+            // Only lifecycle/conflict metadata changes; state and references stay.
             auto reopened = *r; reopened.disposition = RecoveryDisposition::Open;
+            reopened.requiresSaveAs = kind == RecoveryRelation::Conflict;
             auto transaction = RecoveryTransaction::prepare(root, std::move(reopened), lease.value(), limits,
                 [cancel, context] { return cancel && cancel(context); });
             if (!transaction) return transaction.error();

@@ -620,9 +620,15 @@ Cancel оставляет NoProject. Нативный `QtQuick.Dialogs.FileDialo
 
 Выбор и подтверждение замены имеют одноразовый UI token. До FileDialog controller
 выдаёт `ImportContext` (optional project stamp, application epoch и номер последней
-операции). GUI передаёт его как `ImportRequest::expectedContext`; controller
-повторно сверяет контекст и доступность запуска. Изменение контекста, Busy или Closing
-снимают выбор; старый callback не разрешает новый импорт. После синхронного UI-уведомления
+операции, кроме Autosave). GUI передаёт его как `ImportRequest::expectedContext`;
+controller повторно сверяет контекст и доступность запуска. Read-only
+`importSelectionContext()` отделяет применимость выбора от admission через
+`importContext()`: временный Busy Autosave и command scope уведомлений не снимают
+действительный выбор. Остальные Busy, смена stamp/epoch и Closing снимают выбор;
+старый callback не разрешает новый импорт. Подтверждённый во время Autosave Import
+сохраняется как одно явное UI-действие: Autosave отзывается до Accept либо ожидается
+его receipt/native join, затем queued callback повторяет admission/context check.
+Очереди Autosave нет. После синхронного UI-уведомления
 adapter повторно проверяет именно созданный token, контекст и Open перед запросом
 FileDialog; QML также не открывает диалог для отозванного выбора. Это дополнительная проверка
 перед запуском, прежний publication gate остаётся обязательным.
@@ -1372,9 +1378,12 @@ Cell/Undo/Redo не инвалидируют snapshot; более поздние
 domain binding и история не меняются. Сохраняется только применённое domain state.
 
 Storage — `AppLocalDataLocation/projects/recovery/<session UUID>.pc2drecovery`.
-Переопределённый C++ storage root изолирует и recovery. Отдельный recovery v1 envelope
+Переопределённый C++ storage root изолирует и recovery. Отдельный recovery v2 envelope
 содержит checksum, lifecycle, snapshot и physical dataset reference, optional explicit
-baseline с exact digest/path. Snapshots используют прежний manifest codec с точным
+baseline с exact digest/path и sticky `requiresSaveAs`. V1 явно читается без флага;
+discovery не переписывает запись, следующая публикация использует v2. Неизвестная
+версия возвращается как Invalid/UnsupportedVersion, исходные данные сохраняются.
+Snapshots используют прежний manifest codec с точным
 binary64; форматы `.pc2dproj` и Point Cache v1 не изменены. Physical reference хранится
 отдельно, поскольку до первого Save cache расположен в принятом import storage.
 По умолчанию recovery ограничен 12 MiB, discovery — 1024 записями и 64 MiB metadata
@@ -1405,8 +1414,13 @@ unsaved допускает явный bounded recheck без создания sa
 до Ready атомарно маркируется Open с тем же state/references: авария сразу после
 Accept обнаружима. Отмена последующего Accept может оставить консервативный Interrupted
 (незавершённая попытка восстановления), сохраняя целый candidate. Source recovery
-удерживается до следующего Autosave. При конфликте baseline отсоединён,
-`recoveryRequiresSaveAs()` запрещает обычный Save; независимый explicit save не меняется.
+удерживается до следующего Autosave. При конфликте saved baseline отсоединён,
+а исходный explicit baseline остаётся provenance recovery. Sticky flag фиксируется
+до Ready тем же metadata transaction и сохраняется следующими Autosave; даже совпадение
+content с independently changed explicit не снимает уже установленный конфликт.
+`recoveryRequiresSaveAs()` запрещает обычный Save до persisted receipt явного Save As;
+failure/Undo/restart не снимают требование. Новый binding/baseline и flag=false
+попадают в следующий Autosave. Независимый explicit save не меняется.
 
 `rejectRecovery(candidate)` фиксирует Rejected через permission/receipt; при ошибке
 candidate сохраняется. `closeProject(discardConfirmed=false)` и

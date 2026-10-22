@@ -77,7 +77,7 @@ public:
     bool canImport() const noexcept;
     QString selectionToken() const { return selectionToken_; }
     bool selectingFile() const noexcept { return selectionContext_.has_value() && selectedPath_.isEmpty(); }
-    bool replacementPending() const noexcept { return !selectedPath_.isEmpty(); }
+    bool replacementPending() const noexcept { return !selectedPath_.isEmpty() && !pendingImport_; }
     QString replacementFileName() const;
     QString nonZeroZToken() const;
     QString nonZeroZText() const;
@@ -126,6 +126,7 @@ private:
     std::optional<ImportContext> selectionContext_;
     QString selectionToken_;
     QString selectedPath_;
+    std::optional<bool> pendingImport_; // one explicit user action waiting for Autosave's native join
     QString importErrorMessage_;
     bool startupOffered_ = false;
     bool zConsumerRegistered_ = false;

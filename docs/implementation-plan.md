@@ -251,14 +251,14 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1–05.3 — ACCEPTED; 05.4 — READY FOR INDEPENDENT REVIEW; 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
+**Статус: 05.1–05.3 — ACCEPTED; 05.4 — READY FOR INDEPENDENT VERIFICATION (исправления H1–H3); 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
 
 | Часть | Область | Статус |
 |---|---|---|
 | 05.1 | Persistence Foundation | ACCEPTED |
 | 05.2 | Save / Save As | ACCEPTED |
 | 05.3 | Open и частичная доступность | ACCEPTED |
-| 05.4 | Autosave / Recovery | READY FOR INDEPENDENT REVIEW |
+| 05.4 | Autosave / Recovery | READY FOR INDEPENDENT VERIFICATION |
 | 05.5 | GUI и сквозная приёмка | NOT STARTED |
 
 05.1 принята пользователем на commit `408757c9e26b4369b065ba9ee315d48a70336773`:
@@ -294,6 +294,9 @@ R1 независимо подтверждено и исправлено, RED �
 05.4 реализует C++ Autosave/Recovery: отдельный versioned metadata record,
 atomic publication без копирования datasets, discovery/restore/reject, explicit
 baseline/conflict/partial availability и lifecycle в существующем worker gate.
+После вердикта FIXES REQUIRED исправлены H1–H3: сохранение конфликта между
+восстановлениями, выбор Import во время Autosave и актуальность README.
+Исправления направляются на повторную независимую проверку; 05.4 не принята.
 Протокол — [architecture §31.1](architecture.md#311-c-autosave--recovery-054),
 проверки и ограничения — [отчёт 05.4](reports/task-05/autosave-recovery.md).
 GUI-интеграция и сквозная пользовательская приёмка — 05.5, NOT STARTED;

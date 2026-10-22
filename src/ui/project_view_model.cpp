@@ -219,7 +219,7 @@ void ProjectViewModel::newProject()
     const QPointer<ProjectViewModel> lifetime(this);
     emit importUiChanged();
     if (lifetime && selectionToken_ == token && actionsEnabled() && selectingFile()
-        && selectionContext_ == controller_.importContext())
+        && selectionContext_ == controller_.importSelectionContext())
         emit fileSelectionRequested();
 }
 
@@ -228,17 +228,25 @@ void ProjectViewModel::clearSelection()
     selectionContext_.reset();
     selectionToken_.clear();
     selectedPath_.clear();
+    pendingImport_.reset();
     emit importUiChanged();
 }
 
 void ProjectViewModel::refreshImportUi()
 {
-    // importContext also checks Busy, shutdown, reentry and NoProject ABA in the application layer.
-    if (selectionContext_ && selectionContext_ != controller_.importContext()) {
+    if (selectionContext_ && selectionContext_ != controller_.importSelectionContext()) {
         importErrorMessage_ = closing() ? QStringLiteral("Приложение завершает работу.")
             : QStringLiteral("Контекст изменился. Выберите файл заново для нового импорта.");
         clearSelection();
         return;
+    }
+    if (pendingImport_ && !operationActive()) {
+        const auto token = selectionToken_;
+        // Terminal notifications still hold the controller's command guard.
+        QTimer::singleShot(0, this, [this, token] {
+            if (pendingImport_ && selectionToken_ == token && !operationActive())
+                startSelectedImport(*pendingImport_);
+        });
     }
     emit importUiChanged();
 }
@@ -264,7 +272,7 @@ void ProjectViewModel::selectImportFile(const QString &token, const QUrl &url)
         clearSelection();
         return;
     }
-    if (selectionContext_ != controller_.importContext()) {
+    if (selectionContext_ != controller_.importSelectionContext()) {
         importErrorMessage_ = QStringLiteral("Контекст изменился. Выберите файл заново.");
         clearSelection();
         return;
@@ -290,6 +298,14 @@ void ProjectViewModel::confirmReplacement(const QString &token, bool confirmed)
 
 void ProjectViewModel::startSelectedImport(bool confirmed)
 {
+    if (selectionContext_ && selectionContext_ == controller_.importSelectionContext()
+        && operationActive() && controller_.operation().kind == OperationKind::Autosave) {
+        pendingImport_ = confirmed;
+        const QPointer<ProjectViewModel> lifetime(this);
+        controller_.cancelOperation(); // before Accept: revoke; after Accept: wait for receipt/join
+        if (lifetime) emit importUiChanged();
+        return;
+    }
     ImportRequest request{selectedPath_, {}, confirmed, selectionContext_, true};
     const QPointer<ProjectViewModel> lifetime(this);
     clearSelection(); // consumes this UI action before application notifications can reenter

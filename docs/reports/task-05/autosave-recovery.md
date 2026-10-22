@@ -1,7 +1,11 @@
 # Task 05.4 — Autosave / Recovery
 
-**Статус: READY FOR INDEPENDENT REVIEW.** 05.1–05.3 остаются ACCEPTED;
+**Статус: READY FOR INDEPENDENT VERIFICATION после исправлений H1–H3.** 05.1–05.3 остаются ACCEPTED;
 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.
+
+Разделы A–J ниже сохраняют отчёт первоначальной реализации `d199239`.
+Независимое ревью вынесло **FIXES REQUIRED** (H1/H2 Medium, H3 Low).
+Исправления и новые результаты — в [разделе K](#k-исправления-после-независимого-ревью-h1h3).
 
 ## A. Baseline
 
@@ -246,3 +250,176 @@ plan, README/docs index и этот отчёт. Algorithms не изменялс
 
 **05.4 — READY FOR INDEPENDENT REVIEW.** Независимое ревью и принятие 05.4 ещё не выполнялись.
 05.5 и вся задача 05 остаются незавершёнными.
+
+## K. Исправления после независимого ревью H1–H3
+
+### Baseline и границы
+
+2026-10-22. Branch `main`, HEAD `d19923932fd2892b44b40cdbd69efa93268cd06b`,
+исходные index/working tree чистые. Проверяемый диапазон — этот baseline → отдельный
+локальный fixes commit. Независимое ревью: **FIXES REQUIRED**, H1/H2 Medium,
+H3 Low. Причины независимо проверены по коду и исполняемым regression tests.
+05.1–05.3 остаются ACCEPTED; работа ограничена H1–H3, 05.5 не начиналась.
+
+### H1: происхождение конфликта и Save As
+
+Первопричина подтверждена: конфликтный restore намеренно отсоединял `session.saved`,
+а следующий Autosave брал baseline только из него. После перезапуска запись без
+baseline классифицировалась Unsaved, теряя `recoveryRequiresSaveAs`.
+
+RED на исходной production реализации: новый
+`Recovery.ConflictSurvivesAutosaveRestartUndoAndFailedSaveAs` — FAIL на первом же
+повторном восстановлении: flag=false, обычный Save с заданным path допускался к запуску.
+Локальный лог — `build/h1-red-debug.xml`. Затем расширены смежные проверки Undo и
+инъекция failed Save As: для нового target используется failed write seam,
+поскольку QSaveFile replacement-commit hook не участвует в первом Save As.
+Первая попытка успешного Save As в тот же failed directory обнаружила ожидаемый
+сохранённый orphan dataset; финальный тест использует отдельный новый destination,
+сохраняя принятый safety contract Save As, без удаления orphan.
+
+Исправление: исходный explicit baseline сохраняется в recovery как provenance,
+`session.saved` по-прежнему отсутствует и dirty=true. Отдельный sticky
+`requiresSaveAs` фиксируется до Ready существующей metadata transaction и
+передаётся следующим Autosave. Он имеет приоритет над content equality:
+Undo и даже совпадение с независимо сохранённым cell не разрешают конфликт.
+Persisted receipt успешного явного Save As устанавливает новый binding/baseline
+и снимает flag; failed Save As его не снимает. Новый Autosave сохраняет это разрешение.
+
+Одного сохранения прежнего baseline в v1 недостаточно: он не различает ещё не
+установленный конфликт и уже установленный конфликт, который обязан пережить
+последующее совпадение content. Чтобы не подменять exact digest/path или saved
+baseline фиктивными значениями, добавлен один flag в **recovery v2**:
+11 ASCII lines; lines 2–9 прежние, header `PC2D-RECOVERY 2`, line 10 — canonical
+`0`/`1` (`requiresSaveAs`), line 11 — SHA-256 lines 1–10 с LF. Flag=1 требует
+валидный provenance baseline. Manifest и Point Cache остаются v1.
+
+Reader явно принимает v1 (flag отсутствует) и v2. Discovery не мигрирует и не
+меняет файлы; следующая transaction записывает v2. Unknown versions возвращаются
+Invalid/UnsupportedVersion без удаления исходной записи; прежний binary отвергает
+v2, не интерпретирует её как v1. Сложной migration infrastructure не добавлено.
+Если старый binary уже опубликовал дефектную v1 без baseline после конфликта,
+утраченное происхождение невозможно отличить от настоящего Unsaved; восстановить
+такую ранее потерянную информацию из record нельзя. Новое исправление предотвращает
+эту потерю при чтении пригодной v1 и всех последующих v2 публикациях.
+
+GREEN Debug: основной H1 workflow и три v1 workflows (Unsaved/Modified/Conflict)
+— **4/4 PASS** (`build/h1-green-debug.xml`). Проверены повторные изменения/restarts,
+Undo, запрет обоих вариантов обычного Save, failed Save As, новый binding/baseline,
+clean после Save As и дальнейшие Autosave/Restore/обычный Save. Независимый explicit
+manifest остаётся byte-identical. Два новых schema tests отвергают invalid flag и
+flag без provenance; существующие resource/path/assertion проверки не ослаблены.
+
+### H2: применимость выбора и доступность worker
+
+Первопричина подтверждена: `refreshImportUi()` сравнивал selection с
+`importContext()`, который возвращал null при Busy и во время CommandScope
+уведомлений. Кроме того, каждый Autosave менял last-operation stamp, поэтому
+простого пропуска Busy notification было недостаточно.
+
+RED на исходном production code: два параметра нового GUI-теста
+`KeepsSelectionAndImportsWhenConfirmedDuringAutosave` — **0 PASS / 2 FAIL**,
+token/path/dialog очищались, последующий Import не запускался.
+Локальный лог — `build/h2-red-debug.xml`.
+
+Исправление: read-only `importSelectionContext()` проверяет thread/shutdown,
+project stamp/epoch и последнюю операцию кроме Autosave. Он работает внутри
+уведомления и при Autosave Busy; admission через `importContext()` и все command
+reentry guards сохранены. Другие операции/смена stamp/epoch по-прежнему инвалидируют
+selection. При подтверждении во время Autosave adapter сохраняет одно явное
+пользовательское действие, отзывает pending Autosave либо ждёт принятую publication
+и native completion/Qt join, затем queued callback повторно проверяет token и
+application context перед Import. Path/token живут до dispatch; нет второго worker
+или очереди фоновых snapshots.
+
+GREEN Debug — **8/8 PASS** (`build/h2-green-debug.xml`):
+
+- FileDialog и replacement dialog, каждый до и после irrevocable Accept (4 случая).
+  FileDialog реально открыт через production QML с DontUseNativeDialog, подтверждение
+  проходит через production adapter; OS dialog не нужен в headless tests.
+- Pending action инвалидируется при cell change + Undo, Close и Shutdown (3 случая).
+- Завершённый Autosave сохраняет selection, реальная замена проекта инвалидирует
+  его; stale selection/confirmation callbacks не запускают новый Import (1 случай).
+
+Barrier управляет Ready/Accept/native completion; ожиданий по 60 секунд и новых
+delay-based race workarounds нет. В исходном и расширенном tests проверяются
+token/selected path/dialog state, приоритет Import и успешный результат.
+
+Первый полный Debug production прогон: 679 PASS / 2 FAIL / 1 SKIP.
+Оба новых FileDialog tests уже успешно импортировали `next.xyz`, но сравнивали
+`controller.operation().kind` после доставки следующих lifecycle/Autosave events
+с Import. Это не устойчивое terminal observation. Проверка перенесена в реальное
+terminal уведомление Import: ровно одно завершение, Succeeded, Import и новый
+OperationId; остальные selection/result/stale assertions сохранены. Задержки и
+ослабление application guards не добавлены. Первый Release production прошёл
+681 PASS / 0 FAIL / 1 SKIP. Исходные логи сохранены как
+`build/production-{debug,release}-054-fixes-first.log`.
+
+### H3: фактическая готовность
+
+Исправлен начальный Workflow README: C++ Autosave/Recovery уже реализован в 05.4,
+GUI Save/Open/Recovery и сквозная приёмка относятся к 05.5. README, documentation
+index, implementation-plan и architecture согласованы с исправлениями и повторной
+проверкой; первоначальный отчёт A–J и вердикт независимого ревью сохранены.
+Requirements/architecture уточняют устойчивые контракты sticky conflict и выбора
+Import при Autosave, без дублирования технического отчёта.
+
+### Финальные проверки
+
+На окончательных исходниках после исправления terminal observation:
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Build `all` + `all_qmllint` | PASS | PASS |
+| Целевой CTest H1/H2 | 12/12 PASS | 12/12 PASS |
+| Полный production CTest (682) | 681 PASS / 0 FAIL / 1 SKIP | 681 PASS / 0 FAIL / 1 SKIP |
+| Recovery, включая schema/compatibility/resource tests | 64/64 PASS | 64/64 PASS |
+| Process crash tests в составе Recovery | 7/7 PASS | 7/7 PASS |
+| Остальные production, включая Save/Open/Import/Z/UI/operation/shutdown | 617 PASS / 0 FAIL / 1 SKIP | 617 PASS / 0 FAIL / 1 SKIP |
+
+SKIP в обоих presets — исторический `Persistence.StoragePath.FileSymlinkEscape`,
+в LastTest.log та же причина: Windows file symlink privilege unavailable, 1314.
+Новых FAIL/SKIP нет. Полные прогоны заняли 166.43 s / 99.07 s соответственно;
+это время тестов, не performance benchmark. Прерванные закрытием desktop приложения
+финальные запуски не засчитаны; после возобновления выполнены полные прогоны заново.
+
+После штатной MSVC/Qt инициализации README фактически выполнены:
+
+```bat
+cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+cmake --build --preset windows-release --target all all_qmllint --parallel 4
+ctest --preset windows-debug -R "ConflictSurvives|ReadsVersionOne|AutosaveImportUi|InvalidatedAutosaveImport|CompletedAutosave" --output-on-failure
+ctest --preset windows-release -R "ConflictSurvives|ReadsVersionOne|AutosaveImportUi|InvalidatedAutosaveImport|CompletedAutosave" --output-on-failure
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+Локальные финальные логи: `build/h1-h2-green-{debug,release}.log`,
+`build/production-{debug,release}-054-fixes.log` и соответствующие
+`build/windows-{debug,release}/Testing/Temporary/LastTest.log`.
+Известный warning C4702 стороннего fmt сохранён; проверки/diagnostics не отключались.
+
+### Safety, ограничения и Git
+
+Сохранены: один managed worker, Ready/Accept/Discard, native completion и Qt join,
+atomic metadata publication и предыдущий пригодный snapshot; explicit baseline,
+dirty и Undo/Redo не подменяются recovery provenance. Save/Open transaction и runner
+не переработаны. Accepted datasets/conservative retention и bounded probe прежние;
+автоматические cache copy/full scan/validation, import/rebuild и новые зависимости
+не добавлены. Новые Import tests сохраняют context/epoch/reentry/cancellation guards.
+
+Физический power loss, большие datasets/HDD/UNC и native OS FileDialog вручную
+в этом исправлении не проверялись; новые GUI cases используют production QML
+FileDialog с Qt Quick fallback. Пределы первоначальной 05.4 из §I остаются;
+отдельное ограничение уже испорченного provenance в старой v1 описано выше.
+
+Изменены controller/import context, recovery codec, UI adapter, два test sources,
+README/docs index, requirements §33, architecture §§13/31.1, implementation-plan
+и этот отчёт. Conceptual algorithms и форматы manifest/Point Cache не изменены.
+Fixes создают отдельный локальный commit; его hash сообщается после commit.
+Полный diff просмотрен, `git diff --check` и staged diff check выполнены перед commit.
+Несвязанных пользовательских изменений не было; временный environment wrapper удалён.
+Push не выполняется. 05.1–05.3 остаются ACCEPTED; 05.5 — NOT STARTED,
+вся задача 05 не завершена и не принята.
+
+**READY FOR INDEPENDENT VERIFICATION.** H1–H3 исправлены и проверены реализационными
+regressions; повторная независимая проверка и принятие 05.4 ещё не выполнены.

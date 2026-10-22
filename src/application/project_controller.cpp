@@ -392,8 +392,17 @@ std::optional<ImportContext> ProjectController::importContext() const noexcept
 {
     if (checkEntry().outcome == CommandOutcome::Rejected || runner_.busy())
         return {};
+    return importSelectionContext();
+}
+
+std::optional<ImportContext> ProjectController::importSelectionContext() const noexcept
+{
+    // Notifications run inside CommandScope. Read-only intent validation must not
+    // confuse that scope, or an Autosave lease, with a change of project inputs.
+    if (QThread::currentThread() != thread() || shutdown_ != ShutdownState::Open
+        || (runner_.busy() && operation_.kind != OperationKind::Autosave)) return {};
     return ImportContext{session_ ? std::optional(session_->state.operationStamp()) : std::nullopt,
-                         contextEpoch_, lastOperationId_};
+                         contextEpoch_, lastImportContextOperation_};
 }
 
 CommandResult ProjectController::setNonZeroZConsumer(QObject *consumer)
@@ -518,6 +527,7 @@ CommandResult ProjectController::startWork(OperationWork work, OperationKind kin
     snapshot_ = snapshot;
     operation_ = {};
     operation_.id = ++lastOperationId_;
+    if (kind != OperationKind::Autosave) lastImportContextOperation_ = operation_.id;
     operation_.stamp = snapshot.stamp;
     operation_.kind = kind;
     operation_.status = OperationStatus::Starting;
@@ -907,10 +917,12 @@ CommandResult ProjectController::autosave()
     if (runner_.busy()) return CommandResult::rejected(CommandError::Busy);
     if (!session_ || !session_->state.dataset() || recoveryClosing_) return CommandResult::noChange();
     const auto &s = *session_;
+    const auto baseline = s.recoveryConflict ? s.recovery->baseline : s.saved;
     if (s.recovery && persistence::matchesSavedContent(s.state, *s.recovery->state)
-        && ((!s.saved && !s.recovery->baseline)
-            || (s.saved && s.recovery->baseline && s.saved->manifestPath == s.recovery->baseline->manifestPath
-                && s.saved->manifestDigest == s.recovery->baseline->manifestDigest)))
+        && s.recoveryConflict == s.recovery->requiresSaveAs
+        && ((!baseline && !s.recovery->baseline)
+            || (baseline && s.recovery->baseline && baseline->manifestPath == s.recovery->baseline->manifestPath
+                && baseline->manifestDigest == s.recovery->baseline->manifestDigest)))
         return CommandResult::noChange();
     try {
         const auto &dataset = *s.state.dataset();
@@ -921,7 +933,7 @@ CommandResult ProjectController::autosave()
         auto metadata = std::make_shared<persistence::SavedProject>();
         metadata->snapshot = std::move(snapshot.value()); metadata->content = dataset;
         persistence::RecoveryRecord record{s.recoveryId, persistence::RecoveryDisposition::Open,
-            std::move(metadata), s.saved, s.recovery ? s.recovery->digest : QByteArray{}};
+            std::move(metadata), baseline, s.recovery ? s.recovery->digest : QByteArray{}, s.recoveryConflict};
         auto work = [root = recoveryRoot_, record = std::move(record), lease = s.recoveryLease, prepare = recoveryPrepare_]
             (const OperationSnapshot &, const WorkerControl &control) mutable {
             auto cancel = [&control] { return control.cancelled(); };

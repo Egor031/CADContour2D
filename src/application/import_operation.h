@@ -7,7 +7,7 @@ namespace cadcontour {
 struct ImportContext {
     std::optional<OperationStamp> project;
     std::uint64_t epoch = 0;
-    OperationId lastOperation = 0;
+    OperationId lastOperation = 0; // last explicit/lifecycle operation; Autosave does not revoke intent
     bool operator==(const ImportContext &) const = default;
 };
 
