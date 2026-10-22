@@ -1,11 +1,13 @@
 # Task 05.4 — Autosave / Recovery
 
-**Статус: READY FOR INDEPENDENT VERIFICATION после исправлений H1–H3.** 05.1–05.3 остаются ACCEPTED;
+**Статус: READY FOR INDEPENDENT VERIFICATION после исправления N1.** 05.1–05.3 остаются ACCEPTED;
 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.
 
 Разделы A–J ниже сохраняют отчёт первоначальной реализации `d199239`.
 Независимое ревью вынесло **FIXES REQUIRED** (H1/H2 Medium, H3 Low).
 Исправления и новые результаты — в [разделе K](#k-исправления-после-независимого-ревью-h1h3).
+Повторное ревью подтвердило H1/H3 как FIXED, H2 — PARTIALLY FIXED из-за N1;
+проверка и исправление N1 — в [разделе L](#l-n1--вложенная-доставка-событий-при-отложенном-import).
 
 ## A. Baseline
 
@@ -423,3 +425,153 @@ Push не выполняется. 05.1–05.3 остаются ACCEPTED; 05.5 �
 
 **READY FOR INDEPENDENT VERIFICATION.** H1–H3 исправлены и проверены реализационными
 regressions; повторная независимая проверка и принятие 05.4 ещё не выполнены.
+
+## L. N1 — вложенная доставка событий при отложенном Import
+
+### Baseline и независимое подтверждение
+
+2026-10-22, `main`, HEAD `7c901478db1e309c0c10d3ffe74f3bd6749a53e2`;
+исходные working tree/index чистые. Повторное независимое ревью подтвердило H1/H3
+как FIXED; H2 — PARTIALLY FIXED, N1 / Medium. Закрытые H1/H3 не перерабатывались,
+Recovery v2 и форматы данных не менялись. Область — deferred Import и его admission.
+
+N1 независимо подтверждён. `finishOperation()` после native completion/Qt join
+ставит active=false и вызывает terminal `operationChanged` под CommandScope.
+`executing_` сбрасывается позже, в `finishCommand()`. Старый `singleShot(0)` мог
+выполниться во вложенном `processEvents()` между этими событиями. Он смотрел только
+на !active; `startSelectedImport()` потреблял selection/pending до обращения к
+controller, получал ReentrantCommand и терял действие. Контекст при этом применим:
+runtime stamp/epoch и `importSelectionContext()` не изменились.
+
+### RED
+
+До изменения production-кода в Debug фактически запущен новый
+`N1NestedEventDeliveryAtTerminalPreservesIntentAndImportsExactlyOnce`:
+**0 PASS / 4 FAIL**. Матрица — FileDialog/replacement confirmation × до/после Accept.
+Terminal observer восемь раз доставляет вложенные events. Подтверждены !active,
+!runnerBusy, nativeComplete, отсутствие admission и прежний applicable context;
+прямой пробный Import возвращает именно ReentrantCommand. После events token/path
+пусты и Import не завершается. Это потеря намерения при временном отказе,
+а не настоящая инвалидация. Логи: `build/n1-red-debug.log` и XML с тем же basename.
+
+### FIX
+
+Controller добавляет `commandTransitionFinished` после снятия внешнего command
+guard и обработки флагов pending notifications. Notification объединяется:
+не более одной ожидающей доставки, callback при действующем guard только снимает
+posted flag, а следующий `finishCommand()` планирует новый hint. Observers не
+вызываются синхронно из завершающегося command stack (в том числе до установки
+importSourcePath после возврата startWork). Это retry hint, не выданное
+разрешение. Adapter подписан queued с QObject lifetime context и QPointer controller.
+`refreshImportUi()` больше не планирует попытки по одному !active.
+
+Перед каждым dispatch повторно проверяются token/pending, applicable context и
+фактический `importContext()` с неизменёнными reentry/Busy guards. При временной
+недоступности intent сохраняется; только следующий реальный command transition
+даёт новое notification. Callback не планирует сам себя, delay/timer polling нет.
+Это работает и когда старый queued hint попал внутрь другого CommandScope:
+новой попытки до выхода из него не будет, а его завершение даст следующий hint.
+
+Token/path/context/pending не очищаются до результата admission. Синхронное
+pre-dispatch UI notification сохраняется для cancellation/destruction и проверяется
+через QPointer/token после возврата; локальные notification/submission guards
+не допускают второй вызов при вложенных events. Собственный уже начатый Import
+отличается от смены контекста внешней командой; настоящий Closing по-прежнему
+отзывает selection. Applied, окончательный failure или настоящий отзыв завершают
+intent; Busy/ReentrantCommand с применимым контекстом его сохраняют.
+
+Первый промежуточный GREEN выявил ложное UI-сообщение о смене контекста при собственном
+admission; добавлено различение own submission. Проверка однократности уточнена:
+считаются уникальные OperationId запуска/завершения, а не число повторных notifications
+одного terminal state. Assertions на один Import и его успешное завершение сохранены.
+
+### GREEN и смежные сценарии
+
+Промежуточный Debug: **17/17 PASS** в отдельном запуске (12 N1 cases и пять смежных H2/adapter
+deletion cases). Основной nested сценарий после исправления — 4/4 PASS. Дополнительно
+восемь deterministic cases отзывают pending intent после native join и перед queued
+admission: Cancel, input change + Undo, Close, Shutdown, удаление adapter, удаление
+controller с owned adapter, реальная замена session и новый selection token.
+Старые callbacks не запускают pending Import; idle event pumping не порождает
+новых command transitions. После допустимого запуска подтверждён ровно один Import.
+
+QObject lifetime context удаляет callbacks уничтоженного adapter; при уничтожении
+controller в принятой модели владения удаляется принадлежащий ему adapter и его
+pending events. Произвольное использование adapter после смерти его controller
+не добавляется как новый поддержанный lifecycle. Существующий controller-outlives-
+adapter contract сохранён.
+
+Логи отдельного запуска: `build/n1-green-debug.log`, `build/n1-green-debug.xml`.
+Barrier управляет Ready/Accept и worker completion; произвольных задержек нет.
+Отдельная regression `N1TransitionHintDoesNotExposeUnfinishedImportStart` удерживает
+worker у Ready и доставляет вложенный poll из observer нового hint: Import обязан
+сохранить правильный source binding и успешно завершиться.
+
+### Финальная проверка N1
+
+На окончательных исходниках с объединённой отложенной доставкой notification:
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Build `all` + `all_qmllint` | PASS | PASS |
+| Целевой CTest N1 + прежний целевой набор H1/H2 | 25/25 PASS | 25/25 PASS |
+| N1 regressions в целевом/production наборе | 13/13 PASS | 13/13 PASS |
+| Полный production CTest (695) | 694 PASS / 0 FAIL / 1 SKIP | 694 PASS / 0 FAIL / 1 SKIP |
+| Recovery | 64/64 PASS | 64/64 PASS |
+| Process crash tests в составе Recovery | 7/7 PASS | 7/7 PASS |
+| Остальные production, включая Save/Open/Import/Z/UI/operation/shutdown | 630 PASS / 0 FAIL / 1 SKIP | 630 PASS / 0 FAIL / 1 SKIP |
+
+Единственный SKIP — прежний `Persistence.StoragePath.FileSymlinkEscape`,
+в обоих LastTest.log та же причина: Windows file symlink privilege unavailable, 1314.
+Новых FAIL/SKIP нет. Финальное время production — 211.15 s / 129.46 s;
+это время tests, не performance benchmark.
+
+До объединения notifications и добавления проверки source binding также выполнен
+промежуточный полный production: 693 PASS / 0 FAIL / 1 SKIP из 694 в каждой конфигурации.
+Финальный набор повторён после этого изменения. Промежуточные логи сохранены как
+`build/production-{debug,release}-054-n1-first.log`; целевые — `n1-targeted-*-first.log`.
+
+Фактически выполнены после штатной MSVC/Qt инициализации README:
+
+```bat
+cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+cmake --build --preset windows-release --target all all_qmllint --parallel 4
+ctest --preset windows-debug -R "N1|ConflictSurvives|ReadsVersionOne|AutosaveImportUi|InvalidatedAutosaveImport|CompletedAutosave" --output-on-failure
+ctest --preset windows-release -R "N1|ConflictSurvives|ReadsVersionOne|AutosaveImportUi|InvalidatedAutosaveImport|CompletedAutosave" --output-on-failure
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+Логи: `build/n1-build-{debug,release}.log`, `build/n1-targeted-{debug,release}.log`,
+`build/production-{debug,release}-054-n1.log`,
+`build/windows-{debug,release}/Testing/Temporary/LastTest.log`.
+
+### Safety и границы N1
+
+Сохраняется одно подтверждённое UI intent. Новый controller notification имеет
+один posted flag, повторная попытка не создаёт self-posting events и не ждёт worker
+на GUI thread. Import допускается через прежний checkEntry/importContext и context
+guard; !active отдельно не используется как admission. Новый worker не стартует
+до native completion/Qt join прежнего. Локальные UI flags различают собственную
+подачу команды и реальную инвалидацию, не обходят application reentry guard.
+
+Runner/publication/shutdown protocol, Save/Open/Recovery transactions, saved baseline,
+dirty/Undo, dataset retention и Recovery v2 не изменены. Новых зависимостей,
+автоматического чтения/копирования cache, full validation или rebuild нет.
+Fixtures малы; native OS FileDialog вручную, power-loss, большие datasets/HDD/UNC
+в N1 не проверялись. Автоматические GUI tests используют production QML с Quick
+FileDialog fallback. Первоначальные ограничения §I и границы 05.1–05.3 сохранены.
+
+Изменения: `project_controller.*` (wake notification), `project_view_model.*`
+(retained intent/admission/lifetime guards), GUI Import/lifecycle tests и read-only
+test helper ожидания recovery lifecycle; architecture уточняет устойчивую границу
+terminal notification/admission. Закрытые H1/H3 не перерабатывались; 05.5 не начиналась.
+
+Полный diff просмотрен; `git diff --check` и staged diff check выполнены перед commit.
+Временный environment wrapper удалён. Несвязанных пользовательских изменений не было.
+Изменения создают отдельный локальный commit; hash указывается в итоговом ответе
+после проверки Git status. Push не выполняется.
+
+**READY FOR INDEPENDENT VERIFICATION.** N1 подтверждён RED и исправлен с GREEN
+и полной регрессией. Повторная независимая проверка N1 и принятие 05.4 ещё не выполнены;
+05.1–05.3 остаются ACCEPTED, 05.5 — NOT STARTED, задача 05 целиком не завершена.

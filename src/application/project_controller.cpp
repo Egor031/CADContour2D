@@ -1064,6 +1064,13 @@ void ProjectController::finishCommand()
         QTimer::singleShot(0, this, [this] { notifyNonZeroZConfirmation(); });
     if (std::exchange(completionPending_, false))
         QTimer::singleShot(0, this, [this] { processReady(operation_.id); });
+    if (!std::exchange(transitionNotificationPosted_, true)) {
+        QTimer::singleShot(0, this, [this] {
+            transitionNotificationPosted_ = false;
+            if (!executing_) emit commandTransitionFinished();
+            // If nested delivery met another guard, its finishCommand posts the next hint.
+        });
+    }
 }
 
 } // namespace cadcontour

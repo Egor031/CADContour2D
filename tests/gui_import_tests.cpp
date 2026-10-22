@@ -351,6 +351,105 @@ TEST_P(AutosaveImportUi, KeepsSelectionAndImportsWhenConfirmedDuringAutosave)
 INSTANTIATE_TEST_SUITE_P(FileAndConfirmationBeforeAndAfterAccept, AutosaveImportUi,
     testing::Combine(testing::Bool(), testing::Bool()));
 
+class NestedAutosaveImport : public GuiImport, public testing::WithParamInterface<std::tuple<bool, bool>> {};
+TEST_P(NestedAutosaveImport, N1NestedEventDeliveryAtTerminalPreservesIntentAndImportsExactlyOnce)
+{
+    const auto [confirmationOpen, afterAccept] = GetParam();
+    initial(); ASSERT_TRUE(finishBackgroundAutosave(controller)); RecoveryTestAccess::timers(controller);
+    controller.setCell(.5);
+    const auto path = source("8 9 0\n", "nested.xyz");
+    if (!confirmationOpen) {
+        QQmlExpression options(qmlContext(control("importFileDialog")), control("importFileDialog"),
+            QStringLiteral("options = NativeDialogs.FileDialog.DontUseNativeDialog"));
+        options.evaluate(); ASSERT_FALSE(options.hasError());
+        ASSERT_TRUE(window->setProperty("fileDialogEnabled", true));
+    }
+    click("newProjectButton"); const auto token = model.selectionToken();
+    const auto selection = controller.importContext(); ASSERT_TRUE(selection);
+    if (confirmationOpen) select(path);
+    ControlledWork barrier;
+    if (afterAccept) OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false, {},
+        [&](PublicationDecision decision) { if (decision == PublicationDecision::Accept) {
+            barrier.entered.set(); barrier.complete.wait(); } });
+    ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied);
+    const auto autosaveId = controller.operation().id;
+    const auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
+    ASSERT_TRUE(waitContext(context, true));
+    if (afterAccept) { OperationTestAccess::poll(controller); barrier.entered.wait(); }
+    if (!confirmationOpen) { EXPECT_TRUE(visible("importFileDialog")); select(path); }
+    ASSERT_TRUE(model.replacementPending());
+    model.confirmReplacement(token, true);
+    ASSERT_EQ(model.selectionToken(), token);
+
+    bool nested = false;
+    int startedImports = 0;
+    int completedImports = 0;
+    OperationId startedImportId = 0, completedImportId = 0;
+    OperationStatus importedStatus = OperationStatus::Idle;
+    QObject observer;
+    QObject::connect(&controller, &ProjectController::operationChanged, &observer, [&] {
+        if (controller.operation().kind == OperationKind::Import) {
+            if (controller.operation().id != startedImportId) {
+                ++startedImports; startedImportId = controller.operation().id;
+            }
+            if (!controller.operation().active && controller.operation().id != completedImportId) {
+                ++completedImports; completedImportId = controller.operation().id; importedStatus = controller.operation().status;
+            }
+        }
+        if (nested || controller.operation().id != autosaveId || controller.operation().active) return;
+        nested = true;
+        EXPECT_FALSE(OperationTestAccess::runner(controller).busy());
+        EXPECT_TRUE(context->nativeCompletion.finished());
+        EXPECT_FALSE(controller.importContext());
+        EXPECT_EQ(controller.importSelectionContext(), selection); // context is still applicable
+        const auto rejected = controller.importAscXyz({path, {8ULL << 20, 64ULL << 20, 8}, true, selection});
+        ASSERT_EQ(rejected.outcome, CommandOutcome::Rejected);
+        ASSERT_TRUE(rejected.failure); EXPECT_EQ(rejected.failure->detail, ErrorDetail::ReentrantCommand);
+        for (int i = 0; i != 8; ++i) {
+            emit controller.operationChanged();
+            QCoreApplication::processEvents(); // deliver the deferred callback inside CommandScope
+        }
+        EXPECT_EQ(model.selectionToken(), token);
+        EXPECT_EQ(model.replacementFileName(), "nested.xyz");
+        EXPECT_FALSE(model.selectingFile()); EXPECT_FALSE(model.replacementPending()); // pending explicit intent
+        EXPECT_EQ(completedImports, 0);
+    });
+    barrier.complete.set();
+    ASSERT_TRUE(spinUntil([&] { OperationTestAccess::poll(controller);
+        return nested && model.sourceName() == "nested.xyz" && !controller.operation().active; }));
+    EXPECT_EQ(startedImports, 1); EXPECT_EQ(completedImports, 1); EXPECT_EQ(importedStatus, OperationStatus::Succeeded);
+    EXPECT_TRUE(model.importErrorMessage().isEmpty()); EXPECT_TRUE(model.selectionToken().isEmpty());
+    const auto id = controller.operation().id;
+    for (int i = 0; i != 8; ++i) {
+        emit controller.operationChanged(); QCoreApplication::processEvents();
+        model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true);
+    }
+    EXPECT_EQ(startedImports, 1); EXPECT_EQ(completedImports, 1); EXPECT_GE(controller.operation().id, id);
+}
+INSTANTIATE_TEST_SUITE_P(FileConfirmationAndPermission, NestedAutosaveImport,
+    testing::Combine(testing::Bool(), testing::Bool()));
+
+TEST_F(GuiImport, N1TransitionHintDoesNotExposeUnfinishedImportStart)
+{
+    ControlledWork barrier;
+    OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false,
+        [&] { barrier.entered.set(); barrier.complete.wait(); });
+    bool observed = false;
+    QObject observer;
+    QObject::connect(&controller, &ProjectController::commandTransitionFinished, &observer, [&] {
+        if (observed || controller.operation().kind != OperationKind::Import || !controller.operation().active) return;
+        observed = true; barrier.entered.wait();
+        // A synchronous observer of the retry hint can itself run nested events/Ready.
+        // startImport must already have installed importSourcePath_ after startWork.
+        OperationTestAccess::poll(controller);
+        for (int i = 0; i != 8; ++i) QCoreApplication::processEvents();
+        barrier.complete.set();
+    });
+    initial();
+    EXPECT_TRUE(observed); ASSERT_TRUE(controller.project());
+    EXPECT_EQ(model.sourceName(), "source.xyz"); EXPECT_TRUE(model.importErrorMessage().isEmpty());
+}
+
 class InvalidatedAutosaveImport : public GuiImport, public testing::WithParamInterface<int> {};
 TEST_P(InvalidatedAutosaveImport, PendingImportCannotSurviveInputCloseOrShutdownChange)
 {

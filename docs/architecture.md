@@ -627,8 +627,18 @@ controller повторно сверяет контекст и доступно�
 действительный выбор. Остальные Busy, смена stamp/epoch и Closing снимают выбор;
 старый callback не разрешает новый импорт. Подтверждённый во время Autosave Import
 сохраняется как одно явное UI-действие: Autosave отзывается до Accept либо ожидается
-его receipt/native join, затем queued callback повторяет admission/context check.
-Очереди Autosave нет. После синхронного UI-уведомления
+его receipt/native join. Terminal `operationChanged` ещё находится внутри command
+transition и не означает доступность admission. После выхода из внешнего CommandScope
+controller планирует один объединённый `commandTransitionFinished`; доставка
+не вызывает observers из завершающегося command stack и подавляется, если она
+попала внутрь другого guard. Завершение этого guard даёт следующий hint.
+Adapter получает hint queued и
+проверяет текущие admission/context до потребления intent. Если вложенная обработка
+событий доставила notification внутри другого transition, временный отказ сохраняет
+intent; следующая попытка возможна только по завершении реального transition,
+без self-posting retry loop. Успешное admission, окончательный отказ, настоящий отзыв
+или destruction завершают intent. Одноразовость защищена и во время синхронных UI-уведомлений/dispatch.
+Очереди Autosave и нескольких пользовательских намерений нет. После синхронного UI-уведомления
 adapter повторно проверяет именно созданный token, контекст и Open перед запросом
 FileDialog; QML также не открывает диалог для отозванного выбора. Это дополнительная проверка
 перед запуском, прежний publication gate остаётся обязательным.

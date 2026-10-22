@@ -127,6 +127,8 @@ private:
     QString selectionToken_;
     QString selectedPath_;
     std::optional<bool> pendingImport_; // one explicit user action waiting for Autosave's native join
+    bool notifyingImportDispatch_ = false;
+    bool submittingImport_ = false;
     QString importErrorMessage_;
     bool startupOffered_ = false;
     bool zConsumerRegistered_ = false;

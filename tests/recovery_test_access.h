@@ -17,6 +17,8 @@ namespace cadcontour {
 class RecoveryTestAccess {
 public:
     static QString root(const ProjectController &c) { return c.recoveryRoot_; }
+    static bool settled(const ProjectController &c)
+    { return !c.operation_.active && !c.recoveryClosing_ && c.retiredRecoveries_.empty(); }
     static void timers(ProjectController &c, int interval = 0)
     {
         c.autosaveSoon_.stop(); c.autosaveTimer_.stop();

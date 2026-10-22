@@ -101,6 +101,10 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
     connect(&controller_, &ProjectController::shutdownChanged, this, &ProjectViewModel::shutdownChanged);
     connect(&controller_, &ProjectController::operationChanged, this, &ProjectViewModel::refreshImportUi);
     connect(&controller_, &ProjectController::shutdownChanged, this, &ProjectViewModel::refreshImportUi);
+    connect(&controller_, &ProjectController::commandTransitionFinished, this,
+        [this, controller = QPointer<ProjectController>(&controller)] {
+            if (controller && pendingImport_) startSelectedImport(*pendingImport_);
+        }, Qt::QueuedConnection);
     connect(&controller_, &ProjectController::nonZeroZConfirmationChanged, this, [this] {
         const QPointer<ProjectViewModel> lifetime(this);
         emit nonZeroZChanged();
@@ -234,19 +238,13 @@ void ProjectViewModel::clearSelection()
 
 void ProjectViewModel::refreshImportUi()
 {
-    if (selectionContext_ && selectionContext_ != controller_.importSelectionContext()) {
+    const bool ownAdmission = submittingImport_ && !closing()
+        && controller_.operation().kind == OperationKind::Import;
+    if (selectionContext_ && !ownAdmission && selectionContext_ != controller_.importSelectionContext()) {
         importErrorMessage_ = closing() ? QStringLiteral("Приложение завершает работу.")
             : QStringLiteral("Контекст изменился. Выберите файл заново для нового импорта.");
         clearSelection();
         return;
-    }
-    if (pendingImport_ && !operationActive()) {
-        const auto token = selectionToken_;
-        // Terminal notifications still hold the controller's command guard.
-        QTimer::singleShot(0, this, [this, token] {
-            if (pendingImport_ && selectionToken_ == token && !operationActive())
-                startSelectedImport(*pendingImport_);
-        });
     }
     emit importUiChanged();
 }
@@ -298,19 +296,41 @@ void ProjectViewModel::confirmReplacement(const QString &token, bool confirmed)
 
 void ProjectViewModel::startSelectedImport(bool confirmed)
 {
-    if (selectionContext_ && selectionContext_ == controller_.importSelectionContext()
-        && operationActive() && controller_.operation().kind == OperationKind::Autosave) {
-        pendingImport_ = confirmed;
-        const QPointer<ProjectViewModel> lifetime(this);
-        controller_.cancelOperation(); // before Accept: revoke; after Accept: wait for receipt/join
-        if (lifetime) emit importUiChanged();
+    if (notifyingImportDispatch_ || submittingImport_) return;
+    const auto token = selectionToken_;
+    const bool notify = !pendingImport_;
+    pendingImport_ = confirmed;
+    const QPointer<ProjectViewModel> lifetime(this);
+    if (notify) {
+        // Close the presentation before dispatch, retaining intent until admission.
+        // A synchronous observer may cancel, invalidate or destroy this adapter.
+        notifyingImportDispatch_ = true;
+        emit importUiChanged();
+        if (!lifetime) return;
+        notifyingImportDispatch_ = false;
+        if (selectionToken_ != token || !pendingImport_) return;
+    }
+    if (!selectionContext_ || selectionContext_ != controller_.importSelectionContext()) {
+        importErrorMessage_ = QStringLiteral("Контекст изменился. Выберите файл заново.");
+        clearSelection();
+        return;
+    }
+    if (!controller_.importContext()) {
+        if (operationActive() && controller_.operation().kind == OperationKind::Autosave)
+            controller_.cancelOperation(); // before Accept: revoke; after Accept: wait for receipt/join
+        // No self-posting retry. The next completed command transition wakes us.
         return;
     }
     ImportRequest request{selectedPath_, {}, confirmed, selectionContext_, true};
-    const QPointer<ProjectViewModel> lifetime(this);
-    clearSelection(); // consumes this UI action before application notifications can reenter
-    if (!lifetime) return;
+    submittingImport_ = true;
     const auto result = controller_.importAscXyz(std::move(request));
+    if (!lifetime) return;
+    submittingImport_ = false;
+    if (result.outcome == CommandOutcome::Rejected
+        && (result.failure->category == CommandError::Busy || result.failure->detail == ErrorDetail::ReentrantCommand)
+        && selectionContext_ && selectionContext_ == controller_.importSelectionContext())
+        return;
+    if (selectionToken_ == token) clearSelection();
     if (!lifetime) return;
     if (result.outcome == CommandOutcome::Rejected) {
         importErrorMessage_ = closing() ? QStringLiteral("Приложение завершает работу.")

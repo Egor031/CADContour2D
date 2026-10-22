@@ -87,6 +87,8 @@ signals:
     void shutdownChanged();
     void nonZeroZConfirmationChanged();
     void recoveryChanged();
+    // Retry hint after an outer CommandScope releases its guard, not an admission grant.
+    void commandTransitionFinished();
 
 private:
     friend class ProjectControllerTestAccess;
@@ -178,6 +180,7 @@ private:
     bool completionPending_ = false;
     bool operationNotificationPending_ = false;
     bool confirmationNotificationPending_ = false;
+    bool transitionNotificationPosted_ = false;
     QPointer<QObject> zConsumer_;
     QMetaObject::Connection zConsumerDestroyed_;
 };

@@ -251,7 +251,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1–05.3 — ACCEPTED; 05.4 — READY FOR INDEPENDENT VERIFICATION (исправления H1–H3); 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
+**Статус: 05.1–05.3 — ACCEPTED; 05.4 — READY FOR INDEPENDENT VERIFICATION (исправления H1–H3 и N1); 05.5 — NOT STARTED. Вся задача 05 не завершена и не принята.**
 
 | Часть | Область | Статус |
 |---|---|---|
@@ -297,6 +297,8 @@ baseline/conflict/partial availability и lifecycle в существующем 
 После вердикта FIXES REQUIRED исправлены H1–H3: сохранение конфликта между
 восстановлениями, выбор Import во время Autosave и актуальность README.
 Исправления направляются на повторную независимую проверку; 05.4 не принята.
+Повторное ревью подтвердило H1/H3 как FIXED; обнаруженный N1 в deferred Import
+при nested event delivery независимо подтверждён и исправлен, ожидает повторной проверки.
 Протокол — [architecture §31.1](architecture.md#311-c-autosave--recovery-054),
 проверки и ограничения — [отчёт 05.4](reports/task-05/autosave-recovery.md).
 GUI-интеграция и сквозная пользовательская приёмка — 05.5, NOT STARTED;

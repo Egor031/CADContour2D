@@ -1,6 +1,7 @@
 #include "ui/project_view_model.h"
 #include "operation_test_support.h"
 #include "project_test_access.h"
+#include "recovery_test_access.h"
 
 #include <QDir>
 #include <QFile>
@@ -16,6 +17,66 @@
 
 using namespace cadcontour;
 using namespace cadcontour::test;
+
+class DeferredIntentLifecycle : public testing::TestWithParam<int> {};
+TEST_P(DeferredIntentLifecycle, N1RevocationOrDestructionBeforeAdmissionPreventsDeferredImport)
+{
+    QTemporaryDir area; ASSERT_TRUE(area.isValid());
+    const auto source = area.filePath("source.xyz"), pending = area.filePath("pending.xyz"), other = area.filePath("other.xyz");
+    for (const auto &path : {source, pending, other}) {
+        QFile file(path); ASSERT_TRUE(file.open(QIODevice::WriteOnly)); ASSERT_EQ(file.write("1 2 0\n3 4 0\n"), 12);
+    }
+    auto owner = std::make_unique<ProjectController>(area.filePath("storage"));
+    QPointer<ProjectViewModel> model = new ProjectViewModel(*owner, owner.get());
+    ASSERT_EQ(owner->importAscXyz({source, {8ULL << 20, 64ULL << 20, 8}}).outcome, CommandOutcome::Applied);
+    ASSERT_TRUE(finish(*owner)); ASSERT_TRUE(finishBackgroundAutosave(*owner)); RecoveryTestAccess::timers(*owner);
+    owner->setCell(.5); model->newProject(); const auto token = model->selectionToken();
+    model->selectImportFile(token, QUrl::fromLocalFile(pending)); ASSERT_TRUE(model->replacementPending());
+    ASSERT_EQ(owner->autosave().outcome, CommandOutcome::Applied);
+    const auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(*owner));
+    ASSERT_TRUE(waitContext(context, true)); model->confirmReplacement(token, true);
+    ASSERT_TRUE(finish(*owner)); // returns after join/transition, before queued retry is delivered
+    ASSERT_TRUE(context->nativeCompletion.finished()); ASSERT_FALSE(OperationTestAccess::runner(*owner).busy());
+    ASSERT_EQ(model->selectionToken(), token); ASSERT_EQ(model->replacementFileName(), "pending.xyz");
+    ASSERT_TRUE(owner->importContext());
+
+    int imports = 0, transitions = 0;
+    OperationId imported = 0;
+    QObject observer;
+    QObject::connect(owner.get(), &ProjectController::operationChanged, &observer, [&] {
+        if (owner->operation().kind == OperationKind::Import && owner->operation().id != imported) {
+            imported = owner->operation().id; ++imports;
+        }
+    });
+    QObject::connect(owner.get(), &ProjectController::commandTransitionFinished, &observer, [&] { ++transitions; });
+    switch (GetParam()) {
+    case 0: model->cancelFileSelection(token); break;
+    case 1: owner->setCell(2); owner->undo(); break;
+    case 2: ASSERT_EQ(owner->closeProject().outcome, CommandOutcome::Applied); break;
+    case 3: owner->requestShutdown(); break;
+    case 4: delete model.data(); break;
+    case 5: owner.reset(); EXPECT_TRUE(model.isNull()); break; // owned adapter and its queued callbacks die too
+    case 6: ASSERT_EQ(owner->importAscXyz({other, {8ULL << 20, 64ULL << 20, 8}, true}).outcome, CommandOutcome::Applied); break;
+    case 7: model->cancelFileSelection(token); model->newProject(); EXPECT_NE(model->selectionToken(), token); break;
+    }
+    for (int i = 0; i != 8; ++i) {
+        QCoreApplication::processEvents();
+        if (model) { model->selectImportFile(token, QUrl::fromLocalFile(pending)); model->confirmReplacement(token, true); }
+    }
+    if (owner) {
+        ASSERT_TRUE(finish(*owner)); RecoveryTestAccess::timers(*owner);
+        ASSERT_TRUE(spinUntil([&] { OperationTestAccess::poll(*owner);
+            return RecoveryTestAccess::settled(*owner) && owner->shutdownState() != ShutdownState::Closing; }));
+        QCoreApplication::processEvents(); // deliver the last settled transition's coalesced hint
+        const auto settledTransitions = transitions;
+        for (int i = 0; i != 32; ++i) QCoreApplication::processEvents();
+        EXPECT_EQ(transitions, settledTransitions); // no self-posting retry / further command attempts at idle
+        EXPECT_NE(QString::fromStdWString(owner->project() ? owner->project()->dataset()->sourcePath.wstring() : L""), pending);
+    }
+    EXPECT_EQ(imports, GetParam() == 6 ? 1 : 0);
+    if (model && GetParam() != 7) EXPECT_TRUE(model->selectionToken().isEmpty());
+}
+INSTANTIATE_TEST_SUITE_P(CancelInputsCloseShutdownAdapterControllerSessionToken, DeferredIntentLifecycle, testing::Range(0, 8));
 
 namespace {
 class GuiLifecycle : public testing::Test {

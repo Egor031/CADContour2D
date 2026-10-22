@@ -196,7 +196,7 @@ cmake --build --preset windows-debug --target CADContour2D import_application_te
 ctest --preset windows-debug -L production --output-on-failure
 ```
 
-Актуальные результаты исправлений H1–H3 в 05.4 — в разделе
+Актуальные результаты исправлений 05.4, включая N1, — в разделе
 [Autosave / Recovery](#autosave--recovery--054).
 Историческая проверка после исправления R1 в 05.3: в той же CMD-среде выполнены `cmake --build --preset
 windows-debug --target all all_qmllint --parallel 4` и соответствующая команда
@@ -490,7 +490,7 @@ build\windows-release\operation_probe.exe
 **05.3 — ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`;
 R1.1/R1.2 — FIXED и закрыты, итог ревью — **READY FOR ACCEPTANCE**.
 [Заключение по 05.3](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.4 Autosave/Recovery — READY FOR INDEPENDENT VERIFICATION после исправлений H1–H3, [отчёт](docs/reports/task-05/autosave-recovery.md#k-исправления-после-независимого-ревью-h1h3).
+05.4 Autosave/Recovery — READY FOR INDEPENDENT VERIFICATION после исправления N1, [отчёт](docs/reports/task-05/autosave-recovery.md#l-n1--вложенная-доставка-событий-при-отложенном-import).
 05.5 GUI Save/Open/Recovery и сквозная приёмка — NOT STARTED.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
@@ -780,12 +780,12 @@ GUI workflow — 05.5; GC, power-loss и hostile filesystem protection не за
 формат, команды, фактические проверки и ограничения —
 [отчёт 05.4](docs/reports/task-05/autosave-recovery.md).
 Debug/Release build и `all_qmllint` — PASS. Финальный production CTest в каждой
-конфигурации после исправлений H1–H3: **681 passed / 0 failed / 1 skipped** из 682;
-целевые H1/H2 — **12/12**, Recovery — **64/64**, включая
+конфигурации после N1: **694 passed / 0 failed / 1 skipped** из 695;
+целевые N1 + H1/H2 — **25/25**, Recovery — **64/64**, включая
 **7 process crash tests**. SKIP — существующий file-symlink test без Windows privilege
 (1314). Autosave/discovery проверены с эксклюзивно закрытым cache и удалённым source;
 restore читает 73 728 bytes, ноль point pages. Детали и промежуточные failures — в отчёте.
-**05.4 — READY FOR INDEPENDENT VERIFICATION** после исправлений H1–H3;
+**05.4 — READY FOR INDEPENDENT VERIFICATION** после исправления N1;
 повторная независимая проверка и принятие ещё не выполнены. 05.5 — NOT STARTED,
 вся задача 05 не завершена.
 
