@@ -1,0 +1,355 @@
+#include "project_view_model.h"
+
+#include <QDir>
+#include <QFileInfo>
+#include <QPointer>
+#include <QTimer>
+
+namespace cadcontour {
+
+QString ProjectViewModel::projectPath() const
+{
+    const auto *saved = controller_.savedProject();
+    return saved ? saved->manifestPath : QString{};
+}
+
+QString ProjectViewModel::projectName() const
+{
+    return !projectPath().isEmpty() ? QFileInfo(projectPath()).completeBaseName()
+        : hasProject() ? QStringLiteral("Без имени") : QStringLiteral("Нет открытого проекта");
+}
+
+bool ProjectViewModel::cacheAvailable() const noexcept
+{
+    const auto *availability = controller_.pointCacheAvailability();
+    return availability && availability->access == persistence::CacheAccess::AvailableLimited;
+}
+
+QString ProjectViewModel::cacheStatusText() const
+{
+    const auto *availability = controller_.pointCacheAvailability();
+    if (!availability) return {};
+    QString reason;
+    switch (availability->access) {
+    case persistence::CacheAccess::AvailableLimited:
+        return QStringLiteral("Point Cache доступен · Ограниченная проверка, без полной validation · Единицы: мм");
+    case persistence::CacheAccess::Missing: reason = QStringLiteral("Файл Point Cache отсутствует"); break;
+    case persistence::CacheAccess::Corrupt: reason = QStringLiteral("Point Cache повреждён"); break;
+    case persistence::CacheAccess::Unsupported: reason = QStringLiteral("Формат Point Cache не поддерживается"); break;
+    case persistence::CacheAccess::FileIO: reason = QStringLiteral("Ошибка доступа к Point Cache"); break;
+    case persistence::CacheAccess::UnsafePath: reason = QStringLiteral("Небезопасный путь Point Cache"); break;
+    }
+    if (availability->pathError) reason += QStringLiteral("\n") + availability->pathError->detail;
+    if (availability->cacheError) reason += QStringLiteral("\n") + availability->cacheError->detail;
+    return reason + QStringLiteral("\nДоступны просмотр сведений, закрытие, замена и ограниченная повторная проверка. "
+                                  "Изменение cell, Undo/Redo и сохранение запрещены до восстановления доступности.");
+}
+
+bool ProjectViewModel::canSave() const noexcept
+{
+    return actionsEnabled() && hasDataset() && cacheAvailable() && !controller_.unconfirmedSave()
+        && !workflowPending() && !selectionContext_
+        && (!operationActive() || controller_.operation().kind == OperationKind::Autosave);
+}
+
+bool ProjectViewModel::canRecheck() const noexcept
+{
+    return actionsEnabled() && hasProject() && (controller_.savedProject() || controller_.recoveryRecord())
+        && !controller_.unconfirmedSave() && !workflowPending() && !selectionContext_
+        && (!operationActive() || controller_.operation().kind == OperationKind::Autosave);
+}
+
+bool ProjectViewModel::canEditCell() const noexcept
+{
+    const auto &operation = controller_.operation();
+    return actionsEnabled() && hasProject() && cacheAvailable()
+        && (!operation.active || (operation.kind != OperationKind::Import && operation.kind != OperationKind::Open));
+}
+
+std::optional<OperationStamp> ProjectViewModel::currentStamp() const
+{
+    return hasProject() ? std::optional(controller_.project()->operationStamp()) : std::nullopt;
+}
+
+void ProjectViewModel::editCell(const QString &text)
+{
+    if (cellDraft_ == text) return;
+    cellDraft_ = text;
+    emit draftChanged();
+}
+
+void ProjectViewModel::save() { if (canSave()) beginWorkflow(Intent::Save); }
+void ProjectViewModel::saveAs() { if (canSave()) beginWorkflow(Intent::SaveAs); }
+void ProjectViewModel::open() { beginWorkflow(Intent::Open); }
+void ProjectViewModel::closeProject() { beginWorkflow(Intent::Close); }
+void ProjectViewModel::recheckPointCache() { if (canRecheck()) beginWorkflow(Intent::Recheck); }
+
+void ProjectViewModel::beginWorkflow(Intent intent)
+{
+    if (!actionsEnabled()) return;
+    if (workflowPending()) {
+        if (workflowSaveId_ && (intent == Intent::Exit || intent == Intent::Close)) intent_ = intent;
+        return;
+    }
+    // Exit/Close supersede an unsubmitted file choice. The old callback loses its token.
+    const QPointer<ProjectViewModel> lifetime(this);
+    intent_ = intent;
+    workflowStamp_ = currentStamp();
+    workflowContext_ = controller_.fileCommandContext();
+    approvedDraft_ = cellDraft_;
+    discardApproved_ = false;
+    saveRequested_ = intent == Intent::Save || intent == Intent::SaveAs;
+    workflowPath_.clear();
+    savePath_.clear();
+    fileMessage_.clear();
+    // An already permitted Save must deliver its receipt before any close decision.
+    if (operationActive() && controller_.operation().kind == OperationKind::Save)
+        workflowSaveId_ = controller_.operation().id;
+    if (intent != Intent::Import && selectionContext_) clearSelection();
+    if (!lifetime) return;
+    advanceWorkflow();
+}
+
+void ProjectViewModel::endWorkflow()
+{
+    const bool import = intent_ == Intent::Import;
+    intent_ = Intent::None;
+    workflowPrompt_.clear();
+    workflowToken_.clear();
+    workflowPath_.clear();
+    savePath_.clear();
+    workflowSaveId_ = 0;
+    waitingSave_ = false;
+    workflowSaveSucceeded_.reset();
+    const QPointer<ProjectViewModel> lifetime(this);
+    if (import) clearSelection();
+    if (!lifetime) return;
+    emit workflowChanged();
+}
+
+void ProjectViewModel::promptWorkflow(const QString &prompt)
+{
+    workflowPrompt_ = prompt;
+    workflowToken_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    approvedDraft_ = cellDraft_;
+    emit workflowChanged();
+}
+
+void ProjectViewModel::answerWorkflow(const QString &token, const QString &answer)
+{
+    if (token.isEmpty() || token != workflowToken_) return;
+    const auto prompt = workflowPrompt_;
+    if (prompt != QStringLiteral("draft") && prompt != QStringLiteral("dirty")) {
+        if (answer == QStringLiteral("cancel")) endWorkflow();
+        return;
+    }
+    workflowToken_.clear();
+    workflowPrompt_.clear();
+    if (answer == QStringLiteral("cancel") || currentStamp() != workflowStamp_ || approvedDraft_ != cellDraft_) {
+        endWorkflow();
+        return;
+    }
+    const QPointer<ProjectViewModel> lifetime(this);
+    if (prompt == QStringLiteral("draft")) {
+        if (answer == QStringLiteral("apply")) {
+            // Suppress only our own Import selection invalidation during explicit Apply.
+            const bool wasAdvancing = advancingWorkflow_;
+            advancingWorkflow_ = true;
+            applyCell(cellDraft_);
+            if (!lifetime) return;
+            advancingWorkflow_ = wasAdvancing;
+            if (hasDraft()) { endWorkflow(); return; }
+            workflowStamp_ = currentStamp();
+            workflowContext_ = controller_.fileCommandContext();
+            if (intent_ == Intent::Import) selectionContext_ = workflowContext_;
+        } else if (answer == QStringLiteral("discard")) {
+            cellDraft_ = cellText();
+            setErrorMessage({});
+            if (!lifetime) return;
+            emit cellInputSyncRequested();
+            if (!lifetime) return;
+            emit draftChanged();
+            if (!lifetime) return;
+        } else { endWorkflow(); return; }
+    } else {
+        if (answer == QStringLiteral("save")) saveRequested_ = true;
+        else if (answer == QStringLiteral("discard")) discardApproved_ = true;
+        else { endWorkflow(); return; }
+    }
+    advanceWorkflow();
+}
+
+void ProjectViewModel::selectProjectFile(const QString &token, const QUrl &url)
+{
+    if (token.isEmpty() || token != workflowToken_
+        || (workflowPrompt_ != QStringLiteral("open") && workflowPrompt_ != QStringLiteral("save"))) return;
+    if (currentStamp() != workflowStamp_ || approvedDraft_ != cellDraft_) { endWorkflow(); return; }
+    const auto path = url.toLocalFile();
+    if (!url.isValid() || !url.isLocalFile() || url.hasQuery() || url.hasFragment()
+        || !url.userInfo().isEmpty() || url.port() != -1 || path.contains(QChar(u'\0'))
+        || !QDir::isAbsolutePath(path)
+        || QFileInfo(path).suffix().compare(QStringLiteral("pc2dproj"), Qt::CaseInsensitive) != 0) {
+        fileMessage_ = QStringLiteral("Выберите локальный или сетевой файл .pc2dproj.");
+        endWorkflow();
+        return;
+    }
+    if (workflowPrompt_ == QStringLiteral("save")) savePath_ = path;
+    else workflowPath_ = path;
+    workflowToken_.clear();
+    workflowPrompt_.clear();
+    advanceWorkflow();
+}
+
+void ProjectViewModel::advanceWorkflow()
+{
+    if (!workflowPending()) return;
+    if (advancingWorkflow_) { workflowRetry_ = true; return; }
+    // Do not use a rollback holding a reference to this: observers can destroy the adapter.
+    advancingWorkflow_ = true;
+    const QPointer<ProjectViewModel> lifetime(this);
+    const auto advance = [this, &lifetime] {
+        if (!actionsEnabled()) { endWorkflow(); return; }
+        if (workflowSaveId_) {
+            if (!workflowSaveSucceeded_) return;
+            const bool succeeded = *workflowSaveSucceeded_;
+            workflowSaveId_ = 0;
+            workflowSaveSucceeded_.reset();
+            if (waitingSave_ && (!succeeded || intent_ == Intent::Save || intent_ == Intent::SaveAs)) {
+                endWorkflow(); return;
+            }
+            waitingSave_ = false;
+            workflowStamp_ = currentStamp();
+            workflowContext_ = controller_.fileCommandContext();
+            discardApproved_ = false;
+            if (intent_ == Intent::Import) selectionContext_ = workflowContext_;
+        }
+        if (currentStamp() != workflowStamp_) {
+            fileMessage_ = QStringLiteral("Состояние проекта изменилось. Повторите команду.");
+            endWorkflow(); return;
+        }
+        const auto context = controller_.fileCommandContext();
+        if (workflowContext_ && context && workflowContext_ != context) {
+            fileMessage_ = QStringLiteral("Контекст команды изменился. Повторите команду.");
+            endWorkflow(); return;
+        }
+        if (!workflowPrompt_.isEmpty()) return;
+        // Open selects its own file; cancelling it never discards the existing draft.
+        if (intent_ == Intent::Open && workflowPath_.isEmpty()) { promptWorkflow(QStringLiteral("open")); return; }
+        if (intent_ != Intent::Recheck && hasDraft()) { promptWorkflow(QStringLiteral("draft")); return; }
+        const bool replacing = intent_ == Intent::Open || intent_ == Intent::Import
+            || intent_ == Intent::Close || intent_ == Intent::Exit;
+        if (replacing && dirty() && !discardApproved_ && !saveRequested_) { promptWorkflow(QStringLiteral("dirty")); return; }
+        if (saveRequested_) {
+            if (!cacheAvailable() || controller_.unconfirmedSave()) {
+                fileMessage_ = QStringLiteral("Сохранение недоступно. Проверьте Point Cache или откройте manifest после неопределённого Save.");
+                endWorkflow(); return;
+            }
+            if ((intent_ == Intent::SaveAs || !controller_.savedProject() || controller_.recoveryRequiresSaveAs())
+                && savePath_.isEmpty()) { promptWorkflow(QStringLiteral("save")); return; }
+        }
+        if (!saveRequested_ && intent_ == Intent::Import) {
+            // The established protocol retains intent through Autosave and nested delivery.
+            intent_ = Intent::None;
+            emit workflowChanged();
+            if (lifetime) startSelectedImport(true);
+            return;
+        }
+        if (operationActive()) {
+            // Close/Exit drain other work through the existing shutdown guards. Save waits for its receipt above.
+            if (saveRequested_ || (intent_ != Intent::Exit && intent_ != Intent::Close)) {
+                if (controller_.operation().kind == OperationKind::Autosave) controller_.cancelOperation();
+                return; // only commandTransitionFinished retries; no timer polling
+            }
+        }
+        if (saveRequested_) {
+            SaveRequest request;
+            // For Open, workflowPath_ is the incoming document, never a Save destination.
+            request.manifestPath = savePath_;
+            const bool saveAs = intent_ == Intent::SaveAs || controller_.recoveryRequiresSaveAs();
+            const auto result = saveAs ? controller_.saveProjectAs(request) : controller_.saveProject(request);
+            if (!lifetime) return;
+            if (result.outcome == CommandOutcome::Rejected) {
+                if (result.failure->category == CommandError::Busy || result.failure->detail == ErrorDetail::ReentrantCommand) return;
+                handleResult(result); if (lifetime) endWorkflow(); return;
+            }
+            saveRequested_ = false;
+            waitingSave_ = true;
+            workflowSaveId_ = controller_.operation().id;
+            observeFileOperation();
+            return;
+        }
+        CommandResult result = CommandResult::noChange();
+        if (intent_ == Intent::Open) {
+            OpenRequest request;
+            request.manifestPath = workflowPath_;
+            request.replacementConfirmed = hasProject();
+            request.expectedContext = workflowContext_;
+            result = controller_.openProject(std::move(request));
+        } else if (intent_ == Intent::Close) result = controller_.closeProject(discardApproved_);
+        else if (intent_ == Intent::Exit) result = controller_.requestShutdown(discardApproved_);
+        else if (intent_ == Intent::Recheck) result = controller_.recheckPointCache();
+        if (!lifetime) return;
+        if (result.outcome == CommandOutcome::Rejected) {
+            if (result.failure->category == CommandError::Busy || result.failure->detail == ErrorDetail::ReentrantCommand) return;
+            handleResult(result);
+            if (!lifetime) return;
+        }
+        endWorkflow();
+    };
+    advance();
+    if (lifetime) {
+        advancingWorkflow_ = false;
+        if (std::exchange(workflowRetry_, false))
+            QTimer::singleShot(0, this, &ProjectViewModel::advanceWorkflow);
+        emit workflowChanged();
+    }
+}
+
+void ProjectViewModel::observeFileOperation()
+{
+    const auto &operation = controller_.operation();
+    if (workflowSaveId_ == operation.id && !operation.active)
+        workflowSaveSucceeded_ = operation.status == OperationStatus::Succeeded && !controller_.unconfirmedSave();
+    if (!operation.active && operation.id && observedFileOperation_ != operation.id
+        && (operation.kind == OperationKind::Save || operation.kind == OperationKind::Open
+            || operation.kind == OperationKind::RecheckCache)) {
+        observedFileOperation_ = operation.id;
+        if (operation.status == OperationStatus::Succeeded)
+            fileMessage_ = operation.kind == OperationKind::Save
+                ? dirty() ? QStringLiteral("Snapshot сохранён; остались более поздние несохранённые изменения.")
+                          : QStringLiteral("Проект сохранён.")
+                : operation.kind == OperationKind::Open ? QStringLiteral("Проект открыт.")
+                                                       : QStringLiteral("Ограниченная проверка Point Cache завершена.");
+        else if (operation.status == OperationStatus::Cancelled || operation.status == OperationStatus::Discarded)
+            fileMessage_ = QStringLiteral("Операция отменена или результат отклонён. Текущий проект сохранён в сеансе.");
+        else {
+            fileMessage_ = QStringLiteral("Ошибка файловой операции. Текущий проект и история сохранены.");
+            if (operation.failure && operation.failure->saveError) {
+                const auto &error = *operation.failure->saveError;
+                using enum persistence::SaveErrorCode;
+                switch (error.code) {
+                case InvalidTarget: fileMessage_ += QStringLiteral("\nНедопустимое расположение проекта."); break;
+                case Conflict: fileMessage_ += QStringLiteral("\nКонфликт пути или независимо изменённый manifest. Выберите отдельный каталог для Save As."); break;
+                case Locked: fileMessage_ += QStringLiteral("\nКаталог занят другой операцией сохранения."); break;
+                case MissingDataset: fileMessage_ += QStringLiteral("\nPoint Cache отсутствует."); break;
+                case ChangedDataset: fileMessage_ += QStringLiteral("\nPoint Cache изменился после проверки."); break;
+                case FileIO: fileMessage_ += QStringLiteral("\nОшибка чтения или записи файлов."); break;
+                case ResourceUnavailable: fileMessage_ += QStringLiteral("\nНедостаточно доступных ресурсов."); break;
+                case InvalidSnapshot: fileMessage_ += QStringLiteral("\nНекорректное сохраняемое состояние."); break;
+                case Cancelled: fileMessage_ += QStringLiteral("\nСохранение отменено."); break;
+                case PublicationUncertain: break;
+                }
+                fileMessage_ += QStringLiteral("\nSave: код %1, фаза %2, системный код %3: %4")
+                    .arg(int(error.code)).arg(int(error.phase)).arg(error.systemCode)
+                    .arg(QString::fromUtf8(error.detail.data()));
+            }
+            if (operation.failure && operation.failure->openError)
+                fileMessage_ += QStringLiteral("\n") + operation.failure->openError->detail;
+            if (controller_.unconfirmedSave())
+                fileMessage_ += QStringLiteral("\nРезультат Save неопределён. Для проверки откройте manifest заново; повторное сохранение запрещено.");
+        }
+    }
+    emit workflowChanged();
+}
+
+} // namespace cadcontour

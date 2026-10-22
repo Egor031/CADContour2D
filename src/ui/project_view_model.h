@@ -49,6 +49,20 @@ class ProjectViewModel : public QObject {
     Q_PROPERTY(QString diagnosticText READ diagnosticText NOTIFY operationChanged)
     Q_PROPERTY(QVariantMap importDiagnostic READ importDiagnostic NOTIFY operationChanged)
     Q_PROPERTY(QString importErrorMessage READ importErrorMessage NOTIFY importUiChanged)
+    Q_PROPERTY(QString projectName READ projectName NOTIFY stateChanged)
+    Q_PROPERTY(QString projectPath READ projectPath NOTIFY stateChanged)
+    Q_PROPERTY(bool dirty READ dirty NOTIFY stateChanged)
+    Q_PROPERTY(bool cacheAvailable READ cacheAvailable NOTIFY stateChanged)
+    Q_PROPERTY(QString cacheStatusText READ cacheStatusText NOTIFY stateChanged)
+    Q_PROPERTY(bool canSave READ canSave NOTIFY workflowChanged)
+    Q_PROPERTY(bool canRecheck READ canRecheck NOTIFY workflowChanged)
+    Q_PROPERTY(bool canEditCell READ canEditCell NOTIFY operationChanged)
+    Q_PROPERTY(QString cellDraft READ cellDraft NOTIFY cellInputSyncRequested)
+    Q_PROPERTY(bool hasDraft READ hasDraft NOTIFY draftChanged)
+    Q_PROPERTY(QString workflowPrompt READ workflowPrompt NOTIFY workflowChanged)
+    Q_PROPERTY(QString workflowToken READ workflowToken NOTIFY workflowChanged)
+    Q_PROPERTY(bool workflowPending READ workflowPending NOTIFY workflowChanged)
+    Q_PROPERTY(QString fileMessage READ fileMessage NOTIFY workflowChanged)
 
 public:
     explicit ProjectViewModel(ProjectController &controller, QObject *parent = nullptr);
@@ -77,7 +91,7 @@ public:
     bool canImport() const noexcept;
     QString selectionToken() const { return selectionToken_; }
     bool selectingFile() const noexcept { return selectionContext_.has_value() && selectedPath_.isEmpty(); }
-    bool replacementPending() const noexcept { return !selectedPath_.isEmpty() && !pendingImport_; }
+    bool replacementPending() const noexcept { return !selectedPath_.isEmpty() && !pendingImport_ && intent_ != Intent::Import; }
     QString replacementFileName() const;
     QString nonZeroZToken() const;
     QString nonZeroZText() const;
@@ -89,6 +103,20 @@ public:
     QString diagnosticText() const;
     QVariantMap importDiagnostic() const;
     QString importErrorMessage() const { return importErrorMessage_; }
+    QString projectName() const;
+    QString projectPath() const;
+    bool dirty() const noexcept { return controller_.isDirty(); }
+    bool cacheAvailable() const noexcept;
+    QString cacheStatusText() const;
+    bool canSave() const noexcept;
+    bool canRecheck() const noexcept;
+    bool canEditCell() const noexcept;
+    QString cellDraft() const { return cellDraft_; }
+    bool hasDraft() const { return hasProject() && cellDraft_ != cellText(); }
+    QString workflowPrompt() const { return workflowPrompt_; }
+    QString workflowToken() const { return workflowToken_; }
+    bool workflowPending() const noexcept { return intent_ != Intent::None; }
+    QString fileMessage() const { return fileMessage_; }
 
     Q_INVOKABLE void applyCell(const QString &text);
     Q_INVOKABLE void undo();
@@ -101,6 +129,15 @@ public:
     Q_INVOKABLE void answerNonZeroZ(const QString &token, bool proceed);
     Q_INVOKABLE void cancelOperation();
     Q_INVOKABLE bool requestClose();
+    Q_INVOKABLE void editCell(const QString &text);
+    Q_INVOKABLE void save();
+    Q_INVOKABLE void saveAs();
+    Q_INVOKABLE void open();
+    Q_INVOKABLE void closeProject();
+    Q_INVOKABLE void recheckPointCache();
+    // Tokens are consumed before dispatch; Escape/closed always answers cancel.
+    Q_INVOKABLE void answerWorkflow(const QString &token, const QString &answer);
+    Q_INVOKABLE void selectProjectFile(const QString &token, const QUrl &url);
 
 signals:
     void stateChanged();
@@ -111,6 +148,8 @@ signals:
     void importUiChanged();
     void fileSelectionRequested();
     void nonZeroZChanged();
+    void draftChanged();
+    void workflowChanged();
 
 private:
     void handleResult(const CommandResult &result);
@@ -118,6 +157,13 @@ private:
     void clearSelection();
     void startSelectedImport(bool replacementConfirmed);
     void refreshImportUi();
+    enum class Intent { None, Save, SaveAs, Open, Import, Close, Exit, Recheck };
+    void beginWorkflow(Intent intent);
+    void advanceWorkflow();
+    void endWorkflow();
+    void promptWorkflow(const QString &prompt);
+    std::optional<OperationStamp> currentStamp() const;
+    void observeFileOperation();
 
     ProjectController &controller_;
     QString errorMessage_;
@@ -132,6 +178,20 @@ private:
     QString importErrorMessage_;
     bool startupOffered_ = false;
     bool zConsumerRegistered_ = false;
+    QString cellDraft_;
+    Intent intent_ = Intent::None;
+    QString workflowPrompt_, workflowToken_, workflowPath_, savePath_, fileMessage_;
+    std::optional<OperationStamp> workflowStamp_;
+    std::optional<ImportContext> workflowContext_;
+    QString approvedDraft_;
+    bool discardApproved_ = false;
+    bool saveRequested_ = false;
+    bool advancingWorkflow_ = false;
+    bool workflowRetry_ = false;
+    bool waitingSave_ = false;
+    OperationId workflowSaveId_ = 0;
+    std::optional<bool> workflowSaveSucceeded_;
+    OperationId observedFileOperation_ = 0;
 };
 
 } // namespace cadcontour

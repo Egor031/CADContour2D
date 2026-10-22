@@ -77,6 +77,8 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
         synchronizedIdentity_ = state->runtimeIdentity();
         synchronizedCell_ = state->cell();
     }
+    cellDraft_ = cellText();
+    connect(this, &ProjectViewModel::workflowChanged, this, &ProjectViewModel::importUiChanged);
     connect(&controller_, &ProjectController::stateChanged, this, [this] {
         const QPointer<ProjectViewModel> lifetime(this);
         const auto *state = controller_.project();
@@ -85,13 +87,19 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
         const bool sync = identity != synchronizedIdentity_ || value != synchronizedCell_;
         synchronizedIdentity_ = identity;
         synchronizedCell_ = value;
-        if (sync)
+        if (sync) {
+            cellDraft_ = cellText();
             setErrorMessage({});
+        }
         if (!lifetime) return;
         emit stateChanged();
         if (!lifetime) return;
         if (sync)
             emit cellInputSyncRequested();
+        if (!lifetime) return;
+        emit draftChanged();
+        if (!lifetime) return;
+        emit workflowChanged();
         if (!lifetime) return;
         emit operationChanged(); // visibility/text also depend on the current project identity
         if (!lifetime) return;
@@ -101,9 +109,13 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
     connect(&controller_, &ProjectController::shutdownChanged, this, &ProjectViewModel::shutdownChanged);
     connect(&controller_, &ProjectController::operationChanged, this, &ProjectViewModel::refreshImportUi);
     connect(&controller_, &ProjectController::shutdownChanged, this, &ProjectViewModel::refreshImportUi);
+    connect(&controller_, &ProjectController::operationChanged, this, &ProjectViewModel::observeFileOperation);
     connect(&controller_, &ProjectController::commandTransitionFinished, this,
         [this, controller = QPointer<ProjectController>(&controller)] {
-            if (controller && pendingImport_) startSelectedImport(*pendingImport_);
+            if (!controller) return;
+            const QPointer<ProjectViewModel> lifetime(this);
+            if (pendingImport_) startSelectedImport(*pendingImport_);
+            if (lifetime) advanceWorkflow();
         }, Qt::QueuedConnection);
     connect(&controller_, &ProjectController::nonZeroZConfirmationChanged, this, [this] {
         const QPointer<ProjectViewModel> lifetime(this);
@@ -173,9 +185,11 @@ void ProjectViewModel::applyCell(const QString &text)
     handleResult(result);
     if (!lifetime) return;
     if (result.outcome == CommandOutcome::NoChange) {
+        cellDraft_ = cellText();
         setErrorMessage({});
         if (!lifetime) return;
         emit cellInputSyncRequested(); // only successful Apply canonicalizes a no-op draft
+        if (lifetime) emit draftChanged();
     }
 }
 
@@ -193,7 +207,8 @@ void ProjectViewModel::redo()
 }
 bool ProjectViewModel::canImport() const noexcept
 {
-    return actionsEnabled() && !operationActive() && !selectionContext_ && zConsumerRegistered_;
+    return actionsEnabled() && (!operationActive() || controller_.operation().kind == OperationKind::Autosave)
+        && !selectionContext_ && !workflowPending() && zConsumerRegistered_;
 }
 
 void ProjectViewModel::offerStartupImport()
@@ -211,7 +226,7 @@ void ProjectViewModel::newProject()
         emit importUiChanged();
         return;
     }
-    selectionContext_ = controller_.importContext();
+    selectionContext_ = controller_.importSelectionContext();
     if (!selectionContext_) {
         importErrorMessage_ = QStringLiteral("Сейчас невозможно начать импорт. Повторите выбор файла.");
         emit importUiChanged();
@@ -238,9 +253,15 @@ void ProjectViewModel::clearSelection()
 
 void ProjectViewModel::refreshImportUi()
 {
+    if (intent_ == Intent::Import && !advancingWorkflow_ && !waitingSave_
+        && currentStamp() != workflowStamp_) {
+        endWorkflow();
+        return;
+    }
     const bool ownAdmission = submittingImport_ && !closing()
         && controller_.operation().kind == OperationKind::Import;
-    if (selectionContext_ && !ownAdmission && selectionContext_ != controller_.importSelectionContext()) {
+    const bool ownWorkflow = intent_ == Intent::Import;
+    if (selectionContext_ && !ownAdmission && !ownWorkflow && selectionContext_ != controller_.importSelectionContext()) {
         importErrorMessage_ = closing() ? QStringLiteral("Приложение завершает работу.")
             : QStringLiteral("Контекст изменился. Выберите файл заново для нового импорта.");
         clearSelection();
@@ -251,8 +272,10 @@ void ProjectViewModel::refreshImportUi()
 
 void ProjectViewModel::cancelFileSelection(const QString &token)
 {
-    if (!token.isEmpty() && token == selectionToken_)
-        clearSelection();
+    if (!token.isEmpty() && token == selectionToken_) {
+        if (intent_ == Intent::Import) endWorkflow();
+        else clearSelection();
+    }
 }
 
 void ProjectViewModel::selectImportFile(const QString &token, const QUrl &url)
@@ -289,7 +312,7 @@ void ProjectViewModel::confirmReplacement(const QString &token, bool confirmed)
     if (token.isEmpty() || token != selectionToken_ || !replacementPending())
         return;
     if (confirmed)
-        startSelectedImport(true);
+        beginWorkflow(Intent::Import);
     else
         clearSelection();
 }
@@ -414,6 +437,8 @@ void ProjectViewModel::handleResult(const CommandResult &result)
             setErrorMessage(QStringLiteral("Приложение завершает работу."));
         else if (failure.detail == ErrorDetail::WrongThread)
             setErrorMessage(QStringLiteral("Команда вызвана из недопустимого потока."));
+        else if (failure.detail == ErrorDetail::DatasetUnavailable)
+            setErrorMessage(QStringLiteral("Point Cache недоступен. Восстановите файл и повторите ограниченную проверку."));
         else
             setErrorMessage(failure.detail == ErrorDetail::ReentrantCommand
                 ? QStringLiteral("Предыдущая команда ещё не завершена.")
@@ -433,10 +458,9 @@ void ProjectViewModel::cancelOperation()
 }
 bool ProjectViewModel::requestClose()
 {
-    // The session controller outlives this adapter, including synchronous notifications.
-    auto &controller = controller_;
-    controller.requestShutdown();
-    return controller.shutdownState() == ShutdownState::Ready;
+    if (shutdownReady()) return true;
+    beginWorkflow(Intent::Exit);
+    return false; // closure is retried after the settled shutdown notification
 }
 
 bool ProjectViewModel::operationVisible() const noexcept
@@ -488,6 +512,16 @@ QString ProjectViewModel::progressText() const
 QString ProjectViewModel::operationText() const
 {
     const auto &operation = controller_.operation();
+    const auto name = [&] {
+        switch (operation.kind) {
+        case OperationKind::Import: return QStringLiteral("Импорт ASC/XYZ");
+        case OperationKind::Save: return QStringLiteral("Сохранение проекта");
+        case OperationKind::Open: return QStringLiteral("Открытие проекта");
+        case OperationKind::RecheckCache: return QStringLiteral("Ограниченная проверка Point Cache");
+        case OperationKind::Autosave: return QStringLiteral("Автосохранение");
+        default: return QStringLiteral("Фоновая операция");
+        }
+    };
     if (closing())
         return QStringLiteral("Завершение приложения: ожидание остановки операции…");
     if (operation.kind != OperationKind::Import && operation.active && (!hasProject()
@@ -498,8 +532,7 @@ QString ProjectViewModel::operationText() const
     case OperationStatus::Starting: return QStringLiteral("Запуск фоновой операции…");
     case OperationStatus::Running:
         return operation.publicationRevoked ? QStringLiteral("Входы изменились: ожидание завершения…")
-                                            : operation.kind == OperationKind::Import
-                                                ? QStringLiteral("Импорт ASC/XYZ") : QStringLiteral("Фоновая операция");
+                                            : name();
     case OperationStatus::Cancelling: return QStringLiteral("Остановка операции…");
     case OperationStatus::Finishing: return QStringLiteral("Завершение операции…");
     case OperationStatus::Succeeded: return operation.kind == OperationKind::Import

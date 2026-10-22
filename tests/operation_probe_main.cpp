@@ -33,6 +33,12 @@ int main(int argc, char **argv)
     const int autoIndex = arguments.indexOf(QStringLiteral("--auto"));
     const auto scenario = autoIndex >= 0 ? arguments.value(autoIndex + 1) : QString{};
     if (!scenario.isEmpty()) {
+        QObject::connect(&viewModel, &cadcontour::ProjectViewModel::workflowChanged, &app, [&] {
+            if (viewModel.workflowPrompt() == QStringLiteral("dirty")) {
+                const auto token = viewModel.workflowToken();
+                QTimer::singleShot(0, &viewModel, [&, token] { viewModel.answerWorkflow(token, QStringLiteral("discard")); });
+            }
+        });
         QTimer::singleShot(0, &probe, [&] {
             if (scenario == QStringLiteral("unknown")) probe.startUnknown();
             else if (scenario == QStringLiteral("failure")) probe.startFailure();

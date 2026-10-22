@@ -31,8 +31,8 @@ bool ApplicationShutdown::eventFilter(QObject *watched, QEvent *event)
         return false;
     if (controller_.shutdownState() == ShutdownState::Ready && (!window_ || !window_->isVisible()))
         return false;
-    controller_.requestShutdown();
-    if (controller_.shutdownState() == ShutdownState::Ready && window_)
+    // Window closing enters the presentation's draft/dirty workflow first.
+    if (window_)
         QTimer::singleShot(0, this, [this] { if (window_) window_->close(); });
     return true; // keep processing GUI events until Ready and actual window closure
 }

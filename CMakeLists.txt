@@ -75,6 +75,7 @@ qt_add_qml_module(cadcontour_ui STATIC
     OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/CADContour2D"
     QML_FILES qml/Main.qml
     SOURCES src/ui/project_view_model.h src/ui/project_view_model.cpp
+            src/ui/project_file_workflow.cpp
             src/ui/application_shutdown.h src/ui/application_shutdown.cpp
 )
 target_include_directories(cadcontour_ui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src/ui")

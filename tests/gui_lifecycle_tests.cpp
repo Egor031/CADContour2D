@@ -18,6 +18,13 @@
 using namespace cadcontour;
 using namespace cadcontour::test;
 
+namespace {
+void discardDirty(ProjectViewModel &model)
+{
+    if (model.workflowPrompt() == "dirty") model.answerWorkflow(model.workflowToken(), "discard");
+}
+}
+
 class DeferredIntentLifecycle : public testing::TestWithParam<int> {};
 TEST_P(DeferredIntentLifecycle, N1RevocationOrDestructionBeforeAdmissionPreventsDeferredImport)
 {
@@ -34,7 +41,7 @@ TEST_P(DeferredIntentLifecycle, N1RevocationOrDestructionBeforeAdmissionPrevents
     model->selectImportFile(token, QUrl::fromLocalFile(pending)); ASSERT_TRUE(model->replacementPending());
     ASSERT_EQ(owner->autosave().outcome, CommandOutcome::Applied);
     const auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(*owner));
-    ASSERT_TRUE(waitContext(context, true)); model->confirmReplacement(token, true);
+    ASSERT_TRUE(waitContext(context, true)); model->confirmReplacement(token, true); if (model) discardDirty(*model);
     ASSERT_TRUE(finish(*owner)); // returns after join/transition, before queued retry is delivered
     ASSERT_TRUE(context->nativeCompletion.finished()); ASSERT_FALSE(OperationTestAccess::runner(*owner).busy());
     ASSERT_EQ(model->selectionToken(), token); ASSERT_EQ(model->replacementFileName(), "pending.xyz");
@@ -61,7 +68,7 @@ TEST_P(DeferredIntentLifecycle, N1RevocationOrDestructionBeforeAdmissionPrevents
     }
     for (int i = 0; i != 8; ++i) {
         QCoreApplication::processEvents();
-        if (model) { model->selectImportFile(token, QUrl::fromLocalFile(pending)); model->confirmReplacement(token, true); }
+        if (model) { model->selectImportFile(token, QUrl::fromLocalFile(pending)); model->confirmReplacement(token, true); if (model) discardDirty(*model); }
     }
     if (owner) {
         ASSERT_TRUE(finish(*owner)); RecoveryTestAccess::timers(*owner);
@@ -182,6 +189,19 @@ TEST_F(GuiLifecycle, R1DeletionInsideZNotificationCancelsAndWakesWorker)
     EXPECT_EQ(delivered, 1);
     EXPECT_TRUE(woke);
     expectCancelledImport();
+}
+
+TEST_F(GuiLifecycle, WorkflowPromptCanDestroyAdapterWithoutClosingProject)
+{
+    ProjectControllerTestAccess::newProject(controller);
+    const auto stamp = controller.project()->operationStamp();
+    QObject observer;
+    QPointer<ProjectViewModel> lifetime(model.get());
+    QObject::connect(model.get(), &ProjectViewModel::workflowChanged, &observer, [&] { model.reset(); });
+    model->closeProject();
+    EXPECT_TRUE(lifetime.isNull());
+    EXPECT_TRUE(controller.project()->accepts(stamp));
+    EXPECT_EQ(controller.shutdownState(), ShutdownState::Open);
 }
 
 class ReentrantShutdown : public GuiLifecycle, public testing::WithParamInterface<bool> {};
@@ -382,7 +402,7 @@ TEST_P(CommandNotificationDeletion, R1ControllerCommandCanDestroyAdapterBeforeRe
     case 1: model->undo(); break;
     case 2: model->redo(); break;
     case 3: model->cancelOperation(); break;
-    case 4: EXPECT_TRUE(model->requestClose()); break;
+    case 4: EXPECT_FALSE(model->requestClose()); ASSERT_EQ(model->workflowPrompt(), "dirty"); model->answerWorkflow(model->workflowToken(), "discard"); break;
     }
     EXPECT_TRUE(lifetime.isNull());
     if (context) {

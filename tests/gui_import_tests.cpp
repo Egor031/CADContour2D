@@ -20,6 +20,11 @@ using namespace cadcontour;
 using namespace cadcontour::test;
 
 namespace {
+void discardDirty(ProjectViewModel &model)
+{
+    if (model.workflowPrompt() == "dirty") model.answerWorkflow(model.workflowToken(), "discard");
+}
+
 class GuiImport : public testing::Test {
 protected:
     QTemporaryDir area;
@@ -61,7 +66,11 @@ protected:
     bool enabled(const char *name) { return control(name)->property("enabled").toBool(); }
     void invoke(const char *name, const char *method)
     { ASSERT_TRUE(QMetaObject::invokeMethod(control(name), method, Qt::DirectConnection)); }
-    void click(const char *name) { invoke(name, "clicked"); }
+    void click(const char *name) {
+        invoke(name, "clicked");
+        if (QString::fromLatin1(name) == "replaceConfirmButton" && model.workflowPrompt() == "dirty")
+            model.answerWorkflow(model.workflowToken(), "discard");
+    }
     QString source(const QByteArray &bytes = "1 2 0\n3 4 0\n", const QString &name = QStringLiteral("source.xyz"))
     {
         const auto path = area.filePath(name);
@@ -135,7 +144,7 @@ TEST_F(GuiImport, FirstImportUsesAcceptedMetadataAndRetainsTerminalSuccess)
     EXPECT_TRUE(text("boundsLabel").contains("-1.2345678901234567"));
     EXPECT_TRUE(text("boundsLabel").contains("1e+100"));
     EXPECT_TRUE(text("boundsLabel").contains("1e-100"));
-    EXPECT_TRUE(text("cacheStatusLabel").contains(QStringLiteral("Point Cache готов")));
+    EXPECT_TRUE(text("cacheStatusLabel").contains(QStringLiteral("Point Cache доступен")));
     EXPECT_EQ(model.cellText(), "1");
     EXPECT_FALSE(controller.canUndo()); EXPECT_FALSE(controller.canRedo());
     EXPECT_EQ(model.densityMapStatusText(), QStringLiteral("Карта плотности отсутствует"));
@@ -184,6 +193,8 @@ TEST_P(FailedImport, ReportsStructuredFailureWithoutCreatingProject)
     EXPECT_TRUE(model.operationVisible());
     EXPECT_FALSE(text("operationLabel").isEmpty());
     EXPECT_FALSE(model.importDiagnostic().isEmpty());
+    EXPECT_FALSE(visible("importDiagnosticLabel"));
+    click("diagnosticsButton");
     EXPECT_TRUE(visible("importDiagnosticLabel"));
 }
 INSTANTIATE_TEST_SUITE_P(Content, FailedImport, testing::Values("", "1 bad 0\n", "1 2\n", "1e999 2 0\n"));
@@ -240,6 +251,7 @@ TEST_F(GuiImport, FailedReplacementPreservesDatasetHistoryAndDraftSelectionError
 {
     initial(); history();
     const auto stamp = controller.project()->operationStamp();
+    beginReplacement(source("1 wrong 0\n", "bad.xyz")); click("replaceConfirmButton");
     control("cellInput")->setProperty("text", "1,2.3"); click("applyButton");
     const auto error = model.errorMessage();
     auto *field = control("cellInput");
@@ -247,8 +259,8 @@ TEST_F(GuiImport, FailedReplacementPreservesDatasetHistoryAndDraftSelectionError
     const auto cursor = field->property("cursorPosition");
     const auto start = field->property("selectionStart");
     const auto end = field->property("selectionEnd");
-    beginReplacement(source("1 wrong 0\n", "bad.xyz")); click("replaceConfirmButton");
     ASSERT_TRUE(finish(controller));
+    EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
     EXPECT_TRUE(controller.project()->accepts(stamp));
     EXPECT_EQ(model.sourceName(), "source.xyz");
     EXPECT_TRUE(controller.canUndo()); EXPECT_TRUE(controller.canRedo());
@@ -279,7 +291,7 @@ TEST_F(GuiImport, StaleReplacementAndSelectionCallbacksCannotStartImport)
     beginReplacement(source("3 4 0\n", "next.xyz"));
     const auto token = model.selectionToken(); const auto id = controller.operation().id;
     controller.setCell(2);
-    model.confirmReplacement(token, true);
+    model.confirmReplacement(token, true); discardDirty(model);
     EXPECT_EQ(controller.operation().id, id); EXPECT_FALSE(model.replacementPending());
     EXPECT_DOUBLE_EQ(controller.project()->cell(), 2);
     click("newProjectButton");
@@ -333,7 +345,7 @@ TEST_P(AutosaveImportUi, KeepsSelectionAndImportsWhenConfirmedDuringAutosave)
             ++completedImports; completedImport = controller.operation();
         }
     });
-    model.confirmReplacement(token, true);
+    model.confirmReplacement(token, true); discardDirty(model);
     EXPECT_EQ(model.selectionToken(), token); // retained until native completion/retry
     EXPECT_EQ(controller.operation().cancellationRequested, !afterAccept);
     EXPECT_TRUE(controller.operation().active); EXPECT_EQ(controller.operation().kind, OperationKind::Autosave);
@@ -345,7 +357,7 @@ TEST_P(AutosaveImportUi, KeepsSelectionAndImportsWhenConfirmedDuringAutosave)
     EXPECT_EQ(completedImport.kind, OperationKind::Import); EXPECT_GT(completedImport.id, autosaveId);
     EXPECT_TRUE(model.selectionToken().isEmpty()); EXPECT_FALSE(model.replacementPending());
     const auto id = controller.operation().id;
-    model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true);
+    model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true); discardDirty(model);
     EXPECT_EQ(controller.operation().id, id);
 }
 INSTANTIATE_TEST_SUITE_P(FileAndConfirmationBeforeAndAfterAccept, AutosaveImportUi,
@@ -378,7 +390,7 @@ TEST_P(NestedAutosaveImport, N1NestedEventDeliveryAtTerminalPreservesIntentAndIm
     if (afterAccept) { OperationTestAccess::poll(controller); barrier.entered.wait(); }
     if (!confirmationOpen) { EXPECT_TRUE(visible("importFileDialog")); select(path); }
     ASSERT_TRUE(model.replacementPending());
-    model.confirmReplacement(token, true);
+    model.confirmReplacement(token, true); discardDirty(model);
     ASSERT_EQ(model.selectionToken(), token);
 
     bool nested = false;
@@ -422,7 +434,7 @@ TEST_P(NestedAutosaveImport, N1NestedEventDeliveryAtTerminalPreservesIntentAndIm
     const auto id = controller.operation().id;
     for (int i = 0; i != 8; ++i) {
         emit controller.operationChanged(); QCoreApplication::processEvents();
-        model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true);
+        model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true); discardDirty(model);
     }
     EXPECT_EQ(startedImports, 1); EXPECT_EQ(completedImports, 1); EXPECT_GE(controller.operation().id, id);
 }
@@ -460,13 +472,13 @@ TEST_P(InvalidatedAutosaveImport, PendingImportCannotSurviveInputCloseOrShutdown
     ASSERT_EQ(controller.autosave().outcome, CommandOutcome::Applied);
     auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
     ASSERT_TRUE(waitContext(context, true));
-    model.confirmReplacement(token, true);
+    model.confirmReplacement(token, true); discardDirty(model);
     if (GetParam() == 0) { controller.setCell(2); controller.undo(); }
     else if (GetParam() == 1) controller.closeProject();
     else controller.requestShutdown();
     EXPECT_TRUE(model.selectionToken().isEmpty());
     ASSERT_TRUE(finish(controller)); QCoreApplication::processEvents();
-    model.confirmReplacement(token, true); model.selectImportFile(token, QUrl::fromLocalFile(path));
+    model.confirmReplacement(token, true); discardDirty(model); model.selectImportFile(token, QUrl::fromLocalFile(path));
     EXPECT_NE(model.sourceName(), "next.xyz"); EXPECT_NE(controller.operation().kind, OperationKind::Import);
 }
 INSTANTIATE_TEST_SUITE_P(InputCloseShutdown, InvalidatedAutosaveImport, testing::Range(0, 3));
@@ -484,7 +496,7 @@ TEST_F(GuiImport, CompletedAutosavePreservesSelectionUntilActualProjectReplaceme
     ASSERT_TRUE(finish(controller)); RecoveryTestAccess::timers(controller);
     EXPECT_NE(controller.project()->runtimeIdentity(), oldIdentity);
     const auto id = controller.operation().id;
-    model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true);
+    model.selectImportFile(token, QUrl::fromLocalFile(path)); model.confirmReplacement(token, true); discardDirty(model);
     EXPECT_EQ(controller.operation().id, id);
 }
 

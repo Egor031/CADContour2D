@@ -1264,7 +1264,7 @@ manifest, 1 MiB / два handles для cache). Это overridable admission pro
 не ограничения размера облака или RAM приложения. `replacementConfirmed` обязателен
 при любом текущем проекте; optional `expectedContext` использует существующий
 ImportContext, захваченный через `importContext()`, и защищает от устаревшего выбора.
-Без него headless caller подтверждает именно контекст вызова. GUI относится к 05.5.
+Без него headless caller подтверждает именно контекст вызова. GUI — §28.3.
 
 Worker читает manifest существующим bounded `readManifest`, получает digest ровно
 декодированных bytes без повторного чтения, разрешает пути от фактического canonical
@@ -1335,6 +1335,50 @@ envelope checks в worker и отказывает, сохраняя manifest. И
 GUI полной validation в 05.3 не добавлены, никаких неявных вызовов нет.
 Границы resolver/TOCTOU, cooperative access и conservative retention сохраняются.
 Проверки и ограничения — [отчёт 05.3](reports/task-05/open-implementation.md).
+
+---
+
+### 28.3. GUI Save/Open и разрешение изменений (05.5A)
+
+C++ UI adapter владеет draft поля `cell` и одним пользовательским намерением:
+Save/Save As, Open, подтверждённый Import, Close, Exit или bounded recheck.
+QML отображает меню, состояние и tokenized dialogs; persistent state, dirty,
+baseline, история и исполнение операций остаются в существующем controller.
+Форматы, storage transactions и publication/native completion protocol не меняются.
+
+До Save/закрытия/замены разрешается draft, затем при закрытии/замене — dirty.
+Ответ потребляется один раз; изменившиеся session/input revision или draft
+отзывают старое разрешение. Escape/закрытие диалога — Cancel. Open выбирает
+входящий manifest отдельно от возможного пути Save прежнего проекта.
+Read-only `fileCommandContext()` сохраняет stamp/epoch/operation context также
+во время Busy, не предоставляя admission. Это исключает NoProject → NoProject
+ABA для намерения, начатого во время worker; прежние import getters и guards
+сохраняют свою доступность и проверки.
+При failure/cancellation прежний сеанс сохраняется; явно отброшенный пользователем
+draft не восстанавливается автоматически. Во время принятого Open/Import GUI
+не допускает новый ввод `cell`; во время Save редактирование остаётся доступным.
+
+Подтверждённое файловое намерение переживает Autosave/Busy и reentrant notifications.
+Повторное admission выполняется после завершённого controller command transition,
+с повторной проверкой контекста, без timer polling. Import передаётся прежнему
+deferred admission protocol 05.4. Успех Save фиксируется по его OperationId
+при terminal notification, чтобы последующий Autosave не подменял результат.
+Продолжение ждёт receipt/native completion/join, снова разрешает новые draft/dirty
+и только затем вызывает Close/Open/Import/Shutdown. Неопределённый Save оставляет
+запрет controller на следующий Save и требует Open фактического manifest.
+
+Application Quit направляется через закрытие главного окна в тот же workflow,
+что системная кнопка и меню выхода. После пользовательского решения действует
+прежний Open → Closing → Ready с cancellation/drain и recovery retention.
+Close проекта оставляет приложение открытым. Низкоуровневые controller API
+по-прежнему не показывают dialogs и не являются пользовательским подтверждением.
+
+Save receipt, progress и посторонние notifications не синхронизируют поле:
+sync нужен только при изменении самого cell/session либо успешном явном Apply.
+Partial availability показывается с причиной; изменение cell, Undo/Redo и Save
+заблокированы согласно §28.2, recheck использует существующий bounded worker.
+GUI Recovery и startup discovery/decision остаются в 05.5B; текущий startup import
+не объявляется завершённым Recovery workflow.
 
 ---
 
@@ -1465,7 +1509,8 @@ Shutdown Ready ждёт и этот worker; destructor fallback drain не тр�
 Это ограниченный lifecycle I/O, не отменяемый общим shutdown cancellation. Ошибка
 маркировки сохраняет recovery и может оставить Interrupted. Низкоуровневый shutdown
 сохраняет последний опубликованный snapshot, не делает принудительного Save правок.
-GUI Save/Discard/Cancel и предложение восстановления относятся к 05.5.
+GUI Save/Discard/Cancel реализуется в 05.5A (§28.3); предложение восстановления
+и startup decision остаются в 05.5B.
 
 Autosave/discovery не открывают source/cache; restore/recheck читают только bounded
 envelope/root (73 728 bytes непустого cache v1, ноль point pages). Copy, scanAll,
@@ -1761,7 +1806,7 @@ Compression не требуется для v1; возможное дальней
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.
-- **Autosave/Recovery:** C++ storage/triggers/publication/lifecycle определены в §31.1; GUI-предложение восстановления и Save/Discard/Cancel — 05.5, целевое поведение — [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность).
+- **Autosave/Recovery:** C++ storage/triggers/publication/lifecycle определены в §31.1, GUI Save/Discard/Cancel — §28.3 (05.5A); GUI Recovery/startup decision остаются в 05.5B, целевое поведение — [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность).
 - **UX/UI details:** открытые визуальные и interaction details — [ui-design.md, §13](ui-design.md#13-открытые-ux-вопросы-и-проверка-реализации); согласованные принципы не относятся к Open decisions.
 - **Worker applicability:** механизм обеспечения инварианта §25.
 - **Precise methods:** локальные Open decision в [algorithms.md](algorithms.md#45-указатель-основных-open-decisions).

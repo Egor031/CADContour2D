@@ -73,6 +73,8 @@ public:
     std::optional<ImportContext> importContext() const noexcept;
     // Intent applicability during notifications/Autosave, independent of admission.
     std::optional<ImportContext> importSelectionContext() const noexcept;
+    // Read-only lifecycle context even while Busy; this never grants admission.
+    std::optional<ImportContext> fileCommandContext() const noexcept;
     CommandResult closeProject(bool discardConfirmed = false);
     CommandResult setCell(double value);
     CommandResult undo();

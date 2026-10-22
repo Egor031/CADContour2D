@@ -1,3 +1,5 @@
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -11,12 +13,64 @@ ApplicationWindow {
     // Tests suppress only the OS window and deliver FileDialog.selectedFile/accepted.
     property bool fileDialogEnabled: true
 
-    width: 680
-    height: 600
+    width: 960
+    height: 720
     minimumWidth: 400
     minimumHeight: 380
     visible: true
-    title: "CADContour2D"
+    title: window.project.projectName + (window.project.dirty ? " *" : "") + " — CADContour2D"
+    property bool diagnosticsVisible: false
+    property NativeDialogs.FileDialog projectFileDialog: null
+    property string projectDialogToken: ""
+
+    function releaseProjectFileDialog(): void {
+        const previous = window.projectFileDialog
+        window.projectFileDialog = null
+        window.projectDialogToken = ""
+        if (previous) {
+            previous.objectName = ""
+            previous.close()
+            previous.destroy()
+        }
+    }
+
+    Action { id: newAction; text: "Новый проект / импорт ASC/XYZ…"; enabled: window.project.canImport; onTriggered: window.project.newProject() }
+    Action { id: openAction; objectName: "openAction"; text: "Открыть проект…"; shortcut: StandardKey.Open; enabled: window.project.actionsEnabled && !window.project.workflowPending; onTriggered: window.project.open() }
+    Action { id: saveAction; objectName: "saveAction"; text: "Сохранить"; shortcut: StandardKey.Save; enabled: window.project.canSave; onTriggered: window.project.save() }
+    Action { id: saveAsAction; objectName: "saveAsAction"; text: "Сохранить как…"; shortcut: StandardKey.SaveAs; enabled: window.project.canSave; onTriggered: window.project.saveAs() }
+    Action { id: closeProjectAction; objectName: "closeProjectAction"; text: "Закрыть проект"; enabled: window.project.hasProject && window.project.actionsEnabled; onTriggered: window.project.closeProject() }
+    Action { id: exitAction; objectName: "exitAction"; text: "Выход"; onTriggered: window.close() }
+
+    menuBar: MenuBar {
+        Menu {
+            title: "Файл"
+            MenuItem { action: newAction }
+            MenuItem { action: openAction }
+            MenuSeparator {}
+            MenuItem { action: saveAction }
+            MenuItem { action: saveAsAction }
+            MenuItem { action: closeProjectAction }
+            MenuSeparator {}
+            MenuItem { action: exitAction }
+        }
+        Menu {
+            title: "Правка"
+            MenuItem { text: "Отменить"; enabled: window.project.canUndo && window.project.cacheAvailable && window.project.actionsEnabled; onTriggered: window.project.undo() }
+            MenuItem { text: "Повторить"; enabled: window.project.canRedo && window.project.cacheAvailable && window.project.actionsEnabled; onTriggered: window.project.redo() }
+        }
+        Menu {
+            title: "Вид"
+            MenuItem { text: "Диагностика"; checkable: true; checked: window.diagnosticsVisible; onTriggered: window.diagnosticsVisible = checked }
+        }
+    }
+    header: ToolBar {
+        Flow {
+            width: parent.width
+            ToolButton { action: openAction }
+            ToolButton { action: saveAction }
+            ToolButton { objectName: "diagnosticsButton"; text: "Диагностика"; onClicked: window.diagnosticsVisible = !window.diagnosticsVisible }
+        }
+    }
     function offerStartupImport(): void {
         if (window.project)
             window.project.offerStartupImport()
@@ -30,7 +84,7 @@ ApplicationWindow {
     Connections {
         target: window.project
         function onCellInputSyncRequested() {
-            cellInput.text = window.project.cellText
+            cellInput.text = window.project.cellDraft
         }
         function onShutdownChanged() {
             if (window.project.shutdownReady)
@@ -39,7 +93,7 @@ ApplicationWindow {
         function onFileSelectionRequested() {
             const token = window.project.selectionToken
             if (!window.project.actionsEnabled || !window.project.selectingFile
-                    || window.project.operationActive || token.length === 0)
+                    || token.length === 0)
                 return
             fileDialog.requestToken = token
             if (window.fileDialogEnabled)
@@ -71,6 +125,86 @@ ApplicationWindow {
                 zDialog.requestToken = ""
                 zDialog.close()
             }
+        }
+        function onWorkflowChanged() {
+            const prompt = window.project.workflowPrompt
+            const token = window.project.workflowToken
+            if (prompt === "draft" || prompt === "dirty") {
+                if (decisionDialog.requestToken !== token) {
+                    decisionDialog.requestToken = token
+                    decisionDialog.draft = prompt === "draft"
+                    decisionDialog.open()
+                }
+            } else {
+                decisionDialog.requestToken = ""
+                decisionDialog.close()
+            }
+            if (prompt === "save" || prompt === "open") {
+                if (!window.projectFileDialog || window.projectDialogToken !== token) {
+                    window.releaseProjectFileDialog()
+                    window.projectDialogToken = token
+                    window.projectFileDialog = projectFileDialogComponent.createObject(window, {
+                        "requestToken": token,
+                        "fileMode": prompt === "save" ? NativeDialogs.FileDialog.SaveFile : NativeDialogs.FileDialog.OpenFile,
+                        "title": prompt === "save" ? "Сохранить проект как" : "Открыть проект"
+                    })
+                    if (window.fileDialogEnabled)
+                        window.projectFileDialog.open()
+                }
+            } else {
+                window.releaseProjectFileDialog()
+            }
+        }
+    }
+
+    Component {
+        id: projectFileDialogComponent
+        NativeDialogs.FileDialog {
+            objectName: "projectFileDialog"
+            required property string requestToken
+            nameFilters: ["Проект CADContour2D (*.pc2dproj)"]
+            defaultSuffix: "pc2dproj"
+            rejectLabel: "Отмена"
+            onAccepted: window.project.selectProjectFile(requestToken, selectedFile)
+            onRejected: window.project.answerWorkflow(requestToken, "cancel")
+        }
+    }
+
+    Dialog {
+        id: decisionDialog
+        objectName: "decisionDialog"
+        property string requestToken: ""
+        property string closingToken: ""
+        property bool draft: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(520, window.width - 32)
+        height: Math.min(240, window.height - 32)
+        modal: true
+        title: draft ? "Неприменённые изменения" : "Несохранённые изменения"
+        closePolicy: Popup.CloseOnEscape
+        function answer(value: string): void {
+            const token = requestToken
+            requestToken = ""
+            window.project.answerWorkflow(token, value)
+        }
+        onAboutToHide: closingToken = requestToken
+        onClosed: {
+            const token = closingToken
+            closingToken = ""
+            if (requestToken === token)
+                requestToken = ""
+            window.project.answerWorkflow(token, "cancel")
+        }
+        contentItem: Label {
+            text: decisionDialog.draft ? "Размер ячейки изменён в поле ввода. Применить правку, отбросить её или отменить действие?"
+                                      : "Сохранить изменения текущего проекта перед продолжением?"
+            wrapMode: Text.Wrap
+        }
+        footer: DialogButtonBox {
+            Button { objectName: "decisionAcceptButton"; text: decisionDialog.draft ? "Применить" : "Сохранить"; onClicked: decisionDialog.answer(decisionDialog.draft ? "apply" : "save") }
+            Button { objectName: "decisionDiscardButton"; text: decisionDialog.draft ? "Отбросить" : "Не сохранять"; onClicked: decisionDialog.answer("discard") }
+            Button { objectName: "decisionCancelButton"; text: "Отмена"; onClicked: decisionDialog.answer("cancel") }
         }
     }
 
@@ -204,9 +338,15 @@ ApplicationWindow {
                 Item { Layout.fillWidth: true }
                 Button {
                     objectName: "closeButton"
-                    text: "Закрыть"
+                    text: "Выход"
                     onClicked: window.close()
                 }
+            }
+            Label {
+                text: window.project.workflowPending && window.project.workflowPrompt.length === 0
+                    ? "Ожидание завершения операции…" : window.project.operationText
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
             }
             Button {
                 objectName: "stopOperationButton"
@@ -220,6 +360,7 @@ ApplicationWindow {
     }
 
     ScrollView {
+        objectName: "projectScrollView"
         anchors.fill: parent
         anchors.margins: 16
         contentWidth: availableWidth
@@ -234,6 +375,23 @@ ApplicationWindow {
                 text: window.project.hasProject ? "Текущий проект" : "Нет открытого проекта"
                 font.pixelSize: 24
                 Layout.fillWidth: true
+            }
+            Label {
+                objectName: "projectPathLabel"
+                text: window.project.projectName + (window.project.dirty ? " · Несохранённые изменения" : "")
+                    + (window.project.hasDraft ? " · Есть неприменённый ввод" : "")
+                    + "\n" + (window.project.projectPath.length > 0 ? window.project.projectPath : "Расположение ещё не выбрано")
+                textFormat: Text.PlainText
+                wrapMode: Text.WrapAnywhere
+                Layout.fillWidth: true
+            }
+            Label {
+                objectName: "fileMessageLabel"
+                text: window.project.fileMessage
+                textFormat: Text.PlainText
+                visible: text.length > 0
+                Layout.fillWidth: true
+                wrapMode: Text.WrapAnywhere
             }
 
             Frame {
@@ -264,9 +422,15 @@ ApplicationWindow {
                     }
                     Label {
                         objectName: "cacheStatusLabel"
-                        text: "Point Cache готов · Единицы измерения: миллиметры"
+                        text: window.project.cacheStatusText
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
+                    }
+                    Button {
+                        objectName: "recheckCacheButton"
+                        text: "Повторить ограниченную проверку кэша"
+                        enabled: window.project.canRecheck
+                        onClicked: window.project.recheckPointCache()
                     }
                     Label {
                         objectName: "datasetZLabel"
@@ -300,17 +464,18 @@ ApplicationWindow {
                     id: cellInput
                     objectName: "cellInput"
                     Layout.fillWidth: true
-                    enabled: window.project.hasProject && window.project.actionsEnabled
+                    enabled: window.project.canEditCell
                     placeholderText: "Размер ячейки, мм"
                     Accessible.name: "Размер ячейки в миллиметрах"
                     selectByMouse: true
-                    Component.onCompleted: cellInput.text = window.project.cellText
+                    Component.onCompleted: cellInput.text = window.project.cellDraft
+                    onTextChanged: window.project.editCell(text)
                     onAccepted: window.project.applyCell(cellInput.text)
                 }
                 Button {
                     objectName: "applyButton"
                     text: "Применить"
-                    enabled: window.project.hasProject && window.project.actionsEnabled
+                    enabled: window.project.canEditCell
                     onClicked: window.project.applyCell(cellInput.text)
                 }
             }
@@ -368,7 +533,7 @@ ApplicationWindow {
                     objectName: "importDiagnosticLabel"
                     textFormat: Text.PlainText
                     text: window.project.diagnosticText
-                    visible: text.length > 0
+                    visible: text.length > 0 && window.diagnosticsVisible
                     wrapMode: Text.WrapAnywhere
                     Layout.fillWidth: true
                 }
@@ -385,13 +550,13 @@ ApplicationWindow {
                 Button {
                     objectName: "undoButton"
                     text: "Отменить"
-                    enabled: window.project.canUndo && window.project.actionsEnabled
+                    enabled: window.project.canUndo && window.project.cacheAvailable && window.project.actionsEnabled
                     onClicked: window.project.undo()
                 }
                 Button {
                     objectName: "redoButton"
                     text: "Повторить"
-                    enabled: window.project.canRedo && window.project.actionsEnabled
+                    enabled: window.project.canRedo && window.project.cacheAvailable && window.project.actionsEnabled
                     onClicked: window.project.redo()
                 }
             }

@@ -66,6 +66,12 @@ protected:
         ASSERT_TRUE(QMetaObject::invokeMethod(control(name), "clicked", Qt::DirectConnection));
         QCoreApplication::processEvents();
     }
+    void discardForClose()
+    {
+        ASSERT_EQ(viewModel.workflowPrompt(), "dirty");
+        viewModel.answerWorkflow(viewModel.workflowToken(), "discard");
+        QCoreApplication::processEvents();
+    }
 };
 } // namespace
 
@@ -110,6 +116,7 @@ TEST_F(ProductionQml, CompleteUserScenarioAndRejectedDraft)
     EXPECT_FALSE(enabled("undoButton"));
     EXPECT_FALSE(enabled("redoButton"));
     click("closeButton");
+    discardForClose();
     EXPECT_FALSE(window->isVisible());
 }
 
@@ -142,6 +149,15 @@ TEST_F(ProductionQml, ResizedLayoutKeepsControlsInsideWindow)
                                 "redoButton", "newProjectButton", "closeButton"}) {
             auto *item = qobject_cast<QQuickItem *>(control(name));
             ASSERT_NE(item, nullptr);
+            auto *scroll = control("projectScrollView");
+            auto *content = qvariant_cast<QQuickItem *>(scroll->property("contentItem"));
+            ASSERT_TRUE(content);
+            if (content->isAncestorOf(item)) {
+                const auto local = item->mapRectToItem(content, item->boundingRect());
+                content->setProperty("contentY", content->property("contentY").toDouble()
+                    + local.top() - content->height() / 2 + item->height() / 2);
+                QCoreApplication::processEvents();
+            }
             const auto bounds = item->mapRectToScene(item->boundingRect());
             EXPECT_GE(bounds.left(), 0) << name;
             EXPECT_GE(bounds.top(), 0) << name;
@@ -291,6 +307,7 @@ TEST_F(ProductionQml, ButtonAndWindowCloseKeepEventLoopUntilWorkerIsReleased)
     OperationTestAccess::start(controller, work.function());
     work.entered.wait();
     click("closeButton");
+    discardForClose();
     EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
     EXPECT_TRUE(window->isVisible());
     EXPECT_FALSE(enabled("applyButton"));
@@ -315,6 +332,7 @@ TEST_F(ProductionQml, SystemWindowCloseStartsShutdownWithoutButton)
     OperationTestAccess::start(controller, work.function());
     work.entered.wait();
     window->close();
+    discardForClose();
     EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
     EXPECT_TRUE(window->isVisible());
     work.complete.set();
@@ -333,6 +351,8 @@ TEST_F(ProductionQml, PostedQuitUsesProductionShutdownCoordinator)
     work.entered.wait();
     QEvent quit(QEvent::Quit);
     QCoreApplication::sendEvent(app, &quit);
+    QCoreApplication::processEvents();
+    discardForClose();
     EXPECT_EQ(controller.shutdownState(), ShutdownState::Closing);
     EXPECT_TRUE(window->isVisible());
     work.complete.set();

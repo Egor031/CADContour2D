@@ -401,6 +401,12 @@ std::optional<ImportContext> ProjectController::importSelectionContext() const n
     // confuse that scope, or an Autosave lease, with a change of project inputs.
     if (QThread::currentThread() != thread() || shutdown_ != ShutdownState::Open
         || (runner_.busy() && operation_.kind != OperationKind::Autosave)) return {};
+    return fileCommandContext();
+}
+
+std::optional<ImportContext> ProjectController::fileCommandContext() const noexcept
+{
+    if (QThread::currentThread() != thread() || shutdown_ != ShutdownState::Open) return {};
     return ImportContext{session_ ? std::optional(session_->state.operationStamp()) : std::nullopt,
                          contextEpoch_, lastImportContextOperation_};
 }
