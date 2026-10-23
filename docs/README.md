@@ -61,13 +61,13 @@ UX/UI Design действует в пределах их контрактов; �
 - [05.2 Save / Save As](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance) — **ACCEPTED** после финальной независимой проверки `cedf844`; R1/R2 закрыты.
 - [05.3 Open и частичная доступность](reports/task-05/open-implementation.md#l-independent-verification-and-acceptance) — **ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`; R1.1/R1.2 — FIXED и закрыты.
 - [05.4 Autosave / Recovery](reports/task-05/autosave-recovery.md#m-acceptance) — **ACCEPTED** 2026-10-22 после независимой проверки `b086cad`, вердикт **READY FOR ACCEPTANCE**; H1–H3/N1 — FIXED и закрыты. Debug/Release: build/lint — PASS, production 694 PASS / 0 FAIL / 1 SKIP, Recovery 64/64, process crash 7/7, целевые N1 + H1/H2 25/25, независимый probe 29/29. В отчёте сохранено неблокирующее наблюдение о нестабильности теста; при документальном закрытии сборки/CTest не повторялись.
-- [05.5A GUI Save/Open и lifecycle](reports/task-05/gui-save-open.md) — реализация, текущие проверки и инструкция ручной приёмки; GUI Recovery/startup остаются в 05.5B.
+- [05.5A GUI Save/Open и lifecycle](reports/task-05/gui-save-open.md) — **ACCEPTED WITH LIMITATIONS** после native Windows GUI-приёмки; R1/O1/L1 FIXED. Последний полный production CTest: 761 PASS / 0 FAIL / 1 SKIP в Debug/Release; адресный L1: 8/8 в Debug/Release. Ограничения: системный DPI 150%/200% не проверен (Qt scaling проверен, но не заменяет системный DPI), отдельный native-сценарий длительного Save с поздней правкой, нестабильность Recovery `Applied`/`NoChange` и предупреждение C4702; перенос между мониторами — N/A.
 - [Наблюдение по Operations-тесту](reports/task-05/persistence-foundation.md#operations-test-observation) — UNRESOLVED OBSERVATION / NOT CONFIRMED DEFECT.
 
-05.1–05.4 — **ACCEPTED**; задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**.
+05.1–05.4 — **ACCEPTED**; 05.5A — **ACCEPTED WITH LIMITATIONS**; 05.5B — **NOT STARTED**.
 Принята C++ реализация Autosave/Recovery с чтением v1 и публикацией v2;
 GUI Save/Open, Save/Discard/Cancel и partial availability добавлены в 05.5A;
-Recovery/startup decision и сквозная приёмка остаются в 05.5B.
+GUI Recovery/startup decision и сквозная приёмка остаются в 05.5B.
 **05.5 — IN PROGRESS / NOT ACCEPTED**.
 
 ## Benchmark evidence

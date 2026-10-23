@@ -1380,6 +1380,12 @@ Partial availability показывается с причиной; измене�
 GUI Recovery и startup discovery/decision остаются в 05.5B; текущий startup import
 не объявляется завершённым Recovery workflow.
 
+Статус GUI-этапа: **05.5A — ACCEPTED WITH LIMITATIONS** после native Windows
+GUI-приёмки и независимой проверки исправлений R1/O1/L1; детали и оставшиеся
+ограничения — в [отчёте 05.5A](reports/task-05/gui-save-open.md). GUI Recovery и
+startup decision — 05.5B (**NOT STARTED**); 05.5 и задача 05 остаются
+**IN PROGRESS / NOT ACCEPTED**.
+
 ---
 
 ## 29. Пути к данным

@@ -15,10 +15,12 @@
 - этот документ — подробная UX/UI-спецификация в пределах этих контрактов;
 - [implementation-plan.md](implementation-plan.md) — задачи и статусы реализации.
 
-Задачи 01–04 и части 05.1–05.4 приняты. В 05.5A реализованы меню Import/Open/Save/
-Save As/Close/Exit, draft/dirty workflow, partial availability и bounded recheck;
-проверки и ручная приёмка — [отчёт 05.5A](reports/task-05/gui-save-open.md).
-**05.5 — IN PROGRESS / NOT ACCEPTED; задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
+Задачи 01–04 и части 05.1–05.4 приняты. 05.5A — **ACCEPTED WITH LIMITATIONS**:
+реализованы меню Import/Open/Save/Save As/Close/Exit, draft/dirty workflow, partial
+availability и bounded recheck; native Windows GUI-приёмка подтвердила основные
+сценарии, R1/O1/L1 исправлены и независимо проверены. Ограничения и результаты —
+в [отчёте 05.5A](reports/task-05/gui-save-open.md).
+**05.5B — NOT STARTED; 05.5 — IN PROGRESS / NOT ACCEPTED; задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
 GUI Recovery/startup decision относятся к 05.5B. Canvas, навигатор, редакторы
 и последующие операции относятся к будущим задачам 06–20. Настоящий документ
 не объявляет их реализованными.

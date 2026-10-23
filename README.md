@@ -63,9 +63,11 @@ SPLINE/BSpline и ELLIPSE не поддерживаются в первой ве
 GUI выбора ASC/XYZ, подтверждения замены/Z и карточка dataset реализованы в 04.4A.
 В 05.2–05.4 реализованы C++ Save/Save As/Open `.pc2dproj`, восстановление параметров,
 частично доступного состояния и Autosave/Recovery; **05.1–05.4 — ACCEPTED**.
-В 05.5A добавлены GUI Save/Open/Save As, разрешение draft/dirty, закрытие и bounded
-recheck. GUI Recovery, startup recovery decision и сквозная приёмка остаются
-в 05.5B; **05.5 — IN PROGRESS / NOT ACCEPTED**.
+05.5A GUI Save/Open и безопасный lifecycle принят с ограничениями после native
+Windows GUI-приёмки и независимого исправления/подтверждения R1, O1 и L1
+(**L1 FIXED**); [подробные результаты, включая ограничения](docs/reports/task-05/gui-save-open.md).
+GUI Recovery и startup recovery decision остаются следующей работой 05.5B
+(**NOT STARTED**); **05.5 — IN PROGRESS / NOT ACCEPTED**.
 Задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**. Обычная работа после импорта не требует
 исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
@@ -502,9 +504,19 @@ R1.1/R1.2 — FIXED и закрыты, итог ревью — **READY FOR ACCEP
 **05.4 Autosave/Recovery — ACCEPTED** 2026-10-22 после независимой проверки `b086cad`;
 вердикт — **READY FOR ACCEPTANCE**, H1–H3/N1 — FIXED и закрыты.
 [Принятие, результаты и неблокирующее наблюдение о нестабильности теста](docs/reports/task-05/autosave-recovery.md#m-acceptance).
-05.5A: GUI Save/Open/Save As, draft/dirty, безопасное закрытие и partial availability
-реализованы; [проверки и ручная приёмка](docs/reports/task-05/gui-save-open.md).
-**05.5 — IN PROGRESS / NOT ACCEPTED**; GUI Recovery/startup и сквозная приёмка — 05.5B.
+**05.5A — ACCEPTED WITH LIMITATIONS**: GUI Save/Open/Save As, draft/dirty,
+безопасное закрытие и замена, partial availability и bounded recheck приняты после
+native GUI-приёмки; R1/O1/L1 исправлены и независимо проверены. Последний полный
+production CTest — 761 PASS / 0 FAIL / 1 SKIP в Debug и Release; адресный L1 —
+8/8 в Debug и Release. SKIP — Windows symlink privilege 1314.
+Ограничения: системный DPI 150%/200% не проверен (Qt scaling проверен, но не
+заменяет системный DPI);
+длительный Save с поздней правкой не подтверждён отдельным native GUI-сценарием;
+перенос между мониторами — N/A (второго монитора нет). Нестабильность Recovery
+`Applied`/`NoChange` не исправлена; C4702 в стороннем `fmt/base.h` остаётся
+известным наблюдением. Подробнее — [отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
+**05.5B — NOT STARTED**; GUI Recovery/startup decision и сквозная приёмка остаются
+впереди. **05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -642,7 +654,7 @@ cache integration — **1/1 PASS** в обеих конфигурациях, GUI
 QML integration — **14/14 PASS**; сборки, `all_qmllint` и Git diff checks — PASS.
 При документационном закрытии сборки, тесты и нагрузки не повторялись.
 [Запись о принятии](docs/reports/task-04/acceptance.md) фиксирует проверенный commit
-и ограничения. В задаче 05 приняты 05.1–05.4; GUI Save/Open добавлены в 05.5A;
+и ограничения. В задаче 05 приняты 05.1–05.4; на тот момент GUI Save/Open были добавлены в 05.5A;
 явное построение и версии Density Map относятся к 06. Статусы ACCEPTED и результаты
 приёмки задач 01–03 сохраняются.
 
@@ -661,8 +673,8 @@ manifest `.pc2dproj` v1 с точным round-trip чисел, проверка 
 независимого ревью, исправления H1/H2 и повторной независимой проверки.
 H1/H2 — FIXED, итог ревью — **05.1 — READY FOR ACCEPTANCE**; новых блокирующих
 дефектов нет. [Итоги и границы принятия](docs/reports/task-05/persistence-foundation.md#independent-verification-and-acceptance).
-Задача 05 целиком — IN PROGRESS / NOT ACCEPTED; принятые этапы 05.2–05.4
-описаны ниже; 05.5 — IN PROGRESS / NOT ACCEPTED.
+На момент принятия 05.1 задача 05 оставалась IN PROGRESS / NOT ACCEPTED;
+последующие статусы этапов приведены ниже и актуально сведены в [Project Status](#project-status).
 
 По результатам уже выполненной повторной независимой проверки сборки Debug/Release
 и `all_qmllint` — PASS; итоговый production CTest в каждой конфигурации —
@@ -771,8 +783,9 @@ Open 84/84, production 609 PASS / 0 FAIL / 1 SKIP в Debug и Release.
 новых подтверждённых дефектов нет. Итог ревью — **READY FOR ACCEPTANCE**.
 **05.3 — ACCEPTED** пользователем 2026-10-21.
 [Независимая проверка, результаты и ограничения](docs/reports/task-05/open-implementation.md#l-independent-verification-and-acceptance).
-05.1–05.4 — ACCEPTED; принятие 05.4 описано ниже; 05.5 — IN PROGRESS / NOT ACCEPTED.
-Задача 05 целиком — IN PROGRESS / NOT ACCEPTED.
+05.1–05.4 — ACCEPTED; принятие 05.4 описано ниже. На момент этой записи 05.5 и
+задача 05 оставались IN PROGRESS / NOT ACCEPTED; актуальный статус 05.5A приведён
+в [Project Status](#project-status).
 
 ### Autosave / Recovery — 05.4
 
@@ -808,8 +821,8 @@ restore читает 73 728 bytes, ноль point pages. Детали и про�
 [Подробности независимой проверки и ограничения](docs/reports/task-05/autosave-recovery.md#m-acceptance).
 **05.4 — ACCEPTED** пользователем 2026-10-22, вердикт ревью — **READY FOR ACCEPTANCE**;
 H1–H3/N1 — FIXED и закрыты. При документальном закрытии сборки и CTest не повторялись.
-GUI Save/Open и Save/Discard/Cancel — 05.5A, следующий раздел; GUI Recovery/startup
-и сквозная приёмка — 05.5B. **05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
+05.5A принята с ограничениями; GUI Recovery/startup и сквозная приёмка — следующая
+работа 05.5B (**NOT STARTED**). **05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
 
 ### GUI Save/Open и жизненный цикл — 05.5A
 
@@ -824,7 +837,10 @@ Escape и закрытие диалога отменяют действие. С�
 сохраняющий native completion/join и existing publication guards. Close проекта
 не завершает приложение. Open/recheck не делают full validation или rebuild.
 
-Автоматические проверки, ограничения и воспроизводимая ручная проверка native
-FileDialog/фокуса/DPI — [отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
-GUI Recovery/startup decision и сквозная приёмка остаются в 05.5B; 05.5 не принята.
+Автоматические проверки, native GUI-приёмка, результаты независимой проверки L1
+и явные ограничения — [отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
+Системный DPI 150%/200% и длительный Save с поздней правкой не подтверждены отдельным
+native GUI-сценарием; перенос между мониторами — N/A. GUI Recovery/startup decision
+и сквозная приёмка остаются в 05.5B; **05.5A — ACCEPTED WITH LIMITATIONS**,
+05.5 и задача 05 не приняты.
 
