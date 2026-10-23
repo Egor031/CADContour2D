@@ -104,6 +104,128 @@ TEST_F(FileGui, FirstRepeatedSaveAndSaveAsUseProductionDialogs)
     EXPECT_TRUE(controller.canUndo()); EXPECT_FALSE(model.dirty());
 }
 
+class FileMessageImport : public FileGui, public testing::WithParamInterface<bool> {};
+TEST_P(FileMessageImport, L1ImportAfterSaveShowsOnlyTheNewUnsavedProject)
+{
+    action("saveAction"); ASSERT_EQ(model.workflowPrompt(), "save");
+    const auto saveToken = model.workflowToken(); choose(path()); settle();
+    ASSERT_FALSE(model.dirty());
+    ASSERT_EQ(control("fileMessageLabel")->property("text").toString(), QStringLiteral("Проект сохранён."));
+    const auto identity = model.runtimeIdentity();
+    const auto incoming = area.filePath("next.xyz");
+    QFile file(incoming); ASSERT_TRUE(file.open(QIODevice::WriteOnly));
+    ASSERT_EQ(file.write("8 9 0\n"), 6); file.close();
+    if (GetParam()) {
+        click("newProjectButton");
+        control("importFileDialog")->setProperty("selectedFile", QUrl::fromLocalFile(incoming));
+        invoke("importFileDialog", "accepted"); click("replaceConfirmButton");
+    } else {
+        ASSERT_EQ(controller.importAscXyz({incoming, {8ULL << 20, 64ULL << 20, 8}, true}).outcome, CommandOutcome::Applied);
+    }
+    settle();
+    ASSERT_TRUE(model.hasProject()); EXPECT_NE(model.runtimeIdentity(), identity);
+    EXPECT_EQ(model.sourceName(), "next.xyz"); EXPECT_EQ(model.pointCountText(), "1");
+    EXPECT_EQ(model.projectName(), QStringLiteral("Без имени")); EXPECT_TRUE(model.projectPath().isEmpty());
+    EXPECT_TRUE(model.dirty()); EXPECT_TRUE(model.cacheAvailable()); EXPECT_DOUBLE_EQ(model.cell(), 1);
+    EXPECT_FALSE(controller.canUndo()); EXPECT_FALSE(controller.canRedo());
+    EXPECT_TRUE(window->title().contains(QStringLiteral("Без имени *")));
+    EXPECT_TRUE(control("projectPathLabel")->property("text").toString().contains(QStringLiteral("Расположение ещё не выбрано")));
+    EXPECT_TRUE(control("fileMessageLabel")->property("text").toString().isEmpty());
+    EXPECT_FALSE(control("fileMessageLabel")->property("visible").toBool());
+    const auto operationId = controller.operation().id;
+    model.selectProjectFile(saveToken, QUrl::fromLocalFile(path("stale")));
+    model.answerWorkflow(saveToken, "save");
+    ASSERT_TRUE(QMetaObject::invokeMethod(&controller, "operationChanged", Qt::QueuedConnection));
+    QCoreApplication::processEvents();
+    EXPECT_EQ(controller.operation().id, operationId); EXPECT_FALSE(QFile::exists(path("stale")));
+    EXPECT_TRUE(model.dirty()); EXPECT_TRUE(model.projectPath().isEmpty());
+    EXPECT_TRUE(control("fileMessageLabel")->property("text").toString().isEmpty());
+}
+INSTANTIATE_TEST_SUITE_P(ControllerAndQml, FileMessageImport, testing::Bool());
+
+TEST_F(FileGui, L1CloseRetiresSaveMessageAndLateNotifications)
+{
+    firstSave();
+    ASSERT_EQ(model.fileMessage(), QStringLiteral("Проект сохранён."));
+    const auto saveId = controller.operation().id;
+    ASSERT_EQ(controller.closeProject().outcome, CommandOutcome::Applied);
+    EXPECT_FALSE(model.hasProject()); EXPECT_TRUE(model.projectPath().isEmpty());
+    EXPECT_TRUE(control("fileMessageLabel")->property("text").toString().isEmpty());
+    // Delayed notification hints read current controller state, not a captured result.
+    ASSERT_TRUE(QMetaObject::invokeMethod(&controller, "operationChanged", Qt::QueuedConnection));
+    QCoreApplication::processEvents(); settle();
+    EXPECT_GE(controller.operation().id, saveId);
+    EXPECT_TRUE(control("fileMessageLabel")->property("text").toString().isEmpty());
+    EXPECT_TRUE(window->isVisible());
+}
+
+TEST_F(FileGui, L1OpenKeepsItsOwnResultAfterSessionReplacement)
+{
+    firstSave(); const auto identity = model.runtimeIdentity();
+    action("openAction"); choose(path()); settle();
+    EXPECT_NE(model.runtimeIdentity(), identity); EXPECT_EQ(model.projectPath(), path());
+    EXPECT_FALSE(model.dirty()); EXPECT_TRUE(model.cacheAvailable());
+    const auto message = QStringLiteral("Проект открыт.");
+    EXPECT_EQ(control("fileMessageLabel")->property("text").toString(), message);
+    ASSERT_TRUE(QMetaObject::invokeMethod(&controller, "stateChanged", Qt::QueuedConnection));
+    ASSERT_TRUE(QMetaObject::invokeMethod(&controller, "operationChanged", Qt::QueuedConnection));
+    QCoreApplication::processEvents();
+    EXPECT_EQ(control("fileMessageLabel")->property("text").toString(), message);
+    action("closeProjectAction"); settle();
+    EXPECT_FALSE(model.hasProject()); EXPECT_TRUE(model.fileMessage().isEmpty());
+}
+
+TEST_F(FileGui, L1ClosedSessionIgnoresLateOpenCancellation)
+{
+    firstSave(); ControlledWork barrier;
+    OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false,
+        [&] { barrier.entered.set(); barrier.complete.wait(); });
+    action("openAction"); choose(path()); barrier.entered.wait();
+    const auto openId = controller.operation().id;
+    ASSERT_EQ(controller.closeProject().outcome, CommandOutcome::Applied);
+    EXPECT_FALSE(model.hasProject());
+    QObject observer; bool terminalObserved = false;
+    QObject::connect(&controller, &ProjectController::operationChanged, &observer, [&] {
+        if (controller.operation().id == openId && !controller.operation().active) {
+            terminalObserved = true;
+            EXPECT_NE(controller.operation().status, OperationStatus::Succeeded);
+            EXPECT_TRUE(control("fileMessageLabel")->property("text").toString().isEmpty());
+        }
+    });
+    barrier.complete.set(); settle();
+    EXPECT_TRUE(terminalObserved); EXPECT_FALSE(model.hasProject());
+    EXPECT_TRUE(control("fileMessageLabel")->property("text").toString().isEmpty());
+}
+
+class FileMessageDiagnostic : public FileGui, public testing::WithParamInterface<int> {};
+TEST_P(FileMessageDiagnostic, L1CurrentSaveDiagnosticSurvivesEditsAndNotifications)
+{
+    firstSave(); modified(); const auto identity = model.runtimeIdentity(); ControlledWork barrier;
+    if (GetParam() == 0)
+        SaveTestAccess::configure(controller, {}, [](QIODevice &, const char *, qint64) -> qint64 { return -1; });
+    else if (GetParam() == 1)
+        SaveTestAccess::configure(controller, [&](persistence::SavePhase phase) {
+            if (phase == persistence::SavePhase::ManifestPrepare) { barrier.entered.set(); barrier.complete.wait(); }
+        });
+    else SaveTestAccess::configure(controller, {}, {}, [](QSaveFile &) { return false; });
+    action("saveAction");
+    if (GetParam() == 1) { barrier.entered.wait(); click("stopOperationButton"); barrier.complete.set(); }
+    settle();
+    EXPECT_EQ(model.runtimeIdentity(), identity); EXPECT_TRUE(model.dirty());
+    EXPECT_EQ(controller.operation().status, GetParam() == 1 ? OperationStatus::Cancelled : OperationStatus::Failed);
+    EXPECT_EQ(bool(controller.unconfirmedSave()), GetParam() == 2);
+    const auto message = control("fileMessageLabel")->property("text").toString();
+    EXPECT_TRUE(message.contains(GetParam() == 1 ? QStringLiteral("отменена")
+        : GetParam() == 2 ? QStringLiteral("неопределён") : QStringLiteral("Ошибка")));
+    EXPECT_FALSE(message.contains(QStringLiteral("Проект сохранён.")));
+    ASSERT_EQ(controller.setCell(3).outcome, CommandOutcome::Applied);
+    ASSERT_TRUE(QMetaObject::invokeMethod(&controller, "operationChanged", Qt::QueuedConnection));
+    QCoreApplication::processEvents();
+    EXPECT_EQ(control("fileMessageLabel")->property("text").toString(), message);
+    EXPECT_TRUE(control("fileMessageLabel")->property("visible").toBool());
+}
+INSTANTIATE_TEST_SUITE_P(FailureCancellationUncertain, FileMessageDiagnostic, testing::Range(0, 3));
+
 TEST_F(FileGui, CancelPathAndConflictPreserveProjectHistoryAndDraft)
 {
     modified(); const auto stamp = controller.project()->operationStamp(); const auto id = controller.operation().id;

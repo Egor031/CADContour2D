@@ -85,6 +85,15 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
         const auto identity = state ? std::optional(state->runtimeIdentity()) : std::nullopt;
         const double value = state ? state->cell() : 0;
         const bool sync = identity != synchronizedIdentity_ || value != synchronizedCell_;
+        if (identity != synchronizedIdentity_) {
+            fileMessage_.clear();
+            const auto &operation = controller_.operation();
+            // Retire the old session's result, including a later terminal hint.
+            // An accepted Open still owes the new session its own completion message.
+            if (!(identity && operation.active && operation.kind == OperationKind::Open
+                  && operation.decision == PublicationDecision::Accept && !operation.publicationRevoked))
+                observedFileOperation_ = operation.id;
+        }
         synchronizedIdentity_ = identity;
         synchronizedCell_ = value;
         if (sync) {

@@ -4,6 +4,9 @@
 Разделы исходной реализации ниже сохраняют исторические результаты, а не объявляют
 замечания закрытыми. Исправления и текущие проверки —
 [Independent recheck fixes](#independent-recheck-fixes).
+После native GUI-приёмки на `ecc0d42` получен переданный пользователем вердикт
+**PARTIAL VERIFICATION / MANUAL ACTION REQUIRED** и замечание L1.
+Адресное исправление и новые результаты — [L1 после native GUI-приёмки](#l1-после-native-gui-приёмки).
 
 ## Baseline
 
@@ -379,3 +382,112 @@ cancellation, native completion/join и Recovery retention не менялись
 Временный environment wrapper удалён; диагностика остаётся в ignored `build/`.
 В локальный commit включены только пять перечисленных файлов. Его hash и итоговый
 Git status приводятся в ответе. Push/PR и переход к 05.5B не выполнялись.
+
+## L1 после native GUI-приёмки
+
+### Baseline
+
+2026-10-23, ветка `main`, HEAD `ecc0d4210443e682b46abc7da6f3409235f89583`.
+Index и рабочее дерево перед работой чистые. Область — только L1 в 05.5A.
+Сообщённый результат независимой native GUI-проверки не подменяется offscreen-тестами.
+
+### L1: причина и исправление
+
+`fileMessage_` принадлежал UI adapter, но его сброс зависел от начала файлового
+workflow, а не от смены runtime identity проекта. Замена/Close через production
+controller могли оставить сообщение Save предыдущего сеанса. Поздний terminal
+notification старой операции также мог сформировать сообщение уже после Close.
+
+При фактической смене runtime identity, включая переход к отсутствующему проекту,
+adapter очищает сообщение и отмечает OperationId прежнего контекста обработанным.
+Исключение — активный принятый Open нового сеанса: его собственное завершающее
+сообщение должно быть доставлено. Существующие token/lifetime guards не меняются.
+Правки cell, dirty, Save receipt и повторные notifications без смены identity
+не очищают актуальные Failed/Cancelled/Uncertain сообщения.
+
+На исходной production-реализации с новыми тестами Debug: **2 PASS / 2 FAIL**.
+RED — Import B непосредственно через controller при открытом production QML и
+Close через controller: GUI продолжал показывать сообщение Save A. Обычный путь
+через QML replacement workflow и успешный Open прошли уже на baseline; точный
+native-сценарий из замечания в offscreen-режиме этим путём не воспроизведён.
+Это различие сохранено явно, без утверждения о воспроизведении native-порядка событий.
+Лог: `build/055a-l1-red-cases-debug.log`; production-код в том executable ещё исходный.
+
+### Tests
+
+Добавлено 8 случаев через production QML/controller:
+
+- Import A (production fixture) → GUI Save A → Import B через QML либо controller.
+  Проверяются новая runtime identity, dataset/число точек, «Без имени», dirty,
+  отсутствие пути, cell = 1, cache availability, пустая история, заголовок,
+  отсутствие/невидимость сообщения A и бездействие устаревших Save callbacks.
+- Close после Save и повторный queued notification; успешный Open с сохранением
+  его актуального сообщения; Close во время Open с поздним terminal cancellation
+  закрытого сеанса (worker удерживается существующим барьером).
+- Failed Save, Cancelled Save и Uncertain Save: соответствующий фактический статус,
+  сохранённый сеанс/dirty, GUI-диагностика и её сохранность после изменения cell
+  и queued notification. Существующие Save/Open/Import/lifecycle assertions сохранены.
+
+Проверки выполняются в окружении MSVC/Qt из README, без изменения глобальных путей.
+GUI tests — offscreen/software/Basic; native Windows GUI здесь не проверялся.
+Фактические команды для каждой конфигурации:
+
+```text
+cmake --build --preset windows-<cfg> --target all all_qmllint --parallel 4
+ctest --preset windows-<cfg> -R FileGui --output-on-failure
+ctest --preset windows-<cfg> -R AscGui --output-on-failure
+ctest --preset windows-<cfg> -L production --output-on-failure
+git diff --check
+```
+
+| Проверка | Debug | Release |
+|---|---|---|
+| `all` + `all_qmllint` | PASS, без warnings в incremental build | PASS, без warnings в incremental build |
+| FileGui (включая 8 новых L1) | 66 PASS / 0 FAIL / 0 SKIP | 66 PASS / 0 FAIL / 0 SKIP |
+| AscGui | 80 PASS / 0 FAIL / 0 SKIP | 80 PASS / 0 FAIL / 0 SKIP |
+| Production, 762 теста | 761 PASS / 0 FAIL / 1 SKIP | 761 PASS / 0 FAIL / 1 SKIP |
+| `git diff --check` | PASS (общий diff) | PASS (общий diff) |
+
+Поднаборы входят в production и не суммируются с ним. Единственный SKIP в обеих
+конфигурациях — `Persistence.StoragePath.FileSymlinkEscape`, Windows file symlink
+privilege unavailable, **1314** (подтверждено в обоих `LastTest.log`).
+Время полных прогонов — Debug 311.84 с / Release 168.84 с; это не benchmark.
+Существующий нестабильный Recovery `Applied`/`NoChange` case в этих прогонах
+не упал и не объявляется исправленным.
+
+Логи текущих проверок — ignored `build/055a-l1-build-{debug,release}.log`,
+`055a-l1-file-{debug,release}.log`, `055a-l1-asc-{debug,release}.log`,
+`055a-l1-production-{debug,release}.log`; отдельный GREEN новых 8 случаев Debug —
+`055a-l1-green-debug.log`. Полная диагностика production —
+`build/windows-{debug,release}/Testing/Temporary/LastTest.log`.
+
+Первый адресный CTest был вызван до завершения линковки: discovery завершился
+ошибкой `resource busy or locked`, тесты не выполнялись
+(`build/055a-l1-red-debug.log`). После завершения build отдельный baseline-прогон
+и последующие проверки выполнялись последовательно относительно сборки.
+Исторические результаты предыдущих разделов не используются как новые PASS.
+
+### Scope
+
+Изменены только `src/ui/project_view_model.cpp`, `tests/gui_file_tests.cpp`
+и этот отчёт. Production-изменение — 9 строк в существующем state notification
+handler; новых абстракций и зависимостей нет. Persistence/controller/runner,
+форматы, публикация snapshot, cancellation/native completion/join и lifecycle
+guards сохранены. 05.5B и GUI Recovery/startup decision не затронуты.
+
+### Limitations
+
+Для независимой адресной перепроверки остаётся native GUI-сценарий L1.
+Ручная приёмка системного DPI 150/200% и длительного Save с поздними правками
+остаётся незавершённой; автоматические snapshot/later edits tests её не заменяют.
+Перенос между мониторами — **N/A**, второго монитора нет (по данным приёмки).
+Функциональных изменений ради этих сценариев не внесено.
+
+### Status and Git
+
+**READY FOR INDEPENDENT RECHECK.** Изменение предназначено для адресной проверки L1.
+05.5A, 05.5 и задача 05 не объявляются принятыми; полный аудит не перезапускается.
+Полный diff просмотрен; `git diff --check` — PASS. В локальный commit включаются
+только три перечисленных файла; его hash и итоговый Git status приводятся в ответе.
+Логи остаются в ignored `build/`; временных исходников/инструментов не добавлено.
+Push не выполняется. После commit работа над исправлением останавливается.
