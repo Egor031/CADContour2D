@@ -176,7 +176,7 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ### Dependencies
 
-`vcpkg.json` использует manifest mode и фиксированный `builtin-baseline` из установленного vcpkg registry snapshot. Это закрепляет версии port recipes без отдельных произвольных overrides. Presets подключают toolchain через `VCPKG_ROOT`, используют triplet `x64-windows` и размещают установленные пакеты внутри соответствующего build directory.
+`vcpkg.json` использует manifest mode и фиксированный `builtin-baseline` из установленного vcpkg registry snapshot. Это закрепляет версии port recipes без отдельных произвольных overrides. `vcpkg-configuration.json` автоматически подключает локальный overlay для `fmt 12.2.0#1`: минимальный patch устраняет MSVC C4702 без изменения версии, ABI и warning flags. [Происхождение port, инвалидация cache и проверка на другом компьютере](vcpkg/README.md). Presets подключают toolchain через `VCPKG_ROOT`, используют triplet `x64-windows` и размещают установленные пакеты внутри соответствующего build directory.
 
 Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. OpenCV/Eigen пока проверяются отдельным headless dependency smoke; production application использует Qt и spdlog для ограниченного rotating operation log. Новые сторонние зависимости не добавлены.
 
@@ -483,7 +483,7 @@ build\windows-release\operation_probe.exe
 - Qt сообщает об отсутствующем `Qt6TaskTree` для необязательного `Qt6QmlAssetDownloaderPrivate`, а также `WrapVulkanHeaders`. Текущий QML-модуль их не использует; сборка, lint и runtime прошли.
 - При сборке OpenCV его CMake detection не распознаёт `MSVC_VERSION=1951` и сообщает `Cannot set OpenCV_RUNTIME`. vcpkg собрал x64 библиотеки с `/MD` и `/MDd`; link и dependency smoke test прошли в Release и Debug. Также есть предупреждения стороннего OpenCV о старых CMake policies и metadata `OPENCV_BUILD_INFO_STR`.
 - Встроенный загрузчик vcpkg получил SSL error 35 для Eigen и fmt. Официальные архивы загружены системным curl в download cache и проверены по SHA-512 из port recipes; проверка TLS и хэшей не отключалась. Это ограничение загрузки в текущем сетевом окружении, не ошибка компиляции.
-- В задаче 02 MSVC сообщает C4702 внутри стороннего `fmt/base.h` при сборке header-only spdlog; compile/link, smoke и runtime прошли в Debug/Release.
+- Историческое C4702 внутри стороннего `fmt/base.h` при сборке header-only spdlog устранено локальным overlay `fmt 12.2.0#1`: явный `else` только в `code_point_length()`, без подавления diagnostics. Чистые Debug/Release build `all` + `all_qmllint` 2026-10-24 прошли без compiler/linker/QML warnings; optional Qt/Vulkan diagnostics сохраняются. [Патч и проверка](vcpkg/README.md).
 - Расхождение Qt 6.12.0 `wait(0)` с полным завершением C++ TLS воспроизведено и покрыто независимым Windows-guard. Подробности и повторяемая проверка — [thread-completion-check.md](docs/reports/task-02/thread-completion-check.md).
 
 ## Project Status
@@ -514,8 +514,9 @@ production CTest — 761 PASS / 0 FAIL / 1 SKIP в Debug и Release; адрес�
 заменяет системный DPI);
 длительный Save с поздней правкой не подтверждён отдельным native GUI-сценарием;
 перенос между мониторами — N/A (второго монитора нет). Нестабильность Recovery
-`Applied`/`NoChange` не исправлена; C4702 в стороннем `fmt/base.h` остаётся
-известным наблюдением. Подробнее — [отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
+`Applied`/`NoChange` не исправлена; историческое C4702 в стороннем `fmt/base.h`
+устранено отдельным [vcpkg overlay](vcpkg/README.md). Подробнее о приёмке —
+[отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
 **05.5B — READY FOR INDEPENDENT REVIEW**: GUI Recovery/startup реализованы,
 автоматические и доступные native проверки описаны в [отчёте](docs/reports/task-05/gui-recovery.md).
 Независимое ревью и оставшаяся ручная приёмка ещё нужны.
