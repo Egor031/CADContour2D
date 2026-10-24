@@ -66,8 +66,9 @@ GUI выбора ASC/XYZ, подтверждения замены/Z и карт�
 05.5A GUI Save/Open и безопасный lifecycle принят с ограничениями после native
 Windows GUI-приёмки и независимого исправления/подтверждения R1, O1 и L1
 (**L1 FIXED**); [подробные результаты, включая ограничения](docs/reports/task-05/gui-save-open.md).
-GUI Recovery и startup recovery decision остаются следующей работой 05.5B
-(**NOT STARTED**); **05.5 — IN PROGRESS / NOT ACCEPTED**.
+GUI Recovery и startup recovery decision реализованы в 05.5B
+(**READY FOR INDEPENDENT REVIEW**); [проверки и ограничения](docs/reports/task-05/gui-recovery.md).
+**05.5 — IN PROGRESS / NOT ACCEPTED**.
 Задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**. Обычная работа после импорта не требует
 исходного ASC/XYZ. Ниже описан целевой поток
 обработки, фактическая готовность — в [Project Status](#project-status).
@@ -515,8 +516,10 @@ production CTest — 761 PASS / 0 FAIL / 1 SKIP в Debug и Release; адрес�
 перенос между мониторами — N/A (второго монитора нет). Нестабильность Recovery
 `Applied`/`NoChange` не исправлена; C4702 в стороннем `fmt/base.h` остаётся
 известным наблюдением. Подробнее — [отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
-**05.5B — NOT STARTED**; GUI Recovery/startup decision и сквозная приёмка остаются
-впереди. **05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
+**05.5B — READY FOR INDEPENDENT REVIEW**: GUI Recovery/startup реализованы,
+автоматические и доступные native проверки описаны в [отчёте](docs/reports/task-05/gui-recovery.md).
+Независимое ревью и оставшаяся ручная приёмка ещё нужны.
+**05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -821,8 +824,8 @@ restore читает 73 728 bytes, ноль point pages. Детали и про�
 [Подробности независимой проверки и ограничения](docs/reports/task-05/autosave-recovery.md#m-acceptance).
 **05.4 — ACCEPTED** пользователем 2026-10-22, вердикт ревью — **READY FOR ACCEPTANCE**;
 H1–H3/N1 — FIXED и закрыты. При документальном закрытии сборки и CTest не повторялись.
-05.5A принята с ограничениями; GUI Recovery/startup и сквозная приёмка — следующая
-работа 05.5B (**NOT STARTED**). **05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
+05.5A принята с ограничениями; GUI Recovery/startup и новые сквозные проверки
+реализованы в 05.5B (отчёт ниже). **05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED**.
 
 ### GUI Save/Open и жизненный цикл — 05.5A
 
@@ -841,6 +844,31 @@ Escape и закрытие диалога отменяют действие. С�
 и явные ограничения — [отчёт 05.5A](docs/reports/task-05/gui-save-open.md).
 Системный DPI 150%/200% и длительный Save с поздней правкой не подтверждены отдельным
 native GUI-сценарием; перенос между мониторами — N/A. GUI Recovery/startup decision
-и сквозная приёмка остаются в 05.5B; **05.5A — ACCEPTED WITH LIMITATIONS**,
+и сквозные проверки добавлены в 05.5B; **05.5A — ACCEPTED WITH LIMITATIONS**,
 05.5 и задача 05 не приняты.
+
+### GUI Recovery и startup — 05.5B
+
+После готовности окна bounded metadata discovery предшествует startup Import.
+Диалог показывает состояния/отношения записей, metadata и диагностику; Restore,
+Reject с подтверждением и «Позже» — отдельные действия. Escape сохраняет запись,
+повторный доступ — «Файл → Восстановление». Restore поверх проекта проходит прежние
+replacement/draft/dirty решения; Autosave не теряет подтверждённое намерение.
+Конфликт требует Save As, partial recovery оставляет metadata и bounded recheck.
+Controller protocols и persistent formats сохранены, тяжёлых startup вычислений нет.
+
+Проверенные команды в CMD-среде из Build для `debug` и `release`:
+
+```bat
+cmake --build --preset windows-debug --target all all_qmllint --parallel 4
+cmake --build --preset windows-release --target all all_qmllint --parallel 4
+ctest --preset windows-debug -R RecoveryGui --output-on-failure
+ctest --preset windows-release -R RecoveryGui --output-on-failure
+ctest --preset windows-debug -L production --output-on-failure
+ctest --preset windows-release -L production --output-on-failure
+```
+
+Результаты новых 44 GUI cases, полной регрессии, process crashes, native Windows
+GUI и отдельного HDD сценария — [отчёт 05.5B](docs/reports/task-05/gui-recovery.md).
+**05.5B — READY FOR INDEPENDENT REVIEW**, без окончательного принятия 05.5/05.
 

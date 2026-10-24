@@ -277,14 +277,17 @@ TEST_F(GuiLifecycle, R3DeletedWindowBeforeDeferredStartupDoesNotAccessQmlContext
 TEST_F(GuiLifecycle, R3DeletedWindowBeforeDeferredCloseDoesNotAccessQmlContext)
 {
     loadWindow();
-    QCoreApplication::processEvents(); // drain startup while the window is still alive
+    ASSERT_TRUE(spinUntil([&] { return model->selectingFile(); })); // includes discovery/native join
+    ASSERT_EQ(controller.operation().kind, OperationKind::DiscoverRecovery);
+    ASSERT_FALSE(controller.operation().active);
+    const auto operation = controller.operation().id;
     model->cancelFileSelection(model->selectionToken());
     controller.requestShutdown();
     EXPECT_TRUE(model->shutdownReady());
     delete window.data();
     QCoreApplication::processEvents();
     EXPECT_TRUE(window.isNull());
-    EXPECT_EQ(controller.operation().id, 0);
+    EXPECT_EQ(controller.operation().id, operation);
     EXPECT_EQ(controller.project(), nullptr);
 }
 

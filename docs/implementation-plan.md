@@ -257,7 +257,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1–05.4 — ACCEPTED; 05.5A — ACCEPTED WITH LIMITATIONS; 05.5B — NOT STARTED. 05.5 и задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
+**Статус: 05.1–05.4 — ACCEPTED; 05.5A — ACCEPTED WITH LIMITATIONS; 05.5B — READY FOR INDEPENDENT REVIEW. 05.5 и задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
 
 | Часть | Область | Статус |
 |---|---|---|
@@ -266,7 +266,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 | 05.3 | Open и частичная доступность | ACCEPTED |
 | 05.4 | Autosave / Recovery | ACCEPTED |
 | 05.5A | GUI Save/Open и жизненный цикл | ACCEPTED WITH LIMITATIONS |
-| 05.5B | GUI Recovery/startup decision и сквозная приёмка | NOT STARTED |
+| 05.5B | GUI Recovery/startup decision и сквозная приёмка | READY FOR INDEPENDENT REVIEW |
 
 05.1 принята пользователем на commit `408757c9e26b4369b065ba9ee315d48a70336773`:
 реализация завершена, независимое ревью выявило H1/H2, исправления повторно
@@ -328,8 +328,9 @@ R1/O1 исправлены и независимо проверены, зате�
 `Applied`/`NoChange` остаётся неисправленным наблюдением; C4702 в стороннем
 `fmt/base.h` остаётся известным предупреждением. Эти ограничения не блокируют
 принятие 05.5A; результаты и хронология — в [отчёте](reports/task-05/gui-save-open.md).
-Следующая работа — GUI Recovery/startup decision и сквозная приёмка в 05.5B,
-которая пока не начата.
+GUI Recovery/startup decision и сквозные проверки реализованы в 05.5B;
+[новые результаты и ограничения](reports/task-05/gui-recovery.md).
+Независимое ревью и оставшаяся ручная приёмка ещё нужны.
 **05.5 — IN PROGRESS / NOT ACCEPTED**;
 задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**.
 
@@ -340,15 +341,16 @@ R1/O1 исправлены и независимо проверены, зате�
 - **Результат:** импортированный проект открывается без исходного ASC/XYZ.
 - **Проверка:** round-trip с восстановлением сохранённого выбранного `cell`, перенос project directory, недоступный source, неизвестная версия, отсутствующий/повреждённый cache и частично доступный проект, прерывание записи по фазам; сохранность последнего explicit save и предыдущего recovery.
 - **Критерий завершения:** опубликованное состояние не ссылается на частичные datasets; отказ сохранения не уничтожает последнее корректное сохранение.
-- **Оставшаяся реализация и открытые детали:** GUI Recovery/startup decision и сквозная приёмка — 05.5B; ручная приёмка Save/Open — в отчёте 05.5A. Целевое поведение задано в [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность). Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.3](architecture.md#281-явные-save--save-as-052), C++ recovery storage/triggers/publication/lifecycle — в [§31.1](architecture.md#311-c-autosave--recovery-054). Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
+- **Открытая приёмка:** независимое ревью 05.5B и оставшиеся ручные условия — в [отчёте 05.5B](reports/task-05/gui-recovery.md); ограничения 05.5A сохраняются. Целевое поведение задано в [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность). Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.3](architecture.md#281-явные-save--save-as-052), C++ recovery storage/triggers/publication/lifecycle — в [§31.1](architecture.md#311-c-autosave--recovery-054), GUI startup — в §31.2. Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
 
 #### 05.5. GUI Save/Open/Recovery и сквозная приёмка
 
-**Статус: 05.5A — ACCEPTED WITH LIMITATIONS; 05.5B — NOT STARTED; 05.5 — IN PROGRESS / NOT ACCEPTED.**
+**Статус: 05.5A — ACCEPTED WITH LIMITATIONS; 05.5B — READY FOR INDEPENDENT REVIEW; 05.5 — IN PROGRESS / NOT ACCEPTED.**
 05.5A реализует Save/Open/Save As, draft/dirty, partial availability, bounded
 recheck и безопасное закрытие. [Результаты и ограничения 05.5A](reports/task-05/gui-save-open.md).
-GUI Recovery/startup decision и сквозная приёмка остаются в 05.5B. Принятие 05.5A
-не закрывает 05.5 или задачу 05.
+GUI Recovery/startup decision и сквозные проверки реализованы в 05.5B;
+[отчёт и условия независимого ревью](reports/task-05/gui-recovery.md).
+Принятие 05.5A не закрывает 05.5 или задачу 05.
 
 - **UI-объём:** меню «Файл» для Import/Open/Save/Save As/Recovery/закрытия; базовая оболочка и компактные панели по [ui-design.md, §§3, 6, 9–11](ui-design.md#3-главное-окно), с дальнейшим расширением в 06. Startup recovery decision до предложения импорта; доступ к Open без создания пустого проекта. Признаки dirty, частичной доступности и диагностика; Save/Discard/Cancel и разрешение draft до закрытия/замены. Будущие инструменты не выдаются за работающие.
 - **Проверка:** Save и Save As, отказ/ошибка/отмена, более поздняя правка во время Save, конфликт Recovery с обязательным Save As; partial Open и явный bounded recheck, недоступные действия с причиной; закрытие через меню и системную кнопку. Startup с/без recovery, принятие/отказ/закрытие предложения без молчаливого Discard, замена проекта и сохранность pending Import при Autosave. Не запускать полную validation или вычисления из просмотра.

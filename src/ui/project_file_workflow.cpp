@@ -2,10 +2,83 @@
 
 #include <QDir>
 #include <QFileInfo>
+#include <QLocale>
 #include <QPointer>
 #include <QTimer>
 
 namespace cadcontour {
+
+bool ProjectViewModel::canDiscoverRecovery() const noexcept
+{
+    return actionsEnabled() && !workflowPending() && !selectionContext_
+        && (!operationActive() || controller_.operation().kind == OperationKind::Autosave);
+}
+
+void ProjectViewModel::showRecovery()
+{
+    if (canDiscoverRecovery()) beginWorkflow(Intent::Recovery);
+}
+
+QVariantList ProjectViewModel::recoveryCandidates() const
+{
+    QVariantList rows;
+    using enum persistence::RecoverySessionState;
+    for (const auto &candidate : recoveryCandidates_) {
+        QString session, relation;
+        switch (candidate.session) {
+        case Active: session = QStringLiteral("Active — активный процесс, запись занята"); break;
+        case Interrupted: session = QStringLiteral("Interrupted — прерванный сеанс"); break;
+        case Closed: session = QStringLiteral("Closed — закрытый сеанс"); break;
+        case Rejected: session = QStringLiteral("Rejected — явно отклонена"); break;
+        case Invalid: session = QStringLiteral("Invalid — некорректная или неподдерживаемая запись"); break;
+        }
+        using enum persistence::RecoveryRelation;
+        switch (candidate.relation) {
+        case Unsaved: relation = QStringLiteral("Unsaved — без первого явного сохранения"); break;
+        case MatchesExplicit: relation = QStringLiteral("MatchesExplicit — совпадает с явным сохранением"); break;
+        case Modified: relation = QStringLiteral("Modified — есть несохранённые изменения"); break;
+        case Conflict: relation = QStringLiteral("Conflict — явный проект независимо изменён или недоступен. После восстановления обязателен Save As в отдельный каталог."); break;
+        case Unknown: relation = QStringLiteral("Unknown — отношение к явному сохранению неизвестно"); break;
+        }
+        QString metadata;
+        if (candidate.record && candidate.record->state) {
+            const auto &state = *candidate.record->state;
+            metadata = QStringLiteral("Источник: %1\ncell: %2 мм · Точек: %3\nPoint Cache: %4\nДоступность кэша проверяется ограниченно при восстановлении.")
+                .arg(QString::fromStdWString(state.content.sourcePath.wstring()))
+                .arg(QString::number(state.snapshot.cell, 'g', QLocale::FloatingPointShortest))
+                .arg(state.content.pointCount)
+                .arg(QString::fromStdWString(state.content.cachePath().wstring()));
+            metadata += QStringLiteral("\nSnapshot: ") + state.snapshot.snapshotId.toString(QUuid::WithoutBraces);
+            if (candidate.record->baseline)
+                metadata += QStringLiteral("\nЯвный проект: ") + candidate.record->baseline->manifestPath;
+        }
+        if (candidate.error)
+            metadata += QStringLiteral("\nRecovery: код %1 · %2").arg(int(candidate.error->code)).arg(candidate.error->detail);
+        const bool eligible = candidate.record && !candidate.error
+            && (candidate.session == Interrupted || candidate.session == Closed);
+        rows.push_back(QVariantMap{{"sessionId", candidate.sessionId.toString(QUuid::WithoutBraces)},
+            {"description", session + u'\n' + relation + u'\n' + metadata}, {"eligible", eligible}});
+    }
+    return rows;
+}
+
+void ProjectViewModel::chooseRecovery(const QString &token, const QString &session, const QString &action)
+{
+    if (token.isEmpty() || token != workflowToken_ || workflowPrompt_ != QStringLiteral("recovery")) return;
+    if (currentStamp() != workflowStamp_ || controller_.fileCommandContext() != workflowContext_) { endWorkflow(); return; }
+    if (action != QStringLiteral("restore") && action != QStringLiteral("reject")) return;
+    for (const auto &candidate : recoveryCandidates_) {
+        if (candidate.sessionId.toString(QUuid::WithoutBraces) != session) continue;
+        if (!candidate.record || candidate.error || (candidate.session != persistence::RecoverySessionState::Interrupted
+            && candidate.session != persistence::RecoverySessionState::Closed)) return;
+        selectedRecovery_ = candidate; // immutable metadata survives Autosave invalidation of discovery results
+        intent_ = action == QStringLiteral("restore") ? Intent::RestoreRecovery : Intent::RejectRecovery;
+        workflowPrompt_.clear(); workflowToken_.clear();
+        if (intent_ == Intent::RejectRecovery) promptWorkflow(QStringLiteral("rejectRecovery"));
+        else advanceWorkflow();
+        return;
+    }
+}
 
 QString ProjectViewModel::projectPath() const
 {
@@ -63,7 +136,8 @@ bool ProjectViewModel::canEditCell() const noexcept
 {
     const auto &operation = controller_.operation();
     return actionsEnabled() && hasProject() && cacheAvailable()
-        && (!operation.active || (operation.kind != OperationKind::Import && operation.kind != OperationKind::Open));
+        && (!operation.active || (operation.kind != OperationKind::Import && operation.kind != OperationKind::Open
+                                 && operation.kind != OperationKind::RestoreRecovery));
 }
 
 std::optional<OperationStamp> ProjectViewModel::currentStamp() const
@@ -87,9 +161,12 @@ void ProjectViewModel::recheckPointCache() { if (canRecheck()) beginWorkflow(Int
 void ProjectViewModel::beginWorkflow(Intent intent)
 {
     if (!actionsEnabled()) return;
+    if (intent == Intent::Exit || intent == Intent::Close) startupPending_ = false;
     if (workflowPending()) {
         if (workflowSaveId_ && (intent == Intent::Exit || intent == Intent::Close)) intent_ = intent;
-        else if (intent_ == Intent::Import && pendingImport_ && (intent == Intent::Exit || intent == Intent::Close)) {
+        else if (((intent_ == Intent::Import && pendingImport_) || intent_ == Intent::Recovery
+                  || intent_ == Intent::RestoreRecovery || intent_ == Intent::RejectRecovery)
+                 && (intent == Intent::Exit || intent == Intent::Close)) {
             const QPointer<ProjectViewModel> lifetime(this);
             endWorkflow();
             if (lifetime) beginWorkflow(intent);
@@ -99,6 +176,7 @@ void ProjectViewModel::beginWorkflow(Intent intent)
     // Exit/Close supersede an unsubmitted file choice. The old callback loses its token.
     const QPointer<ProjectViewModel> lifetime(this);
     intent_ = intent;
+    workflowInstance_ = QUuid::createUuid().toString(QUuid::WithoutBraces);
     workflowStamp_ = currentStamp();
     workflowContext_ = controller_.fileCommandContext();
     approvedDraft_ = cellDraft_;
@@ -107,6 +185,8 @@ void ProjectViewModel::beginWorkflow(Intent intent)
     workflowPath_.clear();
     savePath_.clear();
     fileMessage_.clear();
+    selectedRecovery_.reset();
+    recoveryReplacementApproved_ = false;
     // An already permitted Save must deliver its receipt before any close decision.
     if (operationActive() && controller_.operation().kind == OperationKind::Save)
         workflowSaveId_ = controller_.operation().id;
@@ -119,6 +199,7 @@ void ProjectViewModel::endWorkflow()
 {
     const bool import = intent_ == Intent::Import;
     intent_ = Intent::None;
+    workflowInstance_.clear();
     workflowPrompt_.clear();
     workflowToken_.clear();
     workflowPath_.clear();
@@ -126,10 +207,14 @@ void ProjectViewModel::endWorkflow()
     workflowSaveId_ = 0;
     waitingSave_ = false;
     workflowSaveSucceeded_.reset();
+    recoveryOperationId_ = 0;
+    recoveryOperationSucceeded_.reset();
+    selectedRecovery_.reset();
     const QPointer<ProjectViewModel> lifetime(this);
     if (import) clearSelection();
     if (!lifetime) return;
     emit workflowChanged();
+    if (lifetime && startupPending_) QTimer::singleShot(0, this, &ProjectViewModel::continueStartup);
 }
 
 void ProjectViewModel::promptWorkflow(const QString &prompt)
@@ -144,13 +229,31 @@ void ProjectViewModel::answerWorkflow(const QString &token, const QString &answe
 {
     if (token.isEmpty() || token != workflowToken_) return;
     const auto prompt = workflowPrompt_;
+    if (prompt == QStringLiteral("recovery")) {
+        if (answer == QStringLiteral("refresh")) {
+            if (currentStamp() != workflowStamp_ || controller_.fileCommandContext() != workflowContext_) { endWorkflow(); return; }
+            intent_ = Intent::Recovery;
+            workflowToken_.clear(); workflowPrompt_.clear();
+            advanceWorkflow();
+        } else if (answer == QStringLiteral("cancel")) endWorkflow();
+        return;
+    }
+    if (prompt == QStringLiteral("replaceRecovery") || prompt == QStringLiteral("rejectRecovery")) {
+        workflowToken_.clear(); workflowPrompt_.clear();
+        if (answer != QStringLiteral("confirm") || currentStamp() != workflowStamp_
+            || controller_.fileCommandContext() != workflowContext_) { endWorkflow(); return; }
+        recoveryReplacementApproved_ = true;
+        advanceWorkflow();
+        return;
+    }
     if (prompt != QStringLiteral("draft") && prompt != QStringLiteral("dirty")) {
         if (answer == QStringLiteral("cancel")) endWorkflow();
         return;
     }
     workflowToken_.clear();
     workflowPrompt_.clear();
-    if (answer == QStringLiteral("cancel") || currentStamp() != workflowStamp_) {
+    if (answer == QStringLiteral("cancel") || currentStamp() != workflowStamp_
+        || controller_.fileCommandContext() != workflowContext_) {
         endWorkflow();
         return;
     }
@@ -224,6 +327,23 @@ void ProjectViewModel::advanceWorkflow()
     const QPointer<ProjectViewModel> lifetime(this);
     const auto advance = [this, &lifetime] {
         if (!actionsEnabled()) { endWorkflow(); return; }
+        if (recoveryOperationId_) {
+            if (!recoveryOperationSucceeded_) return;
+            const bool succeeded = *recoveryOperationSucceeded_;
+            recoveryOperationId_ = 0; recoveryOperationSucceeded_.reset();
+            if (intent_ == Intent::RestoreRecovery && succeeded) { endWorkflow(); return; }
+            // Only our own completed metadata command may advance its admission context.
+            if (currentStamp() != workflowStamp_ || controller_.fileCommandContext() != workflowContext_) {
+                endWorkflow(); return;
+            }
+            if (intent_ == Intent::Recovery && succeeded && recoveryCandidates_.empty()) { endWorkflow(); return; }
+            if (intent_ == Intent::RejectRecovery && succeeded) {
+                intent_ = Intent::Recovery; // refresh lifecycle/digests after the persisted receipt
+            } else {
+                intent_ = Intent::Recovery;
+                promptWorkflow(QStringLiteral("recovery")); return;
+            }
+        }
         if (workflowSaveId_) {
             if (!workflowSaveSucceeded_) return;
             const bool succeeded = *workflowSaveSucceeded_;
@@ -248,11 +368,15 @@ void ProjectViewModel::advanceWorkflow()
             endWorkflow(); return;
         }
         if (!workflowPrompt_.isEmpty()) return;
+        if (intent_ == Intent::RestoreRecovery && hasProject() && !recoveryReplacementApproved_) {
+            promptWorkflow(QStringLiteral("replaceRecovery")); return;
+        }
         // Open selects its own file; cancelling it never discards the existing draft.
         if (intent_ == Intent::Open && workflowPath_.isEmpty()) { promptWorkflow(QStringLiteral("open")); return; }
-        if (intent_ != Intent::Recheck && hasDraft()) { promptWorkflow(QStringLiteral("draft")); return; }
+        if (intent_ != Intent::Recheck && intent_ != Intent::Recovery && intent_ != Intent::RejectRecovery
+            && hasDraft()) { promptWorkflow(QStringLiteral("draft")); return; }
         const bool replacing = intent_ == Intent::Open || intent_ == Intent::Import
-            || intent_ == Intent::Close || intent_ == Intent::Exit;
+            || intent_ == Intent::Close || intent_ == Intent::Exit || intent_ == Intent::RestoreRecovery;
         if (replacing && dirty() && !discardApproved_ && !saveRequested_) { promptWorkflow(QStringLiteral("dirty")); return; }
         if (saveRequested_) {
             if (!cacheAvailable() || controller_.unconfirmedSave()) {
@@ -293,7 +417,22 @@ void ProjectViewModel::advanceWorkflow()
             return;
         }
         CommandResult result = CommandResult::noChange();
-        if (intent_ == Intent::Open) {
+        if (intent_ == Intent::Recovery || intent_ == Intent::RestoreRecovery || intent_ == Intent::RejectRecovery) {
+            const auto instance = workflowInstance_;
+            if (intent_ == Intent::Recovery) result = controller_.discoverRecovery();
+            else if (intent_ == Intent::RestoreRecovery) {
+                RecoveryRequest request{*selectedRecovery_};
+                request.replacementConfirmed = hasProject(); request.expectedContext = workflowContext_;
+                result = controller_.restoreRecovery(std::move(request));
+            } else result = controller_.rejectRecovery(*selectedRecovery_);
+            if (!lifetime || instance != workflowInstance_) return;
+            if (result.outcome == CommandOutcome::Applied) {
+                recoveryOperationId_ = controller_.operation().id;
+                workflowContext_ = controller_.fileCommandContext();
+                observeFileOperation(); return;
+            }
+        }
+        else if (intent_ == Intent::Open) {
             OpenRequest request;
             request.manifestPath = workflowPath_;
             request.replacementConfirmed = hasProject();
@@ -321,19 +460,32 @@ void ProjectViewModel::advanceWorkflow()
 
 void ProjectViewModel::observeFileOperation()
 {
+    const QPointer<ProjectViewModel> lifetime(this);
     const auto &operation = controller_.operation();
+    if (recoveryOperationId_ == operation.id && !operation.active && !recoveryOperationSucceeded_) {
+        recoveryOperationSucceeded_ = operation.status == OperationStatus::Succeeded;
+        if (*recoveryOperationSucceeded_ && operation.kind == OperationKind::DiscoverRecovery) {
+            recoveryCandidates_ = controller_.recoveryCandidates();
+            emit recoveryCandidatesChanged();
+            if (!lifetime) return;
+        }
+    }
     if (workflowSaveId_ == operation.id && !operation.active)
         workflowSaveSucceeded_ = operation.status == OperationStatus::Succeeded && !controller_.unconfirmedSave();
     if (!operation.active && operation.id && observedFileOperation_ != operation.id
         && (operation.kind == OperationKind::Save || operation.kind == OperationKind::Open
-            || operation.kind == OperationKind::RecheckCache)) {
+            || operation.kind == OperationKind::RecheckCache || operation.kind == OperationKind::DiscoverRecovery
+            || operation.kind == OperationKind::RestoreRecovery || operation.kind == OperationKind::RejectRecovery)) {
         observedFileOperation_ = operation.id;
         if (operation.status == OperationStatus::Succeeded)
             fileMessage_ = operation.kind == OperationKind::Save
                 ? dirty() ? QStringLiteral("Snapshot сохранён; остались более поздние несохранённые изменения.")
                           : QStringLiteral("Проект сохранён.")
                 : operation.kind == OperationKind::Open ? QStringLiteral("Проект открыт.")
-                                                       : QStringLiteral("Ограниченная проверка Point Cache завершена.");
+                : operation.kind == OperationKind::RestoreRecovery ? QStringLiteral("Проект восстановлен. История Undo/Redo пуста.")
+                : operation.kind == OperationKind::RejectRecovery ? QStringLiteral("Запись восстановления явно отклонена.")
+                : operation.kind == OperationKind::DiscoverRecovery ? QStringLiteral("Поиск записей восстановления завершён.")
+                : QStringLiteral("Ограниченная проверка Point Cache завершена.");
         else if (operation.status == OperationStatus::Cancelled || operation.status == OperationStatus::Discarded)
             fileMessage_ = QStringLiteral("Операция отменена или результат отклонён. Текущий проект сохранён в сеансе.");
         else {
@@ -359,6 +511,9 @@ void ProjectViewModel::observeFileOperation()
             }
             if (operation.failure && operation.failure->openError)
                 fileMessage_ += QStringLiteral("\n") + operation.failure->openError->detail;
+            if (operation.failure && operation.failure->recoveryError)
+                fileMessage_ += QStringLiteral("\nRecovery: код %1 · %2")
+                    .arg(int(operation.failure->recoveryError->code)).arg(operation.failure->recoveryError->detail);
             if (controller_.unconfirmedSave())
                 fileMessage_ += QStringLiteral("\nРезультат Save неопределён. Для проверки откройте manifest заново; повторное сохранение запрещено.");
         }

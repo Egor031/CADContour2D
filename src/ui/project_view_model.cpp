@@ -90,7 +90,7 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
             const auto &operation = controller_.operation();
             // Retire the old session's result, including a later terminal hint.
             // An accepted Open still owes the new session its own completion message.
-            if (!(identity && operation.active && operation.kind == OperationKind::Open
+            if (!(identity && operation.active && (operation.kind == OperationKind::Open || operation.kind == OperationKind::RestoreRecovery)
                   && operation.decision == PublicationDecision::Accept && !operation.publicationRevoked))
                 observedFileOperation_ = operation.id;
         }
@@ -125,6 +125,7 @@ ProjectViewModel::ProjectViewModel(ProjectController &controller, QObject *paren
             const QPointer<ProjectViewModel> lifetime(this);
             if (pendingImport_ && intent_ != Intent::Import) startSelectedImport(*pendingImport_);
             if (lifetime) advanceWorkflow();
+            if (lifetime) continueStartup();
         }, Qt::QueuedConnection);
     connect(&controller_, &ProjectController::nonZeroZConfirmationChanged, this, [this] {
         const QPointer<ProjectViewModel> lifetime(this);
@@ -224,7 +225,15 @@ void ProjectViewModel::offerStartupImport()
 {
     if (std::exchange(startupOffered_, true) || hasProject())
         return;
-    newProject();
+    startupPending_ = true;
+    beginWorkflow(Intent::Recovery);
+}
+
+void ProjectViewModel::continueStartup()
+{
+    if (!startupPending_ || workflowPending() || selectionContext_ || operationActive() || !actionsEnabled()) return;
+    startupPending_ = false;
+    if (!hasProject()) newProject();
 }
 
 void ProjectViewModel::newProject()
@@ -538,13 +547,17 @@ QString ProjectViewModel::operationText() const
         case OperationKind::Open: return QStringLiteral("Открытие проекта");
         case OperationKind::RecheckCache: return QStringLiteral("Ограниченная проверка Point Cache");
         case OperationKind::Autosave: return QStringLiteral("Автосохранение");
+        case OperationKind::DiscoverRecovery: return QStringLiteral("Поиск записей восстановления");
+        case OperationKind::RestoreRecovery: return QStringLiteral("Восстановление проекта");
+        case OperationKind::RejectRecovery: return QStringLiteral("Отклонение записи восстановления");
         default: return QStringLiteral("Фоновая операция");
         }
     };
     if (closing())
         return QStringLiteral("Завершение приложения: ожидание остановки операции…");
-    if (operation.kind != OperationKind::Import && operation.active && (!hasProject()
-        || operation.stamp.projectIdentity != controller_.project()->runtimeIdentity()))
+    if (operation.kind != OperationKind::Import && operation.kind != OperationKind::DiscoverRecovery
+        && operation.kind != OperationKind::RestoreRecovery && operation.kind != OperationKind::RejectRecovery
+        && operation.active && hasProject() && operation.stamp.projectIdentity != controller_.project()->runtimeIdentity())
         return QStringLiteral("Завершение операции предыдущего проекта…");
     switch (operation.status) {
     case OperationStatus::Idle: return {};

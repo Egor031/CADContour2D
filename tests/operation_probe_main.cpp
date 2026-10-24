@@ -13,23 +13,30 @@ int main(int argc, char **argv)
 {
     QGuiApplication app(argc, argv);
     QCoreApplication::setApplicationName(QStringLiteral("CADContour2D-operation-probe"));
-    cadcontour::ProjectController controller;
-    cadcontour::ProjectControllerTestAccess::newProject(controller);
+    const auto arguments = app.arguments();
+    const int recoveryIndex = arguments.indexOf(QStringLiteral("--recovery-storage"));
+    const auto recoveryStorage = recoveryIndex >= 0 ? arguments.value(recoveryIndex + 1) : QString{};
+    if (recoveryIndex >= 0 && recoveryStorage.isEmpty()) return EXIT_FAILURE;
+    auto owner = recoveryStorage.isEmpty() ? std::make_unique<cadcontour::ProjectController>()
+        : std::make_unique<cadcontour::ProjectController>(recoveryStorage);
+    auto &controller = *owner;
+    if (recoveryStorage.isEmpty()) cadcontour::ProjectControllerTestAccess::newProject(controller);
     cadcontour::ProjectViewModel viewModel(controller);
     cadcontour::OperationProbe probe(controller);
     QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
     QQmlEngine::setObjectOwnership(&probe, QQmlEngine::CppOwnership);
     QQmlApplicationEngine engine;
-    engine.setInitialProperties({{QStringLiteral("project"), QVariant::fromValue(&viewModel)},
-                                 {QStringLiteral("probe"), QVariant::fromValue(&probe)}});
-    engine.loadFromModule("CADContour2D.Verification", "ProbeWindow");
+    QVariantMap properties{{QStringLiteral("project"), QVariant::fromValue(&viewModel)}};
+    if (recoveryStorage.isEmpty()) properties.insert(QStringLiteral("probe"), QVariant::fromValue(&probe));
+    engine.setInitialProperties(properties);
+    if (recoveryStorage.isEmpty()) engine.loadFromModule("CADContour2D.Verification", "ProbeWindow");
+    else engine.loadFromModule("CADContour2D", "Main");
     if (engine.rootObjects().isEmpty())
         return EXIT_FAILURE;
     auto *window = qobject_cast<QWindow *>(engine.rootObjects().front());
     if (!window)
         return EXIT_FAILURE;
     cadcontour::ApplicationShutdown shutdown(app, controller, *window);
-    const auto arguments = app.arguments();
     const int autoIndex = arguments.indexOf(QStringLiteral("--auto"));
     const auto scenario = autoIndex >= 0 ? arguments.value(autoIndex + 1) : QString{};
     if (!scenario.isEmpty()) {

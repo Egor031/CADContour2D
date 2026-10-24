@@ -128,6 +128,14 @@ target_compile_options(gui_file_tests PRIVATE /W4 /permissive- /fp:precise /utf-
 gtest_discover_tests(gui_file_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX FileGui.
     PROPERTIES TIMEOUT 30 LABELS production)
 
+qt_add_executable(gui_recovery_tests qml_test_main.cpp gui_recovery_tests.cpp)
+target_link_libraries(gui_recovery_tests PRIVATE cadcontour_ui cadcontour_uiplugin Qt6::Quick GTest::gtest)
+target_compile_options(gui_recovery_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+target_compile_definitions(gui_recovery_tests PRIVATE RECOVERY_CRASH_PROBE_EXE="$<TARGET_FILE:recovery_crash_probe>")
+add_dependencies(gui_recovery_tests recovery_crash_probe)
+gtest_discover_tests(gui_recovery_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX RecoveryGui.
+    PROPERTIES TIMEOUT 45 LABELS production)
+
 set_source_files_properties(ProbeWindow.qml PROPERTIES QT_RESOURCE_ALIAS ProbeWindow.qml)
 qt_add_qml_module(cadcontour_verification STATIC
     URI CADContour2D.Verification VERSION 1.0

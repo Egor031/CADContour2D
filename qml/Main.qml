@@ -39,6 +39,7 @@ ApplicationWindow {
     Action { id: saveAction; objectName: "saveAction"; text: "Сохранить"; shortcut: StandardKey.Save; enabled: window.project.canSave; onTriggered: window.project.save() }
     Action { id: saveAsAction; objectName: "saveAsAction"; text: "Сохранить как…"; shortcut: StandardKey.SaveAs; enabled: window.project.canSave; onTriggered: window.project.saveAs() }
     Action { id: closeProjectAction; objectName: "closeProjectAction"; text: "Закрыть проект"; enabled: window.project.hasProject && window.project.actionsEnabled; onTriggered: window.project.closeProject() }
+    Action { id: recoveryAction; objectName: "recoveryAction"; text: "Восстановление…"; enabled: window.project.canDiscoverRecovery; onTriggered: window.project.showRecovery() }
     Action { id: exitAction; objectName: "exitAction"; text: "Выход"; onTriggered: window.close() }
 
     menuBar: MenuBar {
@@ -46,6 +47,7 @@ ApplicationWindow {
             title: "Файл"
             MenuItem { action: newAction }
             MenuItem { action: openAction }
+            MenuItem { action: recoveryAction }
             MenuSeparator {}
             MenuItem { action: saveAction }
             MenuItem { action: saveAsAction }
@@ -129,6 +131,25 @@ ApplicationWindow {
         function onWorkflowChanged() {
             const prompt = window.project.workflowPrompt
             const token = window.project.workflowToken
+            if (prompt === "recovery") {
+                if (recoveryDialog.requestToken !== token) {
+                    recoveryDialog.requestToken = token
+                    recoveryDialog.open()
+                }
+            } else {
+                recoveryDialog.requestToken = ""
+                recoveryDialog.close()
+            }
+            if (prompt === "replaceRecovery" || prompt === "rejectRecovery") {
+                if (recoveryConfirmation.requestToken !== token) {
+                    recoveryConfirmation.requestToken = token
+                    recoveryConfirmation.rejecting = prompt === "rejectRecovery"
+                    recoveryConfirmation.open()
+                }
+            } else {
+                recoveryConfirmation.requestToken = ""
+                recoveryConfirmation.close()
+            }
             if (prompt === "draft" || prompt === "dirty") {
                 if (decisionDialog.requestToken !== token) {
                     decisionDialog.requestToken = token
@@ -167,6 +188,126 @@ ApplicationWindow {
             rejectLabel: "Отмена"
             onAccepted: window.project.selectProjectFile(requestToken, selectedFile)
             onRejected: window.project.answerWorkflow(requestToken, "cancel")
+        }
+    }
+
+    Dialog {
+        id: recoveryDialog
+        objectName: "recoveryDialog"
+        property string requestToken: ""
+        property string closingToken: ""
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(720, window.width - 24)
+        height: Math.min(560, window.height - 24)
+        modal: true
+        title: "Восстановление проекта"
+        closePolicy: Popup.CloseOnEscape
+        onAboutToHide: closingToken = requestToken
+        onClosed: {
+            const token = closingToken
+            closingToken = ""
+            if (requestToken === token) requestToken = ""
+            window.project.answerWorkflow(token, "cancel")
+        }
+        contentItem: ScrollView {
+            contentWidth: availableWidth
+            clip: true
+            ColumnLayout {
+                width: parent.width
+                Label {
+                    Layout.fillWidth: true
+                    text: "Выберите запись. Закрытие окна и «Позже» сохраняют её для меню «Файл → Восстановление»."
+                    wrapMode: Text.Wrap
+                }
+                Label {
+                    objectName: "recoveryMessageLabel"
+                    Layout.fillWidth: true
+                    text: window.project.fileMessage
+                    textFormat: Text.PlainText
+                    wrapMode: Text.WrapAnywhere
+                }
+                Label {
+                    Layout.fillWidth: true
+                    visible: window.project.recoveryCandidates.length === 0
+                    text: "Записей нет или поиск не завершён успешно. Можно повторить ограниченный поиск."
+                    wrapMode: Text.Wrap
+                }
+                Repeater {
+                    model: window.project.recoveryCandidates
+                    delegate: Frame {
+                        id: recoveryRow
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        ColumnLayout {
+                            anchors.fill: parent
+                            Label {
+                                Layout.fillWidth: true
+                                text: recoveryRow.modelData.sessionId + "\n" + recoveryRow.modelData.description
+                                textFormat: Text.PlainText
+                                wrapMode: Text.WrapAnywhere
+                            }
+                            Flow {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Button {
+                                    objectName: "restoreRecoveryButton" + recoveryRow.index
+                                    text: "Восстановить"
+                                    enabled: recoveryRow.modelData.eligible
+                                    onClicked: window.project.chooseRecovery(recoveryDialog.requestToken, recoveryRow.modelData.sessionId, "restore")
+                                }
+                                Button {
+                                    objectName: "rejectRecoveryButton" + recoveryRow.index
+                                    text: "Отклонить запись…"
+                                    enabled: recoveryRow.modelData.eligible
+                                    onClicked: window.project.chooseRecovery(recoveryDialog.requestToken, recoveryRow.modelData.sessionId, "reject")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        footer: DialogButtonBox {
+            Button { objectName: "refreshRecoveryButton"; text: "Повторить поиск"; onClicked: window.project.answerWorkflow(recoveryDialog.requestToken, "refresh") }
+            Button { objectName: "deferRecoveryButton"; text: "Позже"; onClicked: recoveryDialog.close() }
+        }
+    }
+
+    Dialog {
+        id: recoveryConfirmation
+        objectName: "recoveryConfirmation"
+        property string requestToken: ""
+        property string closingToken: ""
+        property bool rejecting: false
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.min(560, window.width - 24)
+        height: Math.min(280, window.height - 24)
+        modal: true
+        title: rejecting ? "Отклонить запись восстановления?" : "Заменить текущий проект?"
+        closePolicy: Popup.CloseOnEscape
+        onAboutToHide: closingToken = requestToken
+        onClosed: {
+            const token = closingToken
+            closingToken = ""
+            if (requestToken === token) requestToken = ""
+            window.project.answerWorkflow(token, "cancel")
+        }
+        contentItem: Label {
+            text: recoveryConfirmation.rejecting
+                ? "Запись будет явно отмечена как отклонённая. Восстановить её через это окно будет нельзя. Явный проект и datasets сохраняются."
+                : "После успешного восстановления текущий сеанс будет заменён. История Undo/Redo не переносится; Undo не возвращает предыдущий проект. При ошибке или отмене текущий проект сохраняется."
+            wrapMode: Text.Wrap
+        }
+        footer: DialogButtonBox {
+            Button {
+                objectName: "confirmRecoveryButton"
+                text: recoveryConfirmation.rejecting ? "Отклонить запись" : "Заменить проект"
+                onClicked: window.project.answerWorkflow(recoveryConfirmation.requestToken, "confirm")
+            }
+            Button { objectName: "cancelRecoveryButton"; text: "Отмена"; onClicked: recoveryConfirmation.close() }
         }
     }
 
@@ -384,6 +525,14 @@ ApplicationWindow {
                 textFormat: Text.PlainText
                 wrapMode: Text.WrapAnywhere
                 Layout.fillWidth: true
+            }
+            Label {
+                objectName: "recoveryConflictLabel"
+                text: "Конфликт восстановления: явный проект независимо изменён или недоступен. Требуется «Сохранить как» в отдельный каталог."
+                visible: window.project.recoveryRequiresSaveAs
+                textFormat: Text.PlainText
+                Layout.fillWidth: true
+                wrapMode: Text.Wrap
             }
             Label {
                 objectName: "fileMessageLabel"

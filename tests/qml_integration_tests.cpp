@@ -402,7 +402,8 @@ TEST(QmlRegistration, MainRequiresTypedInjection)
 
 TEST(QmlIntegration, StartupOffersSelectionWithoutCreatingProject)
 {
-    ProjectController controller;
+    QTemporaryDir area; ASSERT_TRUE(area.isValid());
+    ProjectController controller(area.filePath("storage"));
     ProjectViewModel viewModel(controller);
     QQmlApplicationEngine engine;
     QQmlEngine::setObjectOwnership(&viewModel, QQmlEngine::CppOwnership);
@@ -414,7 +415,9 @@ TEST(QmlIntegration, StartupOffersSelectionWithoutCreatingProject)
     ASSERT_NE(window, nullptr);
     auto *button = window->findChild<QObject *>(QStringLiteral("newProjectButton"));
     ASSERT_NE(button, nullptr);
-    QCoreApplication::processEvents();
+    ASSERT_TRUE(cadcontour::test::spinUntil([&] { return viewModel.selectingFile(); }));
+    EXPECT_EQ(controller.operation().kind, OperationKind::DiscoverRecovery);
+    EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
     EXPECT_FALSE(button->property("enabled").toBool());
     EXPECT_FALSE(viewModel.hasProject());
     EXPECT_TRUE(viewModel.cellText().isEmpty());

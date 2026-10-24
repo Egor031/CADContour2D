@@ -20,8 +20,9 @@
 availability и bounded recheck; native Windows GUI-приёмка подтвердила основные
 сценарии, R1/O1/L1 исправлены и независимо проверены. Ограничения и результаты —
 в [отчёте 05.5A](reports/task-05/gui-save-open.md).
-**05.5B — NOT STARTED; 05.5 — IN PROGRESS / NOT ACCEPTED; задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
-GUI Recovery/startup decision относятся к 05.5B. Canvas, навигатор, редакторы
+**05.5B — READY FOR INDEPENDENT REVIEW; 05.5 — IN PROGRESS / NOT ACCEPTED; задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
+GUI Recovery/startup decision реализованы в 05.5B; [проверки и ограничения](reports/task-05/gui-recovery.md).
+Canvas, навигатор, редакторы
 и последующие операции относятся к будущим задачам 06–20. Настоящий документ
 не объявляет их реализованными.
 
@@ -281,7 +282,7 @@ save, состояние сеанса и диагностику. Восстан�
 восстановление. При конфликте с независимо изменённым explicit save пользователь
 видит требование Save As; обычный Save не снимает и не обходит конфликт.
 
-Полноценный startup recovery workflow реализуется в 05.5: metadata discovery
+Startup recovery workflow реализован в 05.5B: metadata discovery
 предшествует предложению нового импорта, без автоматического восстановления,
 перезаписи explicit save, полного чтения cache или перестроения результатов.
 GUI использует существующие C++ lifecycle/publication guards; системное закрытие

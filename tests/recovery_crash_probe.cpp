@@ -42,14 +42,20 @@ int main(int argc, char **argv)
     if (controller.importAscXyz({source.fileName(), {8ULL << 20, 64ULL << 20, 8}}).outcome != CommandOutcome::Applied
         || !finish(controller) || controller.operation().status != OperationStatus::Succeeded) return 4;
     RecoveryTestAccess::timers(controller);
-    if (mode != u"first" && (controller.autosave().outcome != CommandOutcome::Applied || !finish(controller)
+    if (mode == u"explicit") {
+        if (controller.saveProject({args[1] + QStringLiteral("/saved/project.pc2dproj")}).outcome != CommandOutcome::Applied
+            || !finish(controller) || controller.operation().status != OperationStatus::Succeeded) return 11;
+        RecoveryTestAccess::timers(controller);
+        if (!finishBackgroundAutosave(controller)) return 12;
+    }
+    if (mode != u"first" && mode != u"explicit" && (controller.autosave().outcome != CommandOutcome::Applied || !finish(controller)
         || controller.operation().status != OperationStatus::Succeeded)) return 5;
     if (mode == u"active") hold(marker);
     controller.setCell(0.125);
     auto hooks = std::make_shared<RecoveryTransactionTestAccess::Hooks>();
     hooks->phase = [mode, marker](RecoveryPhase phase) {
         if (((mode == u"before" || mode == u"first") && phase == RecoveryPhase::BeforeCommit)
-            || (mode == u"published" && phase == RecoveryPhase::Published)) hold(marker);
+            || ((mode == u"published" || mode == u"explicit") && phase == RecoveryPhase::Published)) hold(marker);
     };
     if (mode == u"write") hooks->write = [marker](QIODevice &file, const char *bytes, qint64 size) -> qint64 {
         file.write(bytes, size / 2);

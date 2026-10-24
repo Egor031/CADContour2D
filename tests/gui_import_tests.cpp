@@ -198,8 +198,11 @@ class InvalidSelection : public GuiImport, public testing::WithParamInterface<co
 TEST_P(InvalidSelection, RejectsInvalidUrlWithoutStartingWorker)
 {
     // Native FileDialog rejects these itself; exercise the C++ UI boundary independently.
+    ASSERT_EQ(controller.operation().kind, OperationKind::DiscoverRecovery);
+    ASSERT_FALSE(controller.operation().active);
+    const auto operation = controller.operation().id;
     model.selectImportFile(model.selectionToken(), QUrl::fromEncoded(GetParam()));
-    EXPECT_EQ(controller.operation().id, 0);
+    EXPECT_EQ(controller.operation().id, operation);
     EXPECT_EQ(controller.project(), nullptr);
     EXPECT_FALSE(model.importErrorMessage().isEmpty());
     EXPECT_TRUE(model.canImport());
@@ -527,13 +530,15 @@ TEST_F(GuiImport, CompletedAutosavePreservesSelectionUntilActualProjectReplaceme
 
 TEST_F(GuiImport, UncUrlIsAcceptedAtUiBoundaryWithoutContactingNetwork)
 {
-    initial(); click("newProjectButton");
+    initial(); RecoveryTestAccess::timers(controller); ASSERT_TRUE(finishBackgroundAutosave(controller));
+    const auto operation = controller.operation().id;
+    click("newProjectButton");
     model.selectImportFile(model.selectionToken(), QUrl("file://server/share/cloud%20%25.xyz"));
     EXPECT_TRUE(model.replacementPending());
     EXPECT_EQ(model.replacementFileName(), "cloud %.xyz");
     click("replaceRejectButton");
     ASSERT_TRUE(spinUntil([&] { return !model.replacementPending(); }));
-    EXPECT_EQ(controller.operation().id, 1);
+    EXPECT_EQ(controller.operation().id, operation);
 }
 
 TEST(ImportUiBoundary, ApplicationRejectsStaleSelectionContextIncludingNoProjectAba)

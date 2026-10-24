@@ -1341,7 +1341,7 @@ GUI полной validation в 05.3 не добавлены, никаких не
 ### 28.3. GUI Save/Open и разрешение изменений (05.5A)
 
 C++ UI adapter владеет draft поля `cell` и одним пользовательским намерением:
-Save/Save As, Open, подтверждённый Import, Close, Exit или bounded recheck.
+Save/Save As, Open, подтверждённый Import, Close, Exit, bounded recheck или Recovery (§31.2).
 QML отображает меню, состояние и tokenized dialogs; persistent state, dirty,
 baseline, история и исполнение операций остаются в существующем controller.
 Форматы, storage transactions и publication/native completion protocol не меняются.
@@ -1355,7 +1355,7 @@ Read-only `fileCommandContext()` сохраняет stamp/epoch/operation contex
 ABA для намерения, начатого во время worker; прежние import getters и guards
 сохраняют свою доступность и проверки.
 При failure/cancellation прежний сеанс сохраняется; явно отброшенный пользователем
-draft не восстанавливается автоматически. Во время принятого Open/Import GUI
+draft не восстанавливается автоматически. Во время принятого Open/Import/Restore GUI
 не допускает новый ввод `cell`; во время Save редактирование остаётся доступным.
 
 Подтверждённое файловое намерение переживает Autosave/Busy и reentrant notifications.
@@ -1377,13 +1377,12 @@ Save receipt, progress и посторонние notifications не синхро
 sync нужен только при изменении самого cell/session либо успешном явном Apply.
 Partial availability показывается с причиной; изменение cell, Undo/Redo и Save
 заблокированы согласно §28.2, recheck использует существующий bounded worker.
-GUI Recovery и startup discovery/decision остаются в 05.5B; текущий startup import
-не объявляется завершённым Recovery workflow.
+GUI Recovery и startup discovery/decision добавлены в 05.5B (§31.2).
 
 Статус GUI-этапа: **05.5A — ACCEPTED WITH LIMITATIONS** после native Windows
 GUI-приёмки и независимой проверки исправлений R1/O1/L1; детали и оставшиеся
 ограничения — в [отчёте 05.5A](reports/task-05/gui-save-open.md). GUI Recovery и
-startup decision — 05.5B (**NOT STARTED**); 05.5 и задача 05 остаются
+startup decision — 05.5B (**READY FOR INDEPENDENT REVIEW**); 05.5 и задача 05 остаются
 **IN PROGRESS / NOT ACCEPTED**.
 
 ---
@@ -1515,8 +1514,8 @@ Shutdown Ready ждёт и этот worker; destructor fallback drain не тр�
 Это ограниченный lifecycle I/O, не отменяемый общим shutdown cancellation. Ошибка
 маркировки сохраняет recovery и может оставить Interrupted. Низкоуровневый shutdown
 сохраняет последний опубликованный snapshot, не делает принудительного Save правок.
-GUI Save/Discard/Cancel реализуется в 05.5A (§28.3); предложение восстановления
-и startup decision остаются в 05.5B.
+GUI Save/Discard/Cancel реализован в 05.5A (§28.3); предложение восстановления
+и startup decision — в 05.5B (§31.2).
 
 Autosave/discovery не открывают source/cache; restore/recheck читают только bounded
 envelope/root (73 728 bytes непустого cache v1, ноль point pages). Copy, scanAll,
@@ -1526,6 +1525,28 @@ validate, импорт, PNG/reduced rebuild и geometry не вызываютс�
 к process crashes и обычным filesystem failures, не к физической потере питания,
 некооперативной подмене файлов или общему recovery root на разных компьютерах.
 Схема, проверки и ограничения — [отчёт 05.4](reports/task-05/autosave-recovery.md).
+
+### 31.2. GUI Recovery и startup (05.5B)
+
+После готовности окна UI adapter запускает bounded discovery через существующий
+worker. До результата и явного решения по найденным записям startup Import не
+предлагается. Пустой успешный discovery продолжает startup; ошибка оставляет
+диагностику и явный повтор поиска. Escape/«Позже» сохраняют records; повторный
+доступ — через меню «Файл». Discovery не проверяет cache; partial availability
+и её причины становятся известны при Restore, явный bounded recheck — прежний.
+
+Adapter удерживает immutable metadata выбранного candidate и одно файловое
+намерение. Restore использует подтверждение замены и прежние draft/dirty/Save
+решения §28.3; Reject имеет отдельное явное подтверждение. Dialog tokens проверяют
+session/input stamp и lifecycle context, потребляются однократно. Admission
+после Autosave/native join повторяется только по command transition с новой
+проверкой контекста. Успех отслеживается по OperationId; новый контекст разрешён
+только для собственной операции. Close/Exit могут отозвать recovery-намерение
+через прежние controller guards. Доменный state, saved baseline, конфликт, dirty
+и history остаются собственностью controller. Конфликт показывается в GUI;
+Save направляет пользователя в обязательный Save As, не снимая C++ guard.
+
+Результаты и оставшаяся приёмка — [отчёт 05.5B](reports/task-05/gui-recovery.md).
 
 ---
 
@@ -1812,7 +1833,7 @@ Compression не требуется для v1; возможное дальней
 - **Density PNG Encoding:** bit depth и mapping — [algorithms.md, §6](algorithms.md#6-построение-density-map); хранение metadata — §15.
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.
-- **Autosave/Recovery:** C++ storage/triggers/publication/lifecycle определены в §31.1, GUI Save/Discard/Cancel — §28.3 (05.5A); GUI Recovery/startup decision остаются в 05.5B, целевое поведение — [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность).
+- **Autosave/Recovery:** C++ storage/triggers/publication/lifecycle определены в §31.1, GUI Save/Discard/Cancel — §28.3 (05.5A), GUI Recovery/startup — §31.2 (05.5B); целевое поведение — [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность).
 - **UX/UI details:** открытые визуальные и interaction details — [ui-design.md, §13](ui-design.md#13-открытые-ux-вопросы-и-проверка-реализации); согласованные принципы не относятся к Open decisions.
 - **Worker applicability:** механизм обеспечения инварианта §25.
 - **Precise methods:** локальные Open decision в [algorithms.md](algorithms.md#45-указатель-основных-open-decisions).

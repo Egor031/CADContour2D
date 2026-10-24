@@ -6,6 +6,7 @@
 #include <QString>
 #include <QUrl>
 #include <QVariantMap>
+#include <QVariantList>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 namespace cadcontour {
@@ -63,6 +64,9 @@ class ProjectViewModel : public QObject {
     Q_PROPERTY(QString workflowToken READ workflowToken NOTIFY workflowChanged)
     Q_PROPERTY(bool workflowPending READ workflowPending NOTIFY workflowChanged)
     Q_PROPERTY(QString fileMessage READ fileMessage NOTIFY workflowChanged)
+    Q_PROPERTY(QVariantList recoveryCandidates READ recoveryCandidates NOTIFY recoveryCandidatesChanged)
+    Q_PROPERTY(bool canDiscoverRecovery READ canDiscoverRecovery NOTIFY workflowChanged)
+    Q_PROPERTY(bool recoveryRequiresSaveAs READ recoveryRequiresSaveAs NOTIFY stateChanged)
 
 public:
     explicit ProjectViewModel(ProjectController &controller, QObject *parent = nullptr);
@@ -117,6 +121,9 @@ public:
     QString workflowToken() const { return workflowToken_; }
     bool workflowPending() const noexcept { return intent_ != Intent::None; }
     QString fileMessage() const { return fileMessage_; }
+    QVariantList recoveryCandidates() const;
+    bool canDiscoverRecovery() const noexcept;
+    bool recoveryRequiresSaveAs() const noexcept { return controller_.recoveryRequiresSaveAs(); }
 
     Q_INVOKABLE void applyCell(const QString &text);
     Q_INVOKABLE void undo();
@@ -135,6 +142,8 @@ public:
     Q_INVOKABLE void open();
     Q_INVOKABLE void closeProject();
     Q_INVOKABLE void recheckPointCache();
+    Q_INVOKABLE void showRecovery();
+    Q_INVOKABLE void chooseRecovery(const QString &token, const QString &session, const QString &action);
     // Tokens are consumed before dispatch; Escape/closed always answers cancel.
     Q_INVOKABLE void answerWorkflow(const QString &token, const QString &answer);
     Q_INVOKABLE void selectProjectFile(const QString &token, const QUrl &url);
@@ -150,6 +159,7 @@ signals:
     void nonZeroZChanged();
     void draftChanged();
     void workflowChanged();
+    void recoveryCandidatesChanged();
 
 private:
     void handleResult(const CommandResult &result);
@@ -157,13 +167,14 @@ private:
     void clearSelection();
     void startSelectedImport(bool replacementConfirmed);
     void refreshImportUi();
-    enum class Intent { None, Save, SaveAs, Open, Import, Close, Exit, Recheck };
+    enum class Intent { None, Save, SaveAs, Open, Import, Close, Exit, Recheck, Recovery, RestoreRecovery, RejectRecovery };
     void beginWorkflow(Intent intent);
     void advanceWorkflow();
     void endWorkflow();
     void promptWorkflow(const QString &prompt);
     std::optional<OperationStamp> currentStamp() const;
     void observeFileOperation();
+    void continueStartup();
 
     ProjectController &controller_;
     QString errorMessage_;
@@ -177,6 +188,7 @@ private:
     bool submittingImport_ = false;
     QString importErrorMessage_;
     bool startupOffered_ = false;
+    bool startupPending_ = false;
     bool zConsumerRegistered_ = false;
     QString cellDraft_;
     Intent intent_ = Intent::None;
@@ -192,6 +204,12 @@ private:
     OperationId workflowSaveId_ = 0;
     std::optional<bool> workflowSaveSucceeded_;
     OperationId observedFileOperation_ = 0;
+    QString workflowInstance_;
+    std::vector<persistence::RecoveryCandidate> recoveryCandidates_;
+    std::optional<persistence::RecoveryCandidate> selectedRecovery_;
+    bool recoveryReplacementApproved_ = false;
+    OperationId recoveryOperationId_ = 0;
+    std::optional<bool> recoveryOperationSucceeded_;
 };
 
 } // namespace cadcontour
