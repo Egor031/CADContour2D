@@ -11,8 +11,12 @@
 #include <QQmlApplicationEngine>
 #include <QTemporaryDir>
 #include <QPointer>
+#include <QQuickItem>
+#include <QMouseEvent>
+#include <QKeyEvent>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <tuple>
 
 using namespace cadcontour;
@@ -103,6 +107,95 @@ TEST_F(FileGui, FirstRepeatedSaveAndSaveAsUseProductionDialogs)
     EXPECT_EQ(model.projectPath(), path("second")); EXPECT_TRUE(QFile::exists(path()));
     EXPECT_TRUE(controller.canUndo()); EXPECT_FALSE(model.dirty());
 }
+
+class CellLayout : public FileGui, public testing::WithParamInterface<bool> {};
+TEST_P(CellLayout, ApplyFitsViewportAndFieldUsesRemainingWidth)
+{
+    if (GetParam()) {
+        firstSave();
+        action("openAction"); choose(path()); settle();
+        ASSERT_TRUE(model.hasProject()); ASSERT_TRUE(model.cacheAvailable());
+    } else {
+        ASSERT_EQ(controller.closeProject(true).outcome, CommandOutcome::Applied);
+        model.newProject();
+        ASSERT_TRUE(model.selectingFile());
+        invoke("importFileDialog", "rejected");
+        ASSERT_FALSE(model.hasProject()); ASSERT_FALSE(model.selectingFile());
+    }
+    auto *scroll = qobject_cast<QQuickItem *>(control("projectScrollView"));
+    auto *viewport = qvariant_cast<QQuickItem *>(scroll->property("contentItem"));
+    auto *field = qobject_cast<QQuickItem *>(control("cellInput"));
+    auto *button = qobject_cast<QQuickItem *>(control("applyButton"));
+    ASSERT_TRUE(viewport); ASSERT_TRUE(field); ASSERT_TRUE(button);
+    qreal narrowFieldWidth = 0;
+    for (const QSize size : {QSize{400, 380}, QSize{960, 720}, QSize{1200, 900}}) {
+        SCOPED_TRACE(testing::Message() << size.width() << 'x' << size.height());
+        window->resize(size);
+        QCoreApplication::processEvents();
+        // Flush pending layout work without depending on a render frame or a sleep.
+        for (auto *item = field->parentItem(); item; item = item->parentItem())
+            item->ensurePolished();
+        QCoreApplication::processEvents();
+        const auto contentHeight = viewport->property("contentHeight").toDouble();
+        if (size.width() == 400) {
+            EXPECT_GT(contentHeight, viewport->height());
+            EXPECT_GT(scroll->property("effectiveScrollBarWidth").toDouble(), 0);
+        }
+        const auto local = button->mapRectToItem(viewport, button->boundingRect());
+        const auto contentY = viewport->property("contentY").toDouble();
+        ASSERT_TRUE(viewport->setProperty("contentY", std::clamp(
+            contentY + local.center().y() - viewport->height() / 2,
+            0.0, std::max(0.0, contentHeight - viewport->height()))));
+        const auto available = scroll->mapRectToScene(QRectF(
+            scroll->property("leftPadding").toDouble(), scroll->property("topPadding").toDouble(),
+            scroll->property("availableWidth").toDouble(), scroll->property("availableHeight").toDouble()))
+            .intersected(viewport->mapRectToScene(viewport->boundingRect()));
+        auto visible = available;
+        // availableWidth alone includes an overlaid scrollbar in some styles.
+        visible.setRight(std::min(visible.right(), scroll->mapToScene(QPointF(
+            scroll->width() - scroll->property("effectiveScrollBarWidth").toDouble(), 0)).x()));
+        const auto apply = button->mapRectToScene(button->boundingRect());
+        const auto input = field->mapRectToScene(field->boundingRect());
+        SCOPED_TRACE(testing::Message() << "viewport=" << visible.left() << ',' << visible.right()
+            << " column=" << field->parentItem()->parentItem()->width()
+            << " row=" << field->parentItem()->width() << " field=" << field->width()
+            << " fieldImplicit=" << field->implicitWidth() << " apply=" << apply.left() << ',' << apply.right());
+        EXPECT_GE(apply.left(), visible.left()); EXPECT_LE(apply.right(), visible.right());
+        EXPECT_GE(apply.top(), visible.top()); EXPECT_LE(apply.bottom(), visible.bottom());
+        EXPECT_GE(input.left(), visible.left()); EXPECT_LE(input.right(), apply.left());
+        EXPECT_GT(field->width(), field->property("leftPadding").toDouble() + field->property("rightPadding").toDouble());
+        EXPECT_GE(button->width(), button->implicitWidth());
+        auto *label = qvariant_cast<QQuickItem *>(button->property("contentItem")); ASSERT_TRUE(label);
+        EXPECT_LE(label->implicitWidth(), label->width());
+        EXPECT_EQ(field->isEnabled(), GetParam()); EXPECT_EQ(button->isEnabled(), GetParam());
+        if (size.width() == 400) narrowFieldWidth = field->width();
+        else EXPECT_GT(field->width(), narrowFieldWidth);
+        if (GetParam()) {
+            field->forceActiveFocus();
+            ASSERT_TRUE(field->hasActiveFocus());
+            draft(QString::number(size.width()));
+            ASSERT_TRUE(model.hasDraft());
+            const auto point = apply.center();
+            QMouseEvent press(QEvent::MouseButtonPress, point, point, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+            QMouseEvent release(QEvent::MouseButtonRelease, point, point, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &press); QCoreApplication::sendEvent(window, &release);
+            EXPECT_DOUBLE_EQ(model.cell(), size.width()); EXPECT_FALSE(model.hasDraft()); EXPECT_TRUE(model.dirty());
+            field->forceActiveFocus(); draft(QStringLiteral("0.5"));
+            QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &enter);
+            QKeyEvent enterRelease(QEvent::KeyRelease, Qt::Key_Return, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &enterRelease);
+            EXPECT_DOUBLE_EQ(model.cell(), 0.5); EXPECT_FALSE(model.hasDraft());
+            QKeyEvent tab(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier);
+            QCoreApplication::sendEvent(window, &tab);
+            EXPECT_TRUE(button->hasActiveFocus());
+            QKeyEvent backtab(QEvent::KeyPress, Qt::Key_Backtab, Qt::ShiftModifier);
+            QCoreApplication::sendEvent(window, &backtab);
+            EXPECT_TRUE(field->hasActiveFocus());
+        }
+    }
+}
+INSTANTIATE_TEST_SUITE_P(ProjectOpenAndImportCancelled, CellLayout, testing::Bool());
 
 class FileMessageImport : public FileGui, public testing::WithParamInterface<bool> {};
 TEST_P(FileMessageImport, L1ImportAfterSaveShowsOnlyTheNewUnsavedProject)

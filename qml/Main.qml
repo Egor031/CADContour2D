@@ -501,14 +501,16 @@ ApplicationWindow {
     }
 
     ScrollView {
+        id: projectScrollView
         objectName: "projectScrollView"
         anchors.fill: parent
         anchors.margins: 16
-        contentWidth: availableWidth
+        // Reserve only the scrollbar width that the style has not included in padding.
+        contentWidth: availableWidth - Math.max(0, effectiveScrollBarWidth - rightPadding)
         clip: true
 
         ColumnLayout {
-            width: parent.width
+            width: projectScrollView.contentWidth
             spacing: 8
 
             Label {
