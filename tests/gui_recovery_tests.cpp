@@ -403,41 +403,176 @@ TEST_P(RecoveryAdmission, ConfirmedRestoreSurvivesAutosaveButRevalidatesDraftAnd
 }
 INSTANTIATE_TEST_SUITE_P(DeferredAdmission, RecoveryAdmission, testing::Range(0, 3));
 
-class RecoveryClosing : public RecoveryGui, public testing::WithParamInterface<int> {};
+class RecoveryClosing : public RecoveryGui, public testing::WithParamInterface<int> {
+protected:
+    ControlledWork barrier;
+    std::unique_ptr<ApplicationShutdown> shutdown;
+    const bool previousQuit = QGuiApplication::quitOnLastWindowClosed();
+    QByteArray datasetBefore;
+
+    void TearDown() override
+    {
+        // Fatal assertions must also unblock and join a worker before its hook captures die.
+        barrier.complete.set();
+        RecoveryGui::TearDown();
+        shutdown.reset();
+        QGuiApplication::setQuitOnLastWindowClosed(previousQuit);
+    }
+    void prepare(const RecoveryCandidate &candidate)
+    {
+        datasetBefore = bytes(QString::fromStdWString(candidate.record->state->content.cachePath().wstring()));
+        ASSERT_FALSE(datasetBefore.isEmpty());
+        OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false,
+            [this] { barrier.entered.set(); barrier.complete.wait(); });
+        if (GetParam() / 3 == 2) answer("refresh");
+        else {
+            const bool reject = GetParam() / 3 == 1;
+            select(candidate, reject ? "reject" : "restore");
+            if (reject) answer("confirm");
+        }
+        barrier.entered.wait();
+        ASSERT_TRUE(model.operationActive()); EXPECT_FALSE(model.canEditCell());
+        ASSERT_EQ(controller.operation().decision, PublicationDecision::Pending);
+        EXPECT_EQ(controller.operation().kind, GetParam() / 3 == 0 ? OperationKind::RestoreRecovery
+            : GetParam() / 3 == 1 ? OperationKind::RejectRecovery : OperationKind::DiscoverRecovery);
+    }
+    void requestClose()
+    {
+        if (GetParam() % 3 == 0) model.closeProject();
+        else if (GetParam() % 3 == 1) EXPECT_FALSE(window->close());
+        else {
+            if (!shutdown) shutdown = std::make_unique<ApplicationShutdown>(
+                *qobject_cast<QGuiApplication *>(QCoreApplication::instance()), controller, *window);
+            QCoreApplication::postEvent(QCoreApplication::instance(), new QEvent(QEvent::Quit));
+        }
+    }
+    void closed()
+    {
+        idle();
+        if (GetParam() % 3 != 0) {
+            ASSERT_TRUE(spinUntil([&] {
+                return controller.shutdownState() == ShutdownState::Ready && !window->isVisible();
+            }));
+        } else {
+            EXPECT_EQ(controller.shutdownState(), ShutdownState::Open);
+            EXPECT_TRUE(window->isVisible());
+        }
+        EXPECT_FALSE(model.operationActive()); EXPECT_FALSE(model.workflowPending());
+        EXPECT_FALSE(OperationTestAccess::runner(controller).busy());
+    }
+    void joined(const std::shared_ptr<detail::OperationContext> &context)
+    {
+        EXPECT_EQ(controller.operation().id, context->id);
+        EXPECT_TRUE(context->nativeCompletion.finished());
+        // Runner releases its context only after native completion AND QThread::wait(0).
+        EXPECT_FALSE(OperationRunnerTestAccess::context(OperationTestAccess::runner(controller)));
+    }
+    void persisted(const RecoveryCandidate &candidate, RecoverySessionState expected)
+    {
+        auto found = discoverRecovery(RecoveryTestAccess::root(controller));
+        ASSERT_TRUE(found); ASSERT_EQ(found.value().size(), 1);
+        const auto &actual = found.value()[0];
+        EXPECT_EQ(actual.sessionId, candidate.sessionId); EXPECT_EQ(actual.session, expected);
+        ASSERT_TRUE(actual.record);
+        EXPECT_EQ(actual.record->state->snapshot.cell, candidate.record->state->snapshot.cell);
+        EXPECT_EQ(actual.record->state->content.cachePath(), candidate.record->state->content.cachePath());
+        EXPECT_TRUE(QFile::exists(QString::fromStdWString(actual.record->state->content.cachePath().wstring())));
+        EXPECT_EQ(bytes(QString::fromStdWString(actual.record->state->content.cachePath().wstring())), datasetBefore);
+    }
+};
 TEST_P(RecoveryClosing, ProjectCloseWindowCloseAndQuitDrainRecoveryWorkerWithoutImplicitReject)
 {
     const auto candidate = seed(); const auto original = bytes(recordPath(candidate)); load();
-    ControlledWork barrier;
-    OperationRunnerTestAccess::configure(OperationTestAccess::runner(controller), {}, false,
-        [&] { barrier.entered.set(); barrier.complete.wait(); });
-    const bool reject = GetParam() / 3 == 1, discovery = GetParam() / 3 == 2;
-    if (discovery) answer("refresh");
-    else { select(candidate, reject ? "reject" : "restore"); if (reject) answer("confirm"); }
-    barrier.entered.wait(); EXPECT_TRUE(model.operationActive()); EXPECT_FALSE(model.canEditCell());
+    prepare(candidate); ASSERT_FALSE(HasFatalFailure());
+    const auto prepared = bytes(recordPath(candidate));
+    auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
+    ASSERT_TRUE(context);
     const auto route = GetParam() % 3;
-    std::unique_ptr<ApplicationShutdown> shutdown;
-    const bool previousQuit = QGuiApplication::quitOnLastWindowClosed();
-    if (route == 0) model.closeProject();
-    else if (route == 1) EXPECT_FALSE(window->close());
-    else {
-        shutdown = std::make_unique<ApplicationShutdown>(*qobject_cast<QGuiApplication *>(QCoreApplication::instance()), controller, *window);
-        QCoreApplication::postEvent(QCoreApplication::instance(), new QEvent(QEvent::Quit));
-        ASSERT_TRUE(spinUntil([&] { return controller.shutdownState() == ShutdownState::Closing; }));
+    {
+        // Ready alone does not prevent Accept. Hold the existing product lease so GUI
+        // polling cannot borrow it while asynchronous Quit reaches the Close workflow.
+        auto lease = OperationTestAccess::runner(controller).leaseReady(controller.operation().id);
+        ASSERT_TRUE(lease); ASSERT_EQ(lease.outcome().status, WorkerStatus::Succeeded);
+        requestClose();
+        ASSERT_TRUE(spinUntil([&] { return controller.operation().publicationRevoked; }));
+        EXPECT_EQ(controller.operation().decision, PublicationDecision::Pending);
+        EXPECT_EQ(controller.shutdownState(), route == 0 ? ShutdownState::Open : ShutdownState::Closing);
+        EXPECT_TRUE(window->isVisible()); EXPECT_FALSE(model.hasProject()); EXPECT_FALSE(model.dirty());
+        EXPECT_EQ(bytes(recordPath(candidate)), prepared);
+        std::lock_guard lock(context->mutex);
+        EXPECT_TRUE(context->cancellation.load()); EXPECT_TRUE(context->ready);
+        EXPECT_EQ(context->decision, route == 0 ? PublicationDecision::Pending : PublicationDecision::Discard);
     }
     barrier.complete.set(); idle();
-    if (route != 0) {
-        ASSERT_TRUE(spinUntil([&] { return controller.shutdownState() == ShutdownState::Ready; }));
-        EXPECT_FALSE(window->isVisible());
-    } else EXPECT_TRUE(window->isVisible());
-    EXPECT_FALSE(model.hasProject());
-    auto found = discoverRecovery(RecoveryTestAccess::root(controller)); ASSERT_TRUE(found); ASSERT_EQ(found.value().size(), 1);
-    EXPECT_NE(found.value()[0].session, RecoverySessionState::Rejected);
-    EXPECT_EQ(found.value()[0].record->state->snapshot.cell, candidate.record->state->snapshot.cell);
-    EXPECT_TRUE(QFile::exists(QString::fromStdWString(candidate.record->state->content.cachePath().wstring())));
-    if (reject || discovery) EXPECT_EQ(bytes(recordPath(candidate)), original);
-    QGuiApplication::setQuitOnLastWindowClosed(previousQuit);
+    EXPECT_EQ(controller.operation().status, route == 0 ? OperationStatus::Discarded : OperationStatus::Cancelled);
+    EXPECT_EQ(controller.operation().decision, PublicationDecision::Discard);
+    EXPECT_FALSE(controller.operation().failure); EXPECT_FALSE(controller.operation().cleanupWarning);
+    joined(context); context.reset();
+    closed(); EXPECT_FALSE(model.hasProject()); EXPECT_FALSE(model.dirty());
+    persisted(candidate, GetParam() / 3 == 0 ? RecoverySessionState::Interrupted : RecoverySessionState::Closed);
+    if (GetParam() / 3 != 0) EXPECT_EQ(bytes(recordPath(candidate)), original);
 }
 INSTANTIATE_TEST_SUITE_P(LifecycleRoutes, RecoveryClosing, testing::Range(0, 9));
+
+class PermittedRecoveryClosing : public RecoveryClosing {};
+TEST_P(PermittedRecoveryClosing, CloseAfterAcceptFinishesPermittedRecoveryAndRequiresExplicitDirtyDecision)
+{
+    const auto candidate = seed(); const auto original = bytes(recordPath(candidate)); load();
+    prepare(candidate); ASSERT_FALSE(HasFatalFailure());
+    auto context = OperationRunnerTestAccess::context(OperationTestAccess::runner(controller));
+    ASSERT_TRUE(context);
+    OperationTestAccess::poll(controller);
+    ASSERT_EQ(controller.operation().decision, PublicationDecision::Accept);
+    {
+        std::lock_guard lock(context->mutex);
+        ASSERT_EQ(context->decision, PublicationDecision::Accept);
+    }
+    const bool restore = GetParam() / 3 == 0;
+    const auto identity = model.runtimeIdentity();
+    EXPECT_EQ(model.hasProject(), restore); EXPECT_EQ(model.dirty(), restore);
+    if (restore) EXPECT_DOUBLE_EQ(model.cell(), .125);
+    else EXPECT_EQ(bytes(recordPath(candidate)), original); // permission is not persisted Reject
+    requestClose();
+    ASSERT_TRUE(spinUntil([&] {
+        return restore ? model.workflowPrompt() == "dirty"
+            : GetParam() % 3 == 0 ? !model.workflowPending() : controller.shutdownState() == ShutdownState::Closing;
+    }));
+    EXPECT_TRUE(model.operationActive()); EXPECT_TRUE(window->isVisible());
+    EXPECT_EQ(controller.operation().decision, PublicationDecision::Accept);
+    EXPECT_FALSE(context->nativeCompletion.finished());
+    if (restore) {
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Open);
+        answer("cancel");
+        EXPECT_FALSE(model.workflowPending()); EXPECT_TRUE(model.hasProject()); EXPECT_TRUE(model.dirty());
+        EXPECT_EQ(model.runtimeIdentity(), identity); EXPECT_TRUE(window->isVisible());
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Open);
+    } else EXPECT_EQ(controller.shutdownState(), GetParam() % 3 == 0 ? ShutdownState::Open : ShutdownState::Closing);
+
+    barrier.complete.set(); idle();
+    EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+    EXPECT_EQ(controller.operation().decision, PublicationDecision::Accept);
+    EXPECT_FALSE(controller.operation().failure); EXPECT_FALSE(controller.operation().cleanupWarning);
+    joined(context); context.reset();
+    if (restore) {
+        EXPECT_TRUE(model.hasProject()); EXPECT_TRUE(model.dirty()); EXPECT_TRUE(model.cacheAvailable());
+        EXPECT_EQ(model.runtimeIdentity(), identity); EXPECT_DOUBLE_EQ(model.cell(), .125);
+        EXPECT_FALSE(model.canUndo()); EXPECT_FALSE(model.canRedo());
+        EXPECT_FALSE(model.workflowPending()); EXPECT_TRUE(window->isVisible());
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Open);
+        persisted(candidate, RecoverySessionState::Active); // cancelling Close never rejects the recovery
+        requestClose();
+        ASSERT_TRUE(spinUntil([&] { return model.workflowPrompt() == "dirty"; }));
+        EXPECT_EQ(controller.shutdownState(), ShutdownState::Open); EXPECT_TRUE(window->isVisible());
+        answer("discard"); // only this explicit decision may persist Rejected for the restored session
+    }
+    closed(); ASSERT_FALSE(HasFatalFailure());
+    EXPECT_EQ(controller.operation().status, OperationStatus::Succeeded);
+    EXPECT_EQ(controller.operation().decision, PublicationDecision::Accept);
+    EXPECT_EQ(model.hasProject(), restore && GetParam() % 3 != 0);
+    EXPECT_EQ(model.dirty(), restore && GetParam() % 3 != 0);
+    persisted(candidate, RecoverySessionState::Rejected);
+}
+INSTANTIATE_TEST_SUITE_P(PermittedLifecycleRoutes, PermittedRecoveryClosing, testing::Range(0, 6));
 
 class FailedRecoveryReplacement : public RecoveryGui, public testing::WithParamInterface<bool> {};
 TEST_P(FailedRecoveryReplacement, FailureOrCancellationRetainsTheDirtyCurrentSessionAndHistory)

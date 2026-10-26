@@ -249,3 +249,185 @@ hash и итоговый Git status приводятся в ответе. Push/P
 Debug/Release CTest и standalone проверки системных 100%/150% приведены в
 [отчёте исправления](cell-apply-layout.md). Результаты выше относятся к прежней
 версии и сохранены; статусы принятия 05.5A/05.5B/05 этим исправлением не меняются.
+
+## IR-05-T1 — детерминированный Recovery lifecycle, 2026-10-26
+
+### Baseline и независимое ревью
+
+`main`, HEAD `c3f1ed749b19fbe10f298a0ed34c91c7dee0ad30`; tracked worktree и index
+до исправления чистые. Прочитаны AGENTS.md, README, относящиеся lifecycle,
+publication и Recovery-контракты requirements/architecture/algorithms, тесты,
+OperationRunner, ProjectController, файловый workflow и ApplicationShutdown.
+
+Исторический вердикт заключительного независимого ревью — **NEEDS FIXES** только
+из-за **IR-05-T1 (Medium)**. Подтверждённых production lifecycle/data-loss дефектов
+ревью не обнаружило. Сохранённые результаты на этом baseline:
+
+| Проверка независимого ревью | Debug | Release |
+|---|---|---|
+| `all` + `all_qmllint` | PASS | PASS |
+| Адресные 78 cases | 77 PASS / 1 FAIL | 77 PASS / 1 FAIL |
+| Production CTest, 808 cases | 806 PASS / 1 FAIL / 1 SKIP | 805 PASS / 2 FAIL / 1 SKIP |
+| Process crash | 19 PASS | 19 PASS |
+
+Источники — сохранённые локальные ignored
+`build/final-review-05-20261026-{debug,release}-{targeted,production}.{log,xml}`,
+`build/final-review-05-20261026-commands.txt` и диагностические
+`build/final-review-05-20261026-lifecycle-{trace,probe,probe-repeat}.log`.
+Полные production logs подтверждают FAIL `/2` в обеих конфигурациях и `/5`
+в Release. Диагностический повтор `/2` дал 2 PASS / 3 FAIL; при FAIL видны
+`hasProject=true`, `dirty=true`, `workflowPrompt=dirty`, активный worker и открытое
+окно. Исходный дефект подтверждён этими сохранёнными доказательствами, отдельный
+повтор исходной реализации в рамках исправления не выполнялся. Прежние FAIL
+и прежние результаты выше не заменяются новыми PASS.
+
+### Root cause и исправление
+
+`OperationRunner::execute()` устанавливает `ready=true` **до** `beforeDecisionWait`.
+Барьер этого hook удерживает worker, но GUI polling продолжает выдавать Accept.
+Quit проходит event filter и отложенный вызов `window.close()`: отправка Quit
+не доказывает обработку Close. Прежний тест ошибочно требовал результат Close
+до Accept при обоих допустимых порядках. Restore после Accept корректно создаёт
+dirty-проект и требует решения; подтверждённый Reject после Accept корректно
+публикует Rejected.
+
+Тестовый код изменён только в `tests/gui_recovery_tests.cpp`; production-код, форматы, контракты
+и остальные тестовые оракулы сохранены. Новая синхронизационная инфраструктура
+не добавлялась:
+
+- Исходные девять `LifecycleRoutes/RecoveryClosing` сохранены. После Ready тест
+  заимствует существующий `ReadyProductLease`, исключая второй lease и GUI Accept
+  во время обработки асинхронного Quit. До освобождения lease/worker проверяются
+  `publicationRevoked`, controller Pending, context cancellation и конкретный
+  shutdown state. Для Window/Quit context уже Discard; для Close Project Pending
+  окончательно превращается в Discard через gate после возврата lease.
+- Новые шесть `PermittedLifecycleRoutes/PermittedRecoveryClosing` сначала явно
+  выполняют owner poll и проверяют Accept в controller и context, затем Close.
+  Discover отдельной фазой не дублируется: он не восстанавливает проект и не
+  публикует Reject. Все три его исходных маршрута остаются в первой группе.
+- Restore после Accept требует dirty-решения. Cancel сохраняет identity, cell,
+  dirty, окно, Open и Active recovery; разрешённый worker успешно завершается.
+  Повторное закрытие снова требует dirty-решения; только явный Discard разрешает
+  завершение и persisted Rejected восстановленного сеанса.
+- Reject до permission оставляет Closed record побайтово неизменным. После
+  permission до освобождения worker запись ещё прежняя; затем проверяется именно
+  persisted Rejected. Для Restore до Accept допустим предусмотренный архитектурой
+  Open marker незавершённой попытки: после освобождения lease это Interrupted,
+  с сохранённым snapshot и dataset, без принятого проекта и неявного Reject.
+- Проверяются точные terminal status/decision исходной операции, native completion,
+  освобождение runner context после Qt join, shutdown/window/project/dirty,
+  persisted session и ссылки. Содержимое малого fixture dataset сравнивается
+  побайтово, а не только проверяется его наличие.
+- Барьер принадлежит fixture и освобождается в TearDown до drain, поэтому fatal
+  assertion не оставляет worker с захватом уничтоженного локального объекта.
+  Hook одноразовый и принадлежит отдельному controller; ApplicationShutdown
+  уничтожается, `quitOnLastWindowClosed` восстанавливается при любом исходе.
+  Ожидания используют состояния и существующий `spinUntil`; его watchdog служит
+  только границей отказа. Sleep и циклы processEvents для выбора порядка не добавлены.
+
+Ожидаемые результаты до Accept (каждая строка покрывает отдельный исходный variant):
+
+| Variant | Операция / маршрут | Terminal / decision | Shutdown / окно | Проект / dirty | Persisted recovery |
+|---|---|---|---|---|---|
+| `/0` | Restore / Close Project | Discarded / Discard | Open / видно | нет / false | Interrupted |
+| `/1` | Restore / Window Close | Cancelled / Discard | Ready / скрыто | нет / false | Interrupted |
+| `/2` | Restore / Quit | Cancelled / Discard | Ready / скрыто | нет / false | Interrupted |
+| `/3` | Reject / Close Project | Discarded / Discard | Open / видно | нет / false | Closed, прежние bytes |
+| `/4` | Reject / Window Close | Cancelled / Discard | Ready / скрыто | нет / false | Closed, прежние bytes |
+| `/5` | Reject / Quit | Cancelled / Discard | Ready / скрыто | нет / false | Closed, прежние bytes |
+| `/6` | Discover / Close Project | Discarded / Discard | Open / видно | нет / false | Closed, прежние bytes |
+| `/7` | Discover / Window Close | Cancelled / Discard | Ready / скрыто | нет / false | Closed, прежние bytes |
+| `/8` | Discover / Quit | Cancelled / Discard | Ready / скрыто | нет / false | Closed, прежние bytes |
+
+После Accept исходные Restore/Reject завершаются Succeeded / Accept. Для Restore
+Cancel оставляет Open/видимое окно/dirty-проект и Active record во всех трёх routes.
+После явного Discard Close Project удаляет текущий проект и оставляет Open/видимое
+окно; Window/Quit достигают Ready/скрытого окна, сохраняя объект dirty-проекта
+в завершающемся controller. В обоих случаях record Rejected лишь после явного решения.
+Reject не создаёт проект; Close Project оставляет Open/видимое окно, Window/Quit
+достигают Ready/скрытого окна. Persisted Rejected — ожидаемый результат явного Reject.
+Dataset остаётся неизменным во всех 15 сценариях.
+
+### Адресная проверка исправления
+
+Окончательный C++ тест собран в Debug и Release; incremental `all` + `all_qmllint`
+в обеих конфигурациях завершились с exit code 0, без compiler/linker/QML warnings.
+Окружение — существующие MSVC/Qt 6.12.0/CMake/Ninja из baseline, build directories
+`D:/ZherlitsynEE/CADContour2D/build/windows-{debug,release}`.
+Для сборки использован предварительно прочитанный локальный `build/task02-env.cmd`
+(vcvars64, UTF-8 code page, process-local Qt/CMake/Ninja PATH и VCPKG_ROOT/QT_ROOT).
+Для CTest/executable PATH дополнен `D:/Qt/6.12.0/msvc2022_64/bin` и
+`D:/Qt/Tools/CMake_64/bin` только в соответствующем процессе PowerShell.
+
+Фактически выполненные команды из корня репозитория для `<cfg>` = debug, release:
+
+```bat
+cmd /d /c build\task02-env.cmd cmake --build --preset windows-<cfg> --target gui_recovery_tests --parallel 4
+ctest --preset windows-<cfg> -R "RecoveryClosing\." --output-on-failure -O build/ir05-t1-<cfg>-lifecycle.log --output-junit build/ir05-t1-<cfg>-lifecycle.xml
+cmd /d /c build\task02-env.cmd cmake --build --preset windows-<cfg> --target all all_qmllint --parallel 4
+ctest --preset windows-<cfg> -R "RecoveryClosing\.ProjectClose.*/[25]$" --repeat until-fail:40 --output-on-failure -O build/ir05-t1-<cfg>-repeat.log --output-junit build/ir05-t1-<cfg>-repeat.xml
+build\windows-<cfg>\gui_recovery_tests.exe --gtest_filter=*RecoveryClosing* --gtest_repeat=3
+ctest --preset windows-<cfg> -L production --output-on-failure -O build/ir05-t1-<cfg>-production.log --output-junit build/ir05-t1-<cfg>-production.xml
+```
+
+Первый адресный CTest дал 15/15 PASS в каждой конфигурации. Затем добавлены
+дополнительные строгие проверки dataset bytes, OperationId/kind и context cancellation;
+окончательная версия проверена сборкой all/lint, повторами и production ниже.
+Повторы `until-fail:40` — отдельные процессы CTest; `gtest_repeat=3` — три прохода
+всех fixtures в одном процессе для проверки независимости и восстановления Qt settings.
+Это не until-pass и не повторение упавшего теста до случайного успеха.
+
+| Окончательная адресная проверка | Debug | Release |
+|---|---|---|
+| Исходные 9 combinations, один процесс, 3 прохода | 27 PASS / 0 FAIL | 27 PASS / 0 FAIL |
+| Новые 6 after-Accept combinations, тот же прогон | 18 PASS / 0 FAIL | 18 PASS / 0 FAIL |
+| Прежний нестабильный `/2`, отдельные процессы | 40 PASS / 0 FAIL | 40 PASS / 0 FAIL |
+| Прежний нестабильный `/5`, отдельные процессы | 40 PASS / 0 FAIL | 40 PASS / 0 FAIL |
+
+Все 9 исходных variants и все 6 новых variants также исполняются отдельно внутри
+production CTest. Подробная таблица ожидаемых результатов выше является их оракулом;
+вариантов `Open || Closing` или произвольного persisted outcome нет.
+
+### Полная регрессия, ограничения и Git
+
+| Проверка окончательной версии | Debug | Release |
+|---|---|---|
+| `all` + `all_qmllint` | PASS | PASS |
+| Production CTest, 814 cases | **813 PASS / 0 FAIL / 1 SKIP** | **813 PASS / 0 FAIL / 1 SKIP** |
+| Исходные 9 lifecycle variants в production | 9 PASS / 0 FAIL | 9 PASS / 0 FAIL |
+| Новые 6 after-Accept variants в production | 6 PASS / 0 FAIL | 6 PASS / 0 FAIL |
+| Recovery (`Recovery` в имени) | 114 PASS / 0 FAIL | 114 PASS / 0 FAIL |
+| RecoveryGui | 50 PASS / 0 FAIL | 50 PASS / 0 FAIL |
+| AscGui / FileGui | 80 / 68 PASS | 80 / 68 PASS |
+| AscGui.GuiLifecycle | 11 PASS / 0 FAIL | 11 PASS / 0 FAIL |
+| Shutdown (`Shutdown` в имени) | 49 PASS / 0 FAIL | 49 PASS / 0 FAIL |
+| Process crash (`Crash` в имени) | 19 PASS / 0 FAIL | 19 PASS / 0 FAIL |
+
+Все поднаборы этой таблицы извлечены из JUnit XML одного полного production-прогона
+для соответствующей конфигурации; они пересекаются и не суммируются. Дополнительный
+отдельный crash-прогон не требовался: все 19 cases входят в production. Обе полные
+команды завершились с exit code 0; время Debug / Release — 462.01 / 269.88 с,
+это не benchmark. После окончательного изменения кода ошибок в выполненных
+проверках не было.
+
+Единственный SKIP — неизменённый `Persistence.StoragePath.FileSymlinkEscape`:
+обе новые XML подтверждают Windows privilege **1314**. Его ранее выполненная
+отдельная приёмка не переоткрывалась. Других SKIP нет, включая cross-volume cases.
+GUI проверки выполнялись offscreen/software/Basic. Native GUI, DPI, гигабайтные,
+HDD и standalone Recovery-сценарии повторно не запускались согласно области задачи;
+результаты прежней ручной приёмки этим исправлением не расширяются.
+
+Свидетельства новых прогонов сохранены в ignored `build/ir05-t1-<cfg>-*.log`:
+`build`, `lifecycle`, `repeat`, `lifecycle-inprocess`, `production` и console captures.
+CTest разрешил относительный `--output-junit` внутри binary directory, поэтому XML
+находятся в `build/windows-<cfg>/build/ir05-t1-<cfg>-{lifecycle,repeat,production}.xml`.
+Полные новые production logs и старые review logs сохранены раздельно.
+
+Полный diff просмотрен, `git diff --check` — PASS. В commit входят только
+`tests/gui_recovery_tests.cpp` и этот отчёт; hash и итоговый status приводятся
+в ответе. Push не выполняется. Production-код, публичные API, persistent formats,
+статусы **05.5** и **задачи 05** не меняются; документальное принятие и задача 06
+не выполнялись.
+
+Вердикт по **IR-05-T1: FIXED AND VERIFIED**. Исторический вердикт независимого
+ревью **NEEDS FIXES** и его исходные FAIL остаются в предыдущем подразделе.
