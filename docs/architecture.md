@@ -1379,11 +1379,10 @@ Partial availability показывается с причиной; измене�
 заблокированы согласно §28.2, recheck использует существующий bounded worker.
 GUI Recovery и startup discovery/decision добавлены в 05.5B (§31.2).
 
-Статус GUI-этапа: **05.5A — ACCEPTED WITH LIMITATIONS** после native Windows
-GUI-приёмки и независимой проверки исправлений R1/O1/L1; детали и оставшиеся
-ограничения — в [отчёте 05.5A](reports/task-05/gui-save-open.md). GUI Recovery и
-startup decision — 05.5B (**READY FOR INDEPENDENT REVIEW**); 05.5 и задача 05 остаются
-**IN PROGRESS / NOT ACCEPTED**.
+Статус GUI-этапов: **05.5A, 05.5B, 05.5 и задача 05 — ACCEPTED WITH LIMITATIONS**.
+Native Windows GUI-приёмка и независимые проверки закрыли R1/O1/L1, layout
+и тестовый IR-05-T1. История 05.5A — в [отчёте](reports/task-05/gui-save-open.md);
+актуальные результаты и принятые ограничения — в [итоговом принятии](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
 
 ---
 
@@ -1546,7 +1545,11 @@ session/input stamp и lifecycle context, потребляются однокр�
 и history остаются собственностью controller. Конфликт показывается в GUI;
 Save направляет пользователя в обязательный Save As, не снимая C++ guard.
 
-Результаты и оставшаяся приёмка — [отчёт 05.5B](reports/task-05/gui-recovery.md).
+**05.5B, 05.5 и задача 05 — ACCEPTED WITH LIMITATIONS** после независимого
+закрытия IR-05-T1 на `fb1f706`. [Результаты, происхождение доказательств и принятые ограничения](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
+Инфраструктура готова к развитию persistence в 06: Density Map/PNG и связанные
+metadata/state потребуют версионированного расширения. ROI и Rough-состояния
+добавляются вместе с соответствующими инструментами; будущие datasets ещё не реализованы.
 
 ---
 

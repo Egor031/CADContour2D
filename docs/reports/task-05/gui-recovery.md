@@ -1,5 +1,10 @@
 # Task 05.5B — GUI Recovery, startup и сквозные проверки
 
+Текущий статус: **05.5B, 05.5 и задача 05 — ACCEPTED WITH LIMITATIONS**.
+**IR-05-T1 CLOSED** после независимой перепроверки `fb1f706` 2026-10-26.
+[Актуальные результаты, источники доказательств и принятые ограничения](#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
+Исторические разделы ниже сохраняют результаты и решения на момент их подготовки.
+
 ## Baseline и статус
 
 2026-10-24, `main`, исходный HEAD `5028c288af789823caa75c95fa8232c2d900b2c6`.
@@ -7,6 +12,7 @@
 05.5A — **ACCEPTED WITH LIMITATIONS**. Её R1/O1/L1 не переоткрывались.
 Результаты ниже относятся к 05.5B, а не к повторному принятию C++ persistence.
 
+Исторический статус по окончании первоначальной реализации 2026-10-24:
 **05.5B — READY FOR INDEPENDENT REVIEW. 05.5 и задача 05 — IN PROGRESS / NOT ACCEPTED.**
 Нужны независимое ревью и оставшаяся ручная приёмка; задача 06 не начата.
 
@@ -217,6 +223,10 @@ Gigabyte/UNC/power-loss workloads не выполнялись.
 Оба test process закрыты через dirty decision, физический cache не удалялся.
 
 ## Оставшаяся приёмка
+
+Исторический перечень на момент первоначальной реализации. Последующие результаты
+и решение пользователя зафиксированы в [итоговом принятии](#независимое-закрытие-ir-05-t1-и-принятие-задачи-05);
+этот перечень не задаёт новых обязательных условий после принятия с ограничениями.
 
 - Независимое ревью 05.5B обязательно до ACCEPTED; результаты 05.4/05.5A выше не
   заменяют это ревью. Дополнительно повторить Restore/Save в standalone production EXE
@@ -431,3 +441,156 @@ CTest разрешил относительный `--output-junit` внутри 
 
 Вердикт по **IR-05-T1: FIXED AND VERIFIED**. Исторический вердикт независимого
 ревью **NEEDS FIXES** и его исходные FAIL остаются в предыдущем подразделе.
+
+## Независимое закрытие IR-05-T1 и принятие задачи 05
+
+2026-10-26, `main`, проверенный HEAD исправления
+`fb1f706497540db97afff95d8466761699d5df75`. Предыдущий независимый baseline —
+`c3f1ed749b19fbe10f298a0ed34c91c7dee0ad30`. Рабочее дерево и index до проверки
+чистые. Между этими commits изменены только `tests/gui_recovery_tests.cpp`
+и этот отчёт; production-код, helpers, CMake, vcpkg и persistent formats не менялись.
+Стадия независимой проверки выполнена read-only относительно tracked files;
+после её успеха по поручению пользователя изменена только документация.
+
+### Независимая оценка исправления
+
+**IR-05-T1 CLOSED.** Исправление устраняет причину недетерминированного оракула,
+сохраняя строгость проверки обоих порядков Close/Accept:
+
+- До permission ReadyProductLease взят в GUI thread до обработки событий.
+  `leaseReady()` не выдаёт второй lease, поэтому GUI poll не может принять Ready,
+  пока асинхронный Quit доходит до Close. До освобождения lease проверяются
+  revoked/cancellation/Pending и конкретный shutdown state; затем — точные
+  Discard/terminal outcomes, native completion, освобождение runner после join
+  и persisted recovery/dataset bytes. Все девять Restore/Reject/Discover ×
+  Close Project/Window/Quit сохранены.
+- После permission отдельные шесть Restore/Reject × три маршрута проверяют
+  Accept одновременно в controller и runner context, при ещё работающем worker.
+  Restore требует dirty-решения: Cancel сохраняет identity, cell, dirty, окно
+  и Active recovery. Повторное закрытие снова требует решения; Rejected
+  восстановленного сеанса допускается лишь после явного Discard.
+  Уже подтверждённый Reject публикует именно Rejected после разрешённого commit;
+  до освобождения worker его record ещё побайтово прежний.
+- Локальный lease освобождается при fatal assertion. Fixture сначала снимает
+  barrier и выполняет drain, затем уничтожает ApplicationShutdown и возвращает
+  прежний `quitOnLastWindowClosed`. Захваченный hook не переживает fixture,
+  mutex guards не удерживаются при выходе из assertion. Это подтверждено
+  анализом кода; искусственные fatal failures в этой перепроверке не вводились.
+  Дополнительный проход всех 15 fixtures одним процессом прошёл в каждой конфигурации.
+
+Production safety-дефектов исправление не маскирует. Не добавлены произвольные
+`Open || Closing`, permissive terminal assertions, sleeps или отключение тестов.
+Полное архитектурное ревью 05.1–05.5B повторно не проводилось: использованы выводы
+собственного предыдущего интеграционного аудита и адресная проверка исправления.
+
+### Собственные проверки на fb1f706
+
+Подготовленные Windows x64/MSVC/Qt 6.12.0/CMake/Ninja build directories обновлены
+командами `all` + `all_qmllint`; обе завершились с exit code 0. Сборка использовала
+ранее прочитанный локальный `build/task02-env.cmd`, CTest — process-local Qt bin PATH.
+GUI tests — offscreen/software/Basic. Полные production-прогоны выполнены по одному
+на конфигурацию; после них изменялась только документация.
+
+| Собственная независимая проверка | Debug | Release |
+|---|---|---|
+| `all` + `all_qmllint` | PASS | PASS |
+| Все 15 lifecycle variants, отдельные CTest cases | 15 PASS / 0 FAIL | 15 PASS / 0 FAIL |
+| Все 15 variants, один процесс | 15 PASS / 0 FAIL | 15 PASS / 0 FAIL |
+| Прежний `/2`, `until-fail:30` | 30 PASS / 0 FAIL | 30 PASS / 0 FAIL |
+| Прежний `/5`, `until-fail:30` | 30 PASS / 0 FAIL | 30 PASS / 0 FAIL |
+| Связанные `Recovery\|GuiLifecycle\|Shutdown` | 170 PASS / 0 FAIL | 170 PASS / 0 FAIL |
+| Production CTest, 814 cases | **813 PASS / 0 FAIL / 1 SKIP** | **813 PASS / 0 FAIL / 1 SKIP** |
+| GUI subset внутри production | 212 PASS / 0 FAIL | 212 PASS / 0 FAIL |
+| Recovery / Shutdown / Process crash внутри production | 114 / 49 / 19 PASS | 114 / 49 / 19 PASS |
+| Cross-volume Open/Save As внутри production | 2 PASS | 2 PASS |
+
+Поднаборы пересекаются и не суммируются с production. Повторы останавливались бы
+на первом failure; это не until-pass. Количество 30 подтверждено по каждому имени
+в repeat log, поскольку JUnit CTest содержит только итог каждого из двух cases.
+Единственный SKIP — неизменённый `Persistence.StoragePath.FileSymlinkEscape`,
+Windows privilege **1314**. Он не засчитывается как новый PASS и не отменяет
+более ранний отдельный независимый PASS Debug/Release.
+
+Фактически выполненные команды из корня репозитория (`<cfg>` = debug и release):
+
+```bat
+cmd /d /c build\task02-env.cmd cmake --build --preset windows-<cfg> --target all all_qmllint --parallel 4
+ctest --preset windows-<cfg> -R "RecoveryClosing\." --output-on-failure
+ctest --preset windows-<cfg> -R "RecoveryClosing\.ProjectCloseWindowCloseAndQuitDrainRecoveryWorkerWithoutImplicitReject/(2|5)$" --repeat until-fail:30 --output-on-failure
+build\windows-<cfg>\gui_recovery_tests.exe --gtest_filter=*RecoveryClosing.*
+ctest --preset windows-<cfg> -R "Recovery|GuiLifecycle|Shutdown" --output-on-failure
+ctest --preset windows-<cfg> -L production --output-on-failure
+```
+
+Каждый CTest дополнительно получил `-O build/ir05-t1-independent-20261026-<cfg>-<suite>.log`
+и абсолютный `--output-junit D:/ZherlitsynEE/CADContour2D/build/ir05-t1-independent-20261026-<cfg>-<suite>.xml`;
+suite — lifecycle, repeat, related или production. Output общего executable сохранён
+в `build/ir05-t1-independent-20261026-<cfg>-inprocess.log`. Эти ignored evidence
+отделены от результатов разработчика `ir05-t1-<cfg>-*` и прежних review FAIL.
+
+### Последующие подтверждения и принятые ограничения
+
+Ниже сведены исторические подтверждения, используемые при документальной фиксации.
+Они не выдаются за новые native/resource запуски этой перепроверки:
+
+| Условие | Результат и источник |
+|---|---|
+| Late Save, позднее применение `cell`, копирование 1,01 ГБ | Native PASS; последующая независимая приёмка, результат предоставлен пользователем для финальной фиксации |
+| Recovery/Reject/Conflict/partial | PASS через `operation_probe` с production QML/C++; исторический отчёт выше и последующие независимые результаты пользователя |
+| Layout кнопки «Применить», системные 100%/150% | FIXED/PASS; [отдельный отчёт](cell-apply-layout.md), новые автоматические cases также прошли |
+| Межтомные Open/Save As | Ранее независимый PASS; дополнительно собственные 2/2 PASS в обеих новых production-конфигурациях |
+| FileSymlinkEscape | Ранее отдельный независимый PASS Debug/Release, предоставленный пользователем; нынешний SKIP 1314 отражает права этой среды |
+| C4702 | Устранено воспроизводимым [vcpkg overlay](../../../vcpkg/README.md), commit `13286ec`; clean build доказательства сохранены там, нынешние incremental build/lint прошли |
+
+Пользователь сознательно принял следующие ограничения:
+
+1. **Standalone Recovery — NOT VERIFIED.** Полный Restore → Save → Restart
+   через самостоятельный EXE в отдельном изолированном Windows-профиле не выполнялся.
+   Остаточный риск принят; автоматические и native `operation_probe` сценарии
+   подтверждены и не приравниваются к этому standalone условию.
+2. **Keyboard/visible focus — PARTIAL VERIFICATION.** Основные функциональные
+   клавиатурные действия проверены; визуальная индикация фокуса подтверждена не полностью.
+3. **Системный DPI 200% — OUT OF SCOPE.** По решению пользователя не является
+   обязательным условием задачи 05. Это не означает доказанной неподдержки 200%.
+4. **Перенос между мониторами — N/A** для проверенной среды.
+5. Наблюдение Recovery **`Applied`/`NoChange` не объявляется исправленным**.
+   Допустимый NoChange после опередившего автоматического Autosave и прежняя
+   нестабильность тестового ожидания остаются описаны в [принятии 05.4](autosave-recovery.md#m-acceptance).
+
+Не повторялись HDD/гигабайтные benchmarks, DPI, standalone Recovery и полная native
+GUI-приёмка. Сохраняются ранее документированные технические границы: conservative
+retention без GC, bounded availability вместо полной integrity validation,
+отсутствие обещаний абсолютной power-loss durability и hostile/multi-host filesystem safety.
+Принятые ограничения не являются подтверждёнными функциональными дефектами.
+
+### Документальное решение и граница задачи 06
+
+По ранее принятому решению пользователя после успешной независимой перепроверки
+зафиксированы итоговые статусы:
+
+| Часть | Итоговый статус |
+|---|---|
+| 05.1 — Persistence Foundation | ACCEPTED |
+| 05.2 — Save / Save As | ACCEPTED |
+| 05.3 — Open / Partial Availability | ACCEPTED |
+| 05.4 — Autosave / Recovery | ACCEPTED |
+| 05.5A — GUI Save/Open | ACCEPTED WITH LIMITATIONS |
+| 05.5B — GUI Recovery | ACCEPTED WITH LIMITATIONS |
+| 05.5 | ACCEPTED WITH LIMITATIONS |
+| **Задача 05 целиком** | **ACCEPTED WITH LIMITATIONS** |
+
+Ранее подтверждённые существенные замечания закрыты в соответствующих отчётах;
+R1/O1/L1 и layout не регрессировали, IR-05-T1 независимо закрыт. Новых существенных
+препятствий по результатам этой перепроверки и предыдущего интеграционного аудита нет.
+Исторический NEEDS FIXES на `c3f1ed7` и исходные FAIL сохранены, а не переписаны.
+
+Инфраструктура persistence готова к дальнейшему развитию. В 06 потребуется
+расширить версионированное сохранение Density Map/PNG и соответствующих metadata/state;
+ROI и Rough-состояния добавляются вместе с соответствующими инструментами плана.
+Будущие datasets и форматы заранее не реализованы. **Задача 06 не начата и не принята.**
+
+Согласованы README, implementation plan, architecture, описание manifest, UI-сводка,
+индекс документации и оба GUI-отчёта. Проверены 291 локальная ссылка/путь, включая
+167 ссылок на разделы, — PASS. Полный diff просмотрен, `git diff --check` — PASS;
+изменения ограничены восемью документами. Исходники, тесты, CMake, vcpkg и форматы
+не изменены. Локальный commit и итоговый Git status приводятся в ответе; push не выполнялся.

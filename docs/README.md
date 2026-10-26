@@ -61,16 +61,19 @@ UX/UI Design действует в пределах их контрактов; �
 - [05.2 Save / Save As](reports/task-05/save-implementation.md#k-independent-verification-and-acceptance) — **ACCEPTED** после финальной независимой проверки `cedf844`; R1/R2 закрыты.
 - [05.3 Open и частичная доступность](reports/task-05/open-implementation.md#l-independent-verification-and-acceptance) — **ACCEPTED** 2026-10-21 после повторной независимой проверки `1415a6a`; R1.1/R1.2 — FIXED и закрыты.
 - [05.4 Autosave / Recovery](reports/task-05/autosave-recovery.md#m-acceptance) — **ACCEPTED** 2026-10-22 после независимой проверки `b086cad`, вердикт **READY FOR ACCEPTANCE**; H1–H3/N1 — FIXED и закрыты. Debug/Release: build/lint — PASS, production 694 PASS / 0 FAIL / 1 SKIP, Recovery 64/64, process crash 7/7, целевые N1 + H1/H2 25/25, независимый probe 29/29. В отчёте сохранено неблокирующее наблюдение о нестабильности теста; при документальном закрытии сборки/CTest не повторялись.
-- [05.5A GUI Save/Open и lifecycle](reports/task-05/gui-save-open.md) — **ACCEPTED WITH LIMITATIONS** после native Windows GUI-приёмки; R1/O1/L1 FIXED. Последний полный production CTest: 761 PASS / 0 FAIL / 1 SKIP в Debug/Release; адресный L1: 8/8 в Debug/Release. Ограничения: системный DPI 150%/200% не проверен (Qt scaling проверен, но не заменяет системный DPI), отдельный native-сценарий длительного Save с поздней правкой, нестабильность Recovery `Applied`/`NoChange` и предупреждение C4702; перенос между мониторами — N/A.
-- [05.5B GUI Recovery/startup и сквозные проверки](reports/task-05/gui-recovery.md) — **READY FOR INDEPENDENT REVIEW**; новые проверки и оставшаяся ручная приёмка отделены от принятой 05.4/05.5A.
+- [05.5A GUI Save/Open и lifecycle](reports/task-05/gui-save-open.md) — **ACCEPTED WITH LIMITATIONS**; R1/O1/L1 FIXED. Последующие проверки подтвердили Late Save и системный DPI 150%; layout исправлен, C4702 устранено воспроизводимым vcpkg overlay. История и прежние результаты сохранены в отчёте, актуальные ограничения — в итоговом принятии ниже.
+- [05.5B GUI Recovery/startup и итог задачи 05](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05) — **ACCEPTED WITH LIMITATIONS**, IR-05-T1 CLOSED на `fb1f706`. Независимые Debug/Release: production **813 PASS / 0 FAIL / 1 SKIP**, lifecycle 15/15, `/2` и `/5` по 30/30, связанные tests 170/170. Межтомные cases прошли; FileSymlinkEscape здесь SKIP 1314, ранее отдельно PASS в обеих конфигурациях.
 - [Наблюдение по Operations-тесту](reports/task-05/persistence-foundation.md#operations-test-observation) — UNRESOLVED OBSERVATION / NOT CONFIRMED DEFECT.
 
-05.1–05.4 — **ACCEPTED**; 05.5A — **ACCEPTED WITH LIMITATIONS**; 05.5B — **READY FOR INDEPENDENT REVIEW**.
+05.1–05.4 — **ACCEPTED**; 05.5A, 05.5B, 05.5 и задача 05 — **ACCEPTED WITH LIMITATIONS**.
 Принята C++ реализация Autosave/Recovery с чтением v1 и публикацией v2;
 GUI Save/Open, Save/Discard/Cancel и partial availability добавлены в 05.5A;
 GUI Recovery/startup decision и сквозные проверки реализованы в 05.5B;
-независимое ревью и оставшаяся ручная приёмка ещё нужны.
-**05.5 — IN PROGRESS / NOT ACCEPTED**.
+заключительное независимое ревью и перепроверка IR-05-T1 завершены.
+Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFICATION;
+системный DPI 200% — OUT OF SCOPE; перенос между мониторами — N/A.
+Наблюдение Recovery `Applied`/`NoChange` не объявляется исправленным.
+Задача 06 не начата; [полные границы принятия](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
 
 ## Benchmark evidence
 

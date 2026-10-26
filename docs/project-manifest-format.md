@@ -4,7 +4,9 @@
 
 Реализованы metadata snapshot, UTF-8 JSON codec на Qt Core и безопасное разрешение
 project-owned paths. В 05.2 добавлены C++ Save/Save As с атомарной публикацией;
-в 05.3 — C++ Open и частичная доступность. Пользовательский GUI ещё не реализован.
+в 05.3 — C++ Open и частичная доступность. C++ Autosave/Recovery и GUI Save/Open/Recovery
+реализованы в 05.4–05.5B. Задача 05 — **ACCEPTED WITH LIMITATIONS**;
+[итоговые проверки и ограничения](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
 Binary Point Cache v1 не изменён. Несовместимое расширение manifest, включая новые
 семантические поля или dataset kinds, требует увеличения `version` и явной поддержки
 codec; миграции и молчаливое игнорирование неизвестного содержимого отсутствуют.

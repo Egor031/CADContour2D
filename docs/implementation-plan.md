@@ -1,6 +1,6 @@
 ## 1. Отправная точка плана
 
-Ниже сохранён исторический снимок на момент составления плана. Текущее состояние после принятия задач 01–04 и фактически выполненные проверки приведены в [README.md](../README.md#project-status).
+Ниже сохранён исторический снимок на момент составления плана. Текущее состояние после принятия задач 01–04 и задачи 05 с ограничениями, а также фактически выполненные проверки приведены в [README.md](../README.md#project-status).
 
 **На момент составления плана основная программа находилась на стадии проверенного каркаса; реализация её рабочего workflow ещё не была начата.** Это соответствовало тогдашнему Project Status в [README.md](../README.md) и исходникам.
 
@@ -257,7 +257,7 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 
 ### 05. Save/Open и базовый Autosave/Recovery
 
-**Статус: 05.1–05.4 — ACCEPTED; 05.5A — ACCEPTED WITH LIMITATIONS; 05.5B — READY FOR INDEPENDENT REVIEW. 05.5 и задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
+**Статус: 05.1–05.4 — ACCEPTED; 05.5A, 05.5B, 05.5 и задача 05 целиком — ACCEPTED WITH LIMITATIONS.**
 
 | Часть | Область | Статус |
 |---|---|---|
@@ -266,7 +266,9 @@ cold-cache/physical disk traffic и worst-case blocking I/O не проверя�
 | 05.3 | Open и частичная доступность | ACCEPTED |
 | 05.4 | Autosave / Recovery | ACCEPTED |
 | 05.5A | GUI Save/Open и жизненный цикл | ACCEPTED WITH LIMITATIONS |
-| 05.5B | GUI Recovery/startup decision и сквозная приёмка | READY FOR INDEPENDENT REVIEW |
+| 05.5B | GUI Recovery/startup decision и сквозная приёмка | ACCEPTED WITH LIMITATIONS |
+| 05.5 | GUI Save/Open/Recovery и сквозная приёмка | ACCEPTED WITH LIMITATIONS |
+| 05 | Save/Open и базовый Autosave/Recovery | ACCEPTED WITH LIMITATIONS |
 
 05.1 принята пользователем на commit `408757c9e26b4369b065ba9ee315d48a70336773`:
 реализация завершена, независимое ревью выявило H1/H2, исправления повторно
@@ -319,20 +321,25 @@ Autosave вместо ожидаемого Applied) сохранена как н
 закрытие и замена проекта, диагностика частичной доступности и bounded recheck.
 Этап принят с ограничениями: основные сценарии подтверждены native Windows GUI;
 R1/O1 исправлены и независимо проверены, затем L1 исправлен и подтверждён тем же
-ревьюером в native GUI (**L1 FIXED**). Последний полный production CTest —
+ревьюером в native GUI (**L1 FIXED**). При завершении этой приёмки production CTest дал
 761 PASS / 0 FAIL / 1 SKIP в Debug и Release; адресный L1 — 8/8 в обеих
 конфигурациях. Единственный SKIP связан с Windows symlink privilege (1314).
-Не проверены системный DPI 150%/200% и отдельный native-сценарий длительного Save
-с поздней правкой; Qt scaling 150%/200% проверен и не заменяет системный DPI.
-Перенос между мониторами — N/A, второго монитора нет. Нестабильность Recovery
-`Applied`/`NoChange` остаётся неисправленным наблюдением; C4702 в стороннем
-`fmt/base.h` остаётся известным предупреждением. Эти ограничения не блокируют
-принятие 05.5A; результаты и хронология — в [отчёте](reports/task-05/gui-save-open.md).
-GUI Recovery/startup decision и сквозные проверки реализованы в 05.5B;
-[новые результаты и ограничения](reports/task-05/gui-recovery.md).
-Независимое ревью и оставшаяся ручная приёмка ещё нужны.
-**05.5 — IN PROGRESS / NOT ACCEPTED**;
-задача 05 целиком — **IN PROGRESS / NOT ACCEPTED**.
+На тот момент системный DPI 150%/200% и отдельный native Late Save оставались
+непроверенными; эта история сохранена в [отчёте 05.5A](reports/task-05/gui-save-open.md).
+Последующие проверки подтвердили системные 100%/150%, Late Save с поздним `cell`
+при копировании 1,01 ГБ, Recovery/Reject/Conflict/partial через `operation_probe`,
+межтомные операции и отдельный FileSymlinkEscape. Layout исправлен; C4702
+устранено воспроизводимым [vcpkg overlay](../vcpkg/README.md).
+GUI Recovery/startup decision реализованы в 05.5B. Заключительное независимое
+ревью не выявило production safety-дефектов; тестовый IR-05-T1 закрыт после
+перепроверки `fb1f706` 2026-10-26. Собственные Debug/Release build/lint — PASS,
+production — **813 PASS / 0 FAIL / 1 SKIP**, lifecycle — **15/15**, прежние `/2`
+и `/5` — по **30/30**, связанные Recovery/lifecycle/shutdown — **170/170**.
+**05.5B, 05.5 и задача 05 — ACCEPTED WITH LIMITATIONS** по решению пользователя.
+Standalone Recovery — NOT VERIFIED, keyboard/visible focus — PARTIAL VERIFICATION,
+системный DPI 200% — OUT OF SCOPE, перенос между мониторами — N/A.
+Наблюдение `Applied`/`NoChange` не объявляется исправленным.
+[Итог независимой проверки, источники и полные границы принятия](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
 
 - **Цель:** обеспечить продолжение работы между запусками до появления длительного редактирования.
 - **Содержание:** Save/Open ранее сохранённого versioned `.pc2dproj` как отдельный от выбора исходного ASC/XYZ сценарий, относительные project-owned paths, безопасная публикация manifest/state после datasets; сохранение текущих параметров (включая выбранный `cell`) и cache references. Восстановление безопасно доступного состояния с явной диагностикой недоступных операций при отсутствующем или повреждённом cache. Отдельное recovery-состояние и предложение восстановления. Управление ссылками на datasets, используемые project state, последним save/recovery, workers или Undo, без копирования тяжёлых данных в историю. Предусмотреть расширение persistence для всех версий Density Map в 06 и их Rough-состояний в 07–10; история Undo после открытия не восстанавливается.
@@ -341,21 +348,25 @@ GUI Recovery/startup decision и сквозные проверки реализ�
 - **Результат:** импортированный проект открывается без исходного ASC/XYZ.
 - **Проверка:** round-trip с восстановлением сохранённого выбранного `cell`, перенос project directory, недоступный source, неизвестная версия, отсутствующий/повреждённый cache и частично доступный проект, прерывание записи по фазам; сохранность последнего explicit save и предыдущего recovery.
 - **Критерий завершения:** опубликованное состояние не ссылается на частичные datasets; отказ сохранения не уничтожает последнее корректное сохранение.
-- **Открытая приёмка:** независимое ревью 05.5B и оставшиеся ручные условия — в [отчёте 05.5B](reports/task-05/gui-recovery.md); ограничения 05.5A сохраняются. Целевое поведение задано в [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность). Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.3](architecture.md#281-явные-save--save-as-052), C++ recovery storage/triggers/publication/lifecycle — в [§31.1](architecture.md#311-c-autosave--recovery-054), GUI startup — в §31.2. Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
+- **Принятие и ограничения:** критерии завершения выполнены в согласованных границах; независимая проверка IR-05-T1 и принятые ограничения зафиксированы в [итоге 05.5B/05](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05). Целевое поведение задано в [ui-design.md, §9](ui-design.md#9-save-recovery-и-частичная-доступность). Протоколы Save/Save As и Open определены в [architecture.md, §§28.1–28.3](architecture.md#281-явные-save--save-as-052), C++ recovery storage/triggers/publication/lifecycle — в [§31.1](architecture.md#311-c-autosave--recovery-054), GUI startup — в §31.2. Manifest foundation использует UTF-8 JSON на Qt Core. Не создавать миграционную систему для несуществующих опубликованных версий.
 
 #### 05.5. GUI Save/Open/Recovery и сквозная приёмка
 
-**Статус: 05.5A — ACCEPTED WITH LIMITATIONS; 05.5B — READY FOR INDEPENDENT REVIEW; 05.5 — IN PROGRESS / NOT ACCEPTED.**
+**Статус: 05.5A, 05.5B и 05.5 — ACCEPTED WITH LIMITATIONS.**
 05.5A реализует Save/Open/Save As, draft/dirty, partial availability, bounded
 recheck и безопасное закрытие. [Результаты и ограничения 05.5A](reports/task-05/gui-save-open.md).
 GUI Recovery/startup decision и сквозные проверки реализованы в 05.5B;
-[отчёт и условия независимого ревью](reports/task-05/gui-recovery.md).
-Принятие 05.5A не закрывает 05.5 или задачу 05.
+[заключительное независимое ревью и принятие](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
+После закрытия IR-05-T1 задача 05 завершена с согласованными ограничениями.
 
 - **UI-объём:** меню «Файл» для Import/Open/Save/Save As/Recovery/закрытия; базовая оболочка и компактные панели по [ui-design.md, §§3, 6, 9–11](ui-design.md#3-главное-окно), с дальнейшим расширением в 06. Startup recovery decision до предложения импорта; доступ к Open без создания пустого проекта. Признаки dirty, частичной доступности и диагностика; Save/Discard/Cancel и разрешение draft до закрытия/замены. Будущие инструменты не выдаются за работающие.
 - **Проверка:** Save и Save As, отказ/ошибка/отмена, более поздняя правка во время Save, конфликт Recovery с обязательным Save As; partial Open и явный bounded recheck, недоступные действия с причиной; закрытие через меню и системную кнопку. Startup с/без recovery, принятие/отказ/закрытие предложения без молчаливого Discard, замена проекта и сохранность pending Import при Autosave. Не запускать полную validation или вычисления из просмотра.
 - **Критерий завершения:** пользователь проходит сохраняемый импорт → Save → Open без source и явный Recovery; решения о draft, сохранении и замене не принимаются неявно, C++ publication/lifecycle guards сохранены. Результаты GUI/E2E проверок фиксируются отдельно от принятой C++ реализации 05.1–05.4.
 
+Инфраструктура persistence готова к дальнейшему развитию; существенных препятствий
+к переходу на 06 не выявлено. Задача 06 не начата: для Density Map/PNG и их
+metadata/state потребуется расширить версионированное сохранение. ROI и Rough-состояния
+добавляются вместе с соответствующими инструментами последующих задач плана.
 Далее каждая задача расширяет сериализацию **своих** данных. В 06–10 Save/Open и recovery охватывают все версии с независимыми правками; очистка истории и runtime-буферов не удаляет сохранённые версии, автоматического ограничения их количества нет. Persistence не откладывается отдельным большим этапом до конца.
 
 Основание: [architecture.md, §§28–31](architecture.md#28-project-persistence), [§44](architecture.md#44-безопасность-пользовательских-данных).

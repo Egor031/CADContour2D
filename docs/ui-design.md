@@ -20,8 +20,9 @@
 availability и bounded recheck; native Windows GUI-приёмка подтвердила основные
 сценарии, R1/O1/L1 исправлены и независимо проверены. Ограничения и результаты —
 в [отчёте 05.5A](reports/task-05/gui-save-open.md).
-**05.5B — READY FOR INDEPENDENT REVIEW; 05.5 — IN PROGRESS / NOT ACCEPTED; задача 05 целиком — IN PROGRESS / NOT ACCEPTED.**
-GUI Recovery/startup decision реализованы в 05.5B; [проверки и ограничения](reports/task-05/gui-recovery.md).
+**05.5A, 05.5B, 05.5 и задача 05 целиком — ACCEPTED WITH LIMITATIONS.**
+GUI Recovery/startup decision реализованы в 05.5B; независимая перепроверка
+`fb1f706` закрыла IR-05-T1. [Итоговые проверки и принятые ограничения](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
 Canvas, навигатор, редакторы
 и последующие операции относятся к будущим задачам 06–20. Настоящий документ
 не объявляет их реализованными.
