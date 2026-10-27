@@ -1,0 +1,182 @@
+{
+    "environment": {
+        "architecture": "x86_64",
+        "buildConfiguration": "Release",
+        "buildHead": "fd6581f67d422785daec9b8afb268841ecdaf3e0",
+        "compiler": "MSVC-19.51.36260.0",
+        "cpu": "Intel64 Family 6 Model 158 Stepping 9, GenuineIntel",
+        "fileSystem": "NTFS",
+        "filesystemCache": "uncontrolled; never claimed cold",
+        "gitStatus": "M tools/density_benchmark/construction/README.md\n M tools/density_benchmark/construction/benchmark.cpp\n M tools/density_benchmark/construction/construction.cpp\n M tools/density_benchmark/construction/construction.h\n M tools/density_benchmark/construction/prepare.cpp\n M tools/density_benchmark/construction/tests.cpp\n?? docs/benchmarks/density-p1/\n?? tools/density_benchmark/construction/audit-p1.py\n?? tools/density_benchmark/construction/run-p1.py",
+        "ioDefinition": "GetProcessIoCounters deltas: process logical transfers/operations, NOT physical disk I/O",
+        "memoryDefinition": "Windows PeakWorkingSetSize: process-lifetime resident high-water mark; privateBytes is a snapshot",
+        "msvcFullVersion": "195136260",
+        "os": "Windows 10 Version 22H2",
+        "physicalDiskIo": null,
+        "physicalRamBytes": "17135476736",
+        "qtVersion": "6.12.0",
+        "runtimeHead": "af9f44cc61711c33ddeba77a341a7ef7b3436b8e",
+        "startedUtc": "2026-10-27T11:31:57.978Z",
+        "storageLabel": "D: Hitachi HDS721050CLA362 SATA HDD NTFS; see disks.json / volume.json",
+        "toolExecutableSha256": "71e09b24b818bf01a93986266628675a7b2bf038e7c59084460605deb144798d",
+        "volume": "D:/",
+        "volumeDevice": "\\\\?\\Volume{db953991-9984-4193-8397-491f2c9afecb}\\"
+    },
+    "measurements": [
+        {
+            "candidate": "C1",
+            "correctness": null,
+            "dataset": "occupied-1024",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "188200",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "1"
+                },
+                "preflight": {
+                    "availableDiskBytes": "297503297536",
+                    "availableRamBytes": "4323004416",
+                    "outputBudgetBytes": "4294967296",
+                    "plannedOutputBytes": "10616832",
+                    "plannedRamBytes": "52264960",
+                    "plannedTemporaryBytes": "5242880",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.3836,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "2097152",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "9232384",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.503,
+            "verificationMs": 0.0014,
+            "workingSetAfterBytes": "9228288",
+            "workingSetBeforeBytes": "8982528"
+        },
+        {
+            "candidate": "C1",
+            "correctness": true,
+            "dataset": "occupied-1024",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "0",
+                "boundaryValidationMs": 0.1846,
+                "cacheReaderScans": {
+                    "bufferBytes": "188200",
+                    "indexPages": "0",
+                    "pointPages": "97",
+                    "readBytes": "6356992",
+                    "readOperations": "97",
+                    "returnedRecords": "262144",
+                    "seekOperations": "97",
+                    "traversalFrames": "1"
+                },
+                "callbackInclusiveMs": 422.4254999999999,
+                "countAndTileMs": 36.810500000000665,
+                "eventBufferBytes": "1048576",
+                "eventGroupingMs": 2.2551,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "256",
+                    "nonzeroCells": "1024",
+                    "oracleAvailable": false,
+                    "outputBytes": "2129920",
+                    "sha256": "66c268c5f6d4bc1a8121c7cbc53d6319ad350e07ed32b008adf2467d5b66d580",
+                    "storedTiles": "1024",
+                    "sum": "262144"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        1024,
+                        1024
+                    ],
+                    "cellMm": 1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "1024",
+                    "width": "1024"
+                },
+                "groupBufferBytes": "8192",
+                "groupTiles": 2,
+                "groupTraversalMs": 2.075500000000016,
+                "groups": "1024",
+                "occupiedGroups": "1024",
+                "occupiedMetadataPlannedBytes": "81920",
+                "outputAndFinalizationMs": 20.1167,
+                "outputSinkMs": 21.218199999999968,
+                "peakOwnedDatasetFileHandles": 3,
+                "queries": "0",
+                "scanExcludingCallbacksMs": 78.25040000000013,
+                "scanInclusiveMs": 500.6759,
+                "scratchAllocatedFinalBytes": "0",
+                "scratchAllocatedPeakBytes": "4194304",
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "1048576",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "262144",
+                "spoolFileOpens": "2048",
+                "spoolFiles": "1024",
+                "spoolIo": {
+                    "readBytes": "1048576",
+                    "readOperations": "1024",
+                    "writeBytes": "1048576",
+                    "writeOperations": "1024"
+                },
+                "spoolOpenRemoveMs": 403.5643000000001,
+                "spoolReadMs": 19.13239999999997,
+                "spoolWriteMs": 281.9644,
+                "tileSide": 16,
+                "visitedGroups": "1024"
+            },
+            "elapsedMs": 1001.0563,
+            "fileIo": {
+                "readBytes": "1048576",
+                "readOperations": "1024",
+                "writeBytes": "3178496",
+                "writeOperations": "2048"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "2289664",
+            "processIo": {
+                "readBytes": "7405568",
+                "readOperations": "1121",
+                "writeBytes": "3178496",
+                "writeOperations": "2048"
+            },
+            "processPeakWorkingSetBytes": "10518528",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1026.0133,
+            "verificationMs": 24.7425,
+            "workingSetAfterBytes": "9420800",
+            "workingSetBeforeBytes": "9216000"
+        }
+    ],
+    "schema": "density-construction-06c-1",
+    "success": true
+}

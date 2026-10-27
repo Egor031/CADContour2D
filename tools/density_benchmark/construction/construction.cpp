@@ -10,6 +10,11 @@
 #include <exception>
 #include <limits>
 #include <set>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <io.h>
 
 namespace density::construction {
 namespace cache = cadcontour::cache;
@@ -63,28 +68,40 @@ template<class Operation> cache::ReadStatistics scan(Operation operation, const 
     return take(std::move(result));
 }
 bool lessKey(TileKey a, TileKey b) { return a.y < b.y || (a.y == b.y && a.x < b.x); }
+U64 allocatedBytes(QFile &file) {
+    const int descriptor = file.handle();
+    if (descriptor < 0) throw Failure("io_error","owned spool descriptor unavailable");
+    const auto handle = reinterpret_cast<HANDLE>(_get_osfhandle(descriptor));
+    FILE_STANDARD_INFO info{};
+    if (handle == INVALID_HANDLE_VALUE || !GetFileInformationByHandleEx(handle,FileStandardInfo,&info,sizeof(info)) || info.AllocationSize.QuadPart < 0)
+        throw Failure("io_error","cannot query owned spool allocation");
+    return U64(info.AllocationSize.QuadPart);
+}
 }
 Layout layout(const Parameters &p) {
-    require(p.tileSide && p.tileSide <= 1024 && p.groupTiles && p.eventCapacity && p.maxGroups, "invalid construction parameters");
+    require(p.tileSide && p.tileSide <= 1024 && p.groupTiles && p.eventCapacity && p.maxGroups && p.maxOccupiedGroups, "invalid construction parameters");
+    require(multiply(p.eventCapacity,24) <= U64(std::numeric_limits<qsizetype>::max()),"event chunk size unrepresentable");
     auto expected = makeGrid(p.grid.bounds,p.grid.cell);
     require(toJson(expected) == toJson(p.grid), "inconsistent grid dimensions");
     require(p.grid.width <= (1ULL << 53) && p.grid.height <= (1ULL << 53), "grid indices not exactly binary64 representable");
+    if (add(p.grid.width-1,p.grid.height-1) > p.maxBoundaryChecks)
+        throw Failure("resource_refused","experimental boundary validation work limit exceeded");
     const U64 side = multiply(p.tileSide,p.groupTiles), cells = multiply(side,side);
     require(cells <= std::numeric_limits<std::uint32_t>::max(), "local event index exceeds uint32");
     const U64 columns = (p.grid.width-1)/side+1, rows = (p.grid.height-1)/side+1, groups = multiply(columns,rows);
-    if (groups > p.maxGroups) throw Failure("resource_refused", "experimental maxGroups exceeded (also bounds spool file count)");
     return {side,columns,rows,groups,cells,{"raster-counts",p.grid.width,p.grid.height,p.tileSide,0,true}};
 }
 Plan plan(const Parameters &p, U64 points) {
     auto l = layout(p);
     const auto tiles = multiply((p.grid.width-1)/p.tileSide+1,(p.grid.height-1)/p.tileSide+1);
-    const auto nonzero = std::min(tiles,points);
+    const auto occupied = std::min({points,l.groups,p.maxOccupiedGroups});
+    const auto nonzero = std::min({tiles,points,multiply(occupied,multiply(p.groupTiles,p.groupTiles))});
     // The same conservative envelope is used by both candidates. Includes runtime,
     // reader, group counts, tile/codec copies, event+encoded buffers, descriptors,
     // and occupied spool IDs. Disk accounts logical EOF plus per-file reserve.
     return {add(48*MiB,add(multiply(l.cells,8),add(multiply(U64(p.tileSide)*p.tileSide,32),
-            add(multiply(p.eventCapacity,24),add(multiply(nonzero,64),multiply(std::min(points,l.groups),80)))))),
-        add(multiply(points,4),multiply(std::min(points,l.groups),4096)),
+            add(multiply(p.eventCapacity,24),add(multiply(nonzero,64),multiply(occupied,80)))))),
+        add(multiply(points,4),multiply(occupied,4096)),
         add(2*MiB,multiply(nonzero,add(32,multiply(U64(p.tileSide)*p.tileSide,8))))};
 }
 TileKey cell(const Grid &g, cadcontour::ModelPoint p) {
@@ -121,6 +138,8 @@ cache::BoundingBox queryBox(const Parameters &p, U64 group) {
 QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Parameters &p,
                   const QString &scratch, const TileSink &sink, FileIo &io, const Check &check) {
     const auto l = layout(p);
+    if (candidate == Candidate::Spatial && l.groups > p.maxGroups)
+        throw Failure("resource_refused","experimental spatial maxGroups exceeded");
     preflight(QFileInfo(scratch).absolutePath(),p.limits,plan(p,reader.metadata().pointCount));
     check(); QElapsedTimer timer; timer.start(); validateGrid(p.grid,check); const double validationMs = elapsed(timer);
     const auto b = reader.metadata().bounds, g = p.grid.bounds;
@@ -133,8 +152,10 @@ QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Paramet
     std::vector<Event> events;
     std::set<U64> occupied;
     U64 points = 0, queries = 0, opens = 0, scratchBytes = 0, scratchPeak = 0, rejected = 0;
+    U64 visited = 0, occupiedCount = 0, allocated = 0, allocatedPeak = 0;
     FileIo spoolIo;
     double scanMs = 0, callbackMs = 0, sortMs = 0, writeMs = 0, readMs = 0, countMs = 0, outputMs = 0;
+    double traversalMs = 0, spoolLifecycleMs = 0;
     cache::ReadStatistics stats;
     auto eventPath = [&](U64 group) { return QDir(owned.path()).filePath(decimal(group)+".events"); };
     auto flush = [&] {
@@ -145,15 +166,21 @@ QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Paramet
         for (std::size_t first = 0; first < events.size();) {
             check(); auto last = first+1; while (last < events.size() && events[last].group == events[first].group) ++last;
             const auto group = events[first].group;
-            QFile f(eventPath(group)); ++opens;
             const bool existing = occupied.contains(group);
+            if (!existing && occupied.size() == p.maxOccupiedGroups)
+                throw Failure("resource_refused","experimental maxOccupiedGroups exceeded");
+            QFile f(eventPath(group)); ++opens;
             if (!f.open(QIODevice::WriteOnly | QIODevice::Unbuffered | (existing ? QIODevice::Append : QIODevice::NewOnly)))
                 throw Failure("io_error",f.errorString());
+            const U64 allocationBefore = existing ? allocatedBytes(f) : 0;
             QByteArray encoded(qsizetype((last-first)*4),Qt::Uninitialized);
             for (auto i = first; i < last; ++i) qToLittleEndian<std::uint32_t>(events[i].local,encoded.data()+(i-first)*4);
             const auto before = io; write(f,encoded,io);
             spoolIo.writeBytes = add(spoolIo.writeBytes,io.writeBytes-before.writeBytes); spoolIo.writes = add(spoolIo.writes,io.writes-before.writes);
             if (!f.flush()) throw Failure("io_error",f.errorString());
+            allocated = add(allocated-allocationBefore,allocatedBytes(f));
+            allocatedPeak = std::max(allocatedPeak,allocated);
+            if (allocated > p.limits.temporaryBytes) throw Failure("resource_refused","allocated event scratch budget exceeded");
             scratchBytes = add(scratchBytes,U64(encoded.size())); scratchPeak = std::max(scratchPeak,scratchBytes);
             if (scratchBytes > p.limits.temporaryBytes) throw Failure("resource_refused","event scratch budget exceeded");
             occupied.insert(group); first = last;
@@ -173,14 +200,20 @@ QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Paramet
         }));
         scanMs += elapsed(timer); flush();
     }
-    for (U64 group = 0; group < l.groups; ++group) {
+    auto occupiedIt = occupied.cbegin();
+    U64 spatialGroup = 0;
+    QElapsedTimer traversal; traversal.start();
+    while (candidate == Candidate::Sequential ? occupiedIt != occupied.cend() : spatialGroup < l.groups) {
         check();
-        if (candidate == Candidate::Sequential && !occupied.contains(group)) continue;
+        const U64 group = candidate == Candidate::Sequential ? *occupiedIt++ : spatialGroup++;
+        ++visited; traversalMs += elapsed(traversal);
         timer.restart(); std::fill(counts.begin(),counts.end(),0); countMs += elapsed(timer);
         if (candidate == Candidate::Sequential) {
+            ++occupiedCount; QElapsedTimer lifecycle; lifecycle.start();
             QFile f(eventPath(group)); ++opens;
             if (!f.open(QIODevice::ReadOnly | QIODevice::Unbuffered)) throw Failure("io_error",f.errorString());
             const U64 bytes = U64(f.size()); require(bytes%4 == 0,"invalid event spool size");
+            const U64 allocation = allocatedBytes(f); spoolLifecycleMs += elapsed(lifecycle);
             for (U64 pos = 0; pos < bytes;) {
                 check(); timer.restart(); const auto before = io;
                 auto encoded = read(f,std::min<U64>(bytes-pos,p.eventCapacity*4),io); readMs += elapsed(timer);
@@ -193,9 +226,11 @@ QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Paramet
                 }
                 countMs += elapsed(timer); pos += U64(encoded.size());
             }
-            f.close(); if (!QFile::remove(f.fileName())) throw Failure("io_error","cannot remove owned event spool");
+            lifecycle.restart(); f.close(); if (!QFile::remove(f.fileName())) throw Failure("io_error","cannot remove owned event spool");
+            spoolLifecycleMs += elapsed(lifecycle); allocated -= allocation;
             scratchBytes -= bytes;
         } else {
+            const U64 beforePoints = points;
             timer.restart(); const auto box = queryBox(p,group); ++queries;
             accumulate(stats,scan([&](const auto &consumer) { return reader.scanBox(box,consumer); },[&](auto batch) {
                 QElapsedTimer t; t.start(); check();
@@ -207,6 +242,8 @@ QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Paramet
                 const auto duration = elapsed(t); callbackMs += duration; countMs += duration;
             }));
             scanMs += elapsed(timer);
+            if (points != beforePoints && ++occupiedCount > p.maxOccupiedGroups)
+                throw Failure("resource_refused","experimental maxOccupiedGroups exceeded");
         }
         const U64 gx = (group%l.columns)*l.side, gy = (group/l.columns)*l.side;
         for (U64 ty = gy; ty < std::min(p.grid.height,gy+l.side); ty += p.tileSide) {
@@ -222,26 +259,30 @@ QJsonObject build(Candidate candidate, cache::CacheReader &reader, const Paramet
                 if (total) { timer.restart(); sink(tile); outputMs += elapsed(timer); }
             }
         }
+        traversal.restart();
     }
     check(); require(points == reader.metadata().pointCount,"raster sum differs from cache measurement count");
     return {{"grid",toJson(p.grid)},{"tileSide",int(p.tileSide)},{"groupTiles",int(p.groupTiles)},
         {"groups",decimal(l.groups)},{"seenPoints",decimal(points)},{"queries",decimal(queries)},
+        {"visitedGroups",decimal(visited)},{"occupiedGroups",decimal(occupiedCount)},{"groupTraversalMs",traversalMs},
         {"cacheReaderScans",cacheStatistics(stats)},{"scanInclusiveMs",scanMs},{"scanExcludingCallbacksMs",std::max(0.,scanMs-callbackMs)},
         {"callbackInclusiveMs",callbackMs},{"boundaryValidationMs",validationMs},{"eventGroupingMs",sortMs},
         {"spoolWriteMs",writeMs},{"spoolReadMs",readMs},{"spoolIo",ioJson(spoolIo)},{"countAndTileMs",countMs},{"outputSinkMs",outputMs},
         {"scratchLogicalPeakBytes",decimal(scratchPeak)},{"scratchFinalBytes",decimal(scratchBytes)},
+        {"scratchAllocatedPeakBytes",decimal(allocatedPeak)},{"scratchAllocatedFinalBytes",decimal(allocated)},
+        {"spoolOpenRemoveMs",spoolLifecycleMs},{"occupiedMetadataPlannedBytes",decimal(std::min({reader.metadata().pointCount,l.groups,p.maxOccupiedGroups})*80)},
         {"scratchPeakDefinition","exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation"},
         {"spoolFileOpens",decimal(opens)},{"spoolFiles",decimal(U64(occupied.size()))},
         {"peakOwnedDatasetFileHandles",candidate == Candidate::Sequential && !occupied.empty() ? 3 : 2},
         {"groupBufferBytes",decimal(l.cells*8)},{"eventBufferBytes",decimal(U64(events.capacity())*sizeof(Event))},
         {"boundaryNeighbourRecordsRejected",decimal(rejected)}};
 }
-Output::Output(const QString &path, const Spec &spec, U64 points, U64 budget, FileIo &io)
+Output::Output(const QString &path, const Spec &spec, U64 points, U64 budget, FileIo &io, U64 maxTiles)
     : file_(path),spec_(spec),budget_(budget),io_(io) {
     require(!QFileInfo::exists(path),"output exists");
     if (!file_.open(QIODevice::ReadWrite | QIODevice::NewOnly | QIODevice::Unbuffered)) throw Failure("io_error",file_.errorString());
     const U64 tiles = multiply((spec.width-1)/spec.side+1,(spec.height-1)/spec.side+1);
-    entries_.reserve(std::size_t(std::min(tiles,points)));
+    entries_.reserve(std::size_t(std::min({tiles,points,maxTiles})));
 }
 void Output::append(const Tile &tile) {
     require(!finished_,"output already finished"); QElapsedTimer t; t.start();

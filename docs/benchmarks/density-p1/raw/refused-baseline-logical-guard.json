@@ -1,0 +1,62 @@
+{
+  "diagnostic": "experimental maxGroups exceeded (also bounds spool file count)",
+  "environment": {
+    "architecture": "x86_64",
+    "buildConfiguration": "Release",
+    "buildHead": "af9f44cc61711c33ddeba77a341a7ef7b3436b8e",
+    "compiler": "MSVC-19.51.36260.0",
+    "cpu": "Intel64 Family 6 Model 158 Stepping 9, GenuineIntel",
+    "fileSystem": "NTFS",
+    "filesystemCache": "uncontrolled; never claimed cold",
+    "gitStatus": "M tools/density_benchmark/construction/README.md\n M tools/density_benchmark/construction/benchmark.cpp\n M tools/density_benchmark/construction/construction.cpp\n M tools/density_benchmark/construction/construction.h\n M tools/density_benchmark/construction/prepare.cpp\n M tools/density_benchmark/construction/tests.cpp\n?? docs/benchmarks/density-p1/\n?? docs/reports/task-06/density-construction-p1.md\n?? tools/density_benchmark/construction/audit-p1.py\n?? tools/density_benchmark/construction/run-p1.py",
+    "ioDefinition": "GetProcessIoCounters deltas: process logical transfers/operations, NOT physical disk I/O",
+    "memoryDefinition": "Windows PeakWorkingSetSize: process-lifetime resident high-water mark; privateBytes is a snapshot",
+    "msvcFullVersion": "195136260",
+    "os": "Windows 10 Version 22H2",
+    "physicalDiskIo": null,
+    "physicalRamBytes": "17135476736",
+    "qtVersion": "6.12.0",
+    "runtimeHead": "af9f44cc61711c33ddeba77a341a7ef7b3436b8e",
+    "startedUtc": "2026-10-27T11:39:05.410Z",
+    "storageLabel": "unspecified; media model/type not detected",
+    "toolExecutableSha256": "bdd0c0307d59f2163503638025dbe09a0c375073d6198e73fa876e09d2654325",
+    "volume": "D:/",
+    "volumeDevice": "\\\\?\\Volume{db953991-9984-4193-8397-491f2c9afecb}\\"
+  },
+  "measurements": [
+    {
+      "candidate": "C1",
+      "correctness": null,
+      "dataset": "sparse-1048575-c1",
+      "diagnostic": "experimental maxGroups exceeded (also bounds spool file count)",
+      "elapsedMs": 0.7848,
+      "fileIo": {
+        "readBytes": "0",
+        "readOperations": "0",
+        "writeBytes": "0",
+        "writeOperations": "0"
+      },
+      "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+      "ownedFilesAfterBytes": "0",
+      "phase": "open",
+      "physicalDiskIo": null,
+      "privateBytesAfter": "2134016",
+      "processIo": {
+        "readBytes": "73728",
+        "readOperations": "3",
+        "writeBytes": "0",
+        "writeOperations": "0"
+      },
+      "processPeakWorkingSetBytes": "9359360",
+      "status": "resource_refused",
+      "temporaryPeakBytes": null,
+      "totalElapsedMs": 0.9182,
+      "verificationMs": 0.0013,
+      "workingSetAfterBytes": "9355264",
+      "workingSetBeforeBytes": "9023488"
+    }
+  ],
+  "schema": "density-construction-06c-1",
+  "status": "resource_refused",
+  "success": false
+}

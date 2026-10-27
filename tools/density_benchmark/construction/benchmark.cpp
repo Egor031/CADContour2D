@@ -80,7 +80,9 @@ int main(int argc,char **argv) {
         {"cell","Cell mm for --cache.","mm","1"},{"pad-x","Extend minimum X by this many cells.","cells","0"},
         {"pad-y","Extend minimum Y by this many cells.","cells","0"},
         {"tile-size","Tile side 1..1024.","n","256"},{"group-tiles","Square group side in tiles.","n","2"},
-        {"event-capacity","Bounded C1 events per chunk.","n","65536"},{"max-groups","Group/file guard.","n","1000000"},
+        {"event-capacity","Bounded C1 events per chunk.","n","65536"},{"max-groups","C2 logical query guard.","n","1000000"},
+        {"max-occupied-groups","Occupied groups / C1 spool files guard (planned upper bound).","n","1000000"},
+        {"max-boundary-checks","Experimental axis validation work guard.","n","100000000"},
         {"ram-mib","Common RAM budget.","n","512"},{"temp-mib","Common scratch budget.","n","1024"},
         {"output-mib","Common output budget.","n","1024"},{"repeats","Balanced fresh-process pairs.","n","4"},
         {"storage-label","Verified storage description.","text"},{"regular-fixture","Verify known Save acceptance fixture and exact separable counts."},
@@ -96,6 +98,8 @@ int main(int argc,char **argv) {
         require(side && side <= 1024 && group && group <= 65535,"invalid tile/group size");
         p.tileSide = std::uint32_t(side); p.groupTiles = std::uint32_t(group);
         p.eventCapacity = argument(cli,"event-capacity"); p.maxGroups = argument(cli,"max-groups");
+        p.maxOccupiedGroups = argument(cli,"max-occupied-groups");
+        p.maxBoundaryChecks = argument(cli,"max-boundary-checks");
         p.limits = {multiply(argument(cli,"ram-mib"),MiB),multiply(argument(cli,"temp-mib"),MiB),multiply(argument(cli,"output-mib"),MiB)};
         report = {{"schema","density-construction-06c-1"},{"environment",environment(DENSITY_SOURCE_DIR,dir,cli.value("storage-label"))}};
         auto checkpoint = [&] { check(); if (workingSet() > p.limits.ramBytes) throw Failure("resource_refused","observed working set above budget"); };
@@ -115,7 +119,8 @@ int main(int argc,char **argv) {
             if (open["status"] != "ok") throw Failure(open["status"].toString(),open["diagnostic"].toString());
             std::unique_ptr<Output> out; QJsonObject result;
             auto row = measure("build_counts",name,dir,[&](FileIo &io) {
-                out = std::make_unique<Output>(QDir(dir).filePath("counts.partial"),layout(p).spec,reader->metadata().pointCount,p.limits.outputBytes,io);
+                out = std::make_unique<Output>(QDir(dir).filePath("counts.partial"),layout(p).spec,reader->metadata().pointCount,p.limits.outputBytes,io,
+                    multiply(p.maxOccupiedGroups,multiply(p.groupTiles,p.groupTiles)));
                 auto details = build(candidate == "C1" ? Candidate::Sequential : Candidate::Spatial,*reader,p,
                     QDir(dir).filePath("scratch"),[&](const Tile &tile) { out->append(tile); },io,checkpoint);
                 out->finish(reader->metadata().pointCount); details["outputAndFinalizationMs"] = out->outputMs;
@@ -165,7 +170,8 @@ int main(int argc,char **argv) {
                     for (const auto &candidate : order) {
                         checkpoint(); const auto childDir = QDir(dir).filePath(QString("job-%1-r%2-%3").arg(j).arg(repeat).arg(candidate));
                         QStringList args{"--worker",candidate,"--job",jobPath,"--output-dir",childDir,"--tile-size",decimal(p.tileSide),"--group-tiles",decimal(p.groupTiles),
-                            "--event-capacity",decimal(p.eventCapacity),"--max-groups",decimal(p.maxGroups),"--ram-mib",decimal(p.limits.ramBytes/MiB),
+                            "--event-capacity",decimal(p.eventCapacity),"--max-groups",decimal(p.maxGroups),"--max-occupied-groups",decimal(p.maxOccupiedGroups),
+                            "--max-boundary-checks",decimal(p.maxBoundaryChecks),"--ram-mib",decimal(p.limits.ramBytes/MiB),
                             "--temp-mib",decimal(p.limits.temporaryBytes/MiB),"--output-mib",decimal(p.limits.outputBytes/MiB),"--storage-label",cli.value("storage-label")};
                         QProcess child; child.start(QCoreApplication::applicationFilePath(),args); require(child.waitForStarted(),"worker did not start");
                         while (!child.waitForFinished(100)) { if (interrupted) { child.kill(); child.waitForFinished(5000); check(); } }

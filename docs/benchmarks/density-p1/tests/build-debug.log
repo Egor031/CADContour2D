@@ -1,0 +1,5 @@
+[1/5] Building CXX object tools\density_benchmark\construction\CMakeFiles\density_construction.dir\construction.cpp.obj
+[2/5] Linking CXX static library tools\density_benchmark\construction\density_construction.lib
+[3/5] Linking CXX executable density_construction_benchmark.exe
+[4/5] Linking CXX executable density_construction_prepare.exe
+[5/5] Linking CXX executable density_construction_tests.exe

@@ -1,0 +1,120 @@
+[
+  {
+    "name": "sparse-16383-c2",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/four-clusters.pc2dcache",
+    "extent": 16383,
+    "cell": 2,
+    "tile": 256,
+    "group": 2,
+    "occupiedLimit": 4,
+    "candidates": [
+      "baseline-C1",
+      "C1",
+      "C2"
+    ]
+  },
+  {
+    "name": "sparse-16383-c1",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/four-clusters.pc2dcache",
+    "extent": 16383,
+    "cell": 1,
+    "tile": 256,
+    "group": 2,
+    "occupiedLimit": 4,
+    "candidates": [
+      "baseline-C1",
+      "C1",
+      "C2"
+    ]
+  },
+  {
+    "name": "sparse-32767-c1",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/four-clusters.pc2dcache",
+    "extent": 32767,
+    "cell": 1,
+    "tile": 256,
+    "group": 2,
+    "occupiedLimit": 4,
+    "candidates": [
+      "C1"
+    ]
+  },
+  {
+    "name": "sparse-131071-c1",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/four-clusters.pc2dcache",
+    "extent": 131071,
+    "cell": 1,
+    "tile": 256,
+    "group": 2,
+    "occupiedLimit": 4,
+    "candidates": [
+      "C1"
+    ]
+  },
+  {
+    "name": "sparse-1048575-c1",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/four-clusters.pc2dcache",
+    "extent": 1048575,
+    "cell": 1,
+    "tile": 256,
+    "group": 2,
+    "occupiedLimit": 4,
+    "candidates": [
+      "C1"
+    ]
+  },
+  {
+    "name": "occupied-64",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/occupied-64.pc2dcache",
+    "extent": 256,
+    "cell": 1,
+    "tile": 16,
+    "group": 2,
+    "occupiedLimit": 64,
+    "candidates": [
+      "baseline-C1",
+      "C1",
+      "C2"
+    ]
+  },
+  {
+    "name": "occupied-1024",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/occupied-1024.pc2dcache",
+    "extent": 1024,
+    "cell": 1,
+    "tile": 16,
+    "group": 2,
+    "occupiedLimit": 1024,
+    "candidates": [
+      "baseline-C1",
+      "C1",
+      "C2"
+    ]
+  },
+  {
+    "name": "occupied-4096",
+    "cachePath": "D:/ZherlitsynEE/CADContour2D/build/density-p1-matrix/prepared/occupied-4096.pc2dcache",
+    "extent": 2048,
+    "cell": 1,
+    "tile": 16,
+    "group": 2,
+    "occupiedLimit": 4096,
+    "candidates": [
+      "baseline-C1",
+      "C1",
+      "C2"
+    ]
+  },
+  {
+    "name": "42m-512",
+    "cachePath": "D:\\ZherlitsynEE\\CADContour2D\\build\\task052-resource-42m\\source.pc2dcache",
+    "tile": 256,
+    "group": 2,
+    "occupiedLimit": 1000000,
+    "candidates": [
+      "baseline-C1",
+      "C1",
+      "C2"
+    ]
+  }
+]

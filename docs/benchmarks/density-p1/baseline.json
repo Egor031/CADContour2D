@@ -1,0 +1,63 @@
+{
+  "branch": "main",
+  "head": "af9f44cc61711c33ddeba77a341a7ef7b3436b8e",
+  "initialStatus": "clean",
+  "archiveSha256": "589a8dca3e5b0954159694519fe3591a38607128b29a6fb5981fac7aadef4a34",
+  "comparison": "git archive applies CRLF attributes; source content equals git show af9f44c after CRLF/LF normalization",
+  "sources": [
+    {
+      "path": "tools/density_benchmark/construction/construction.cpp",
+      "baselineSha256": "b13202b73c27856c2ef0985043617a34f7ffd03ffb8c2a8c6210ccc04734858e",
+      "gitBlobSha256": "dae767c98562e913edf4017746d9eed404070cf1854c1b038d2af6b9277f0f3b",
+      "currentSha256": "b5b48db9d99007fdb892349869196bcb705f50ecf07a71efc56d2f9d0580d991"
+    },
+    {
+      "path": "tools/density_benchmark/construction/construction.h",
+      "baselineSha256": "2b075e78837937c8fd4b5463ff8438f8161f3d5dff73b10c693c5a7832347c89",
+      "gitBlobSha256": "bde2b0d27974a4191252a4478a570a57445a39b73198dab26d1bbd6e878a0667",
+      "currentSha256": "e89f77d302401064a122d593e8ab58834d1ed999f9450a510236feca1adcf204"
+    },
+    {
+      "path": "tools/density_benchmark/construction/benchmark.cpp",
+      "baselineSha256": "f58a42aae33afc9480cf1254b2e900b06c3cdaec0eaebc9be696571aad5c17f8",
+      "gitBlobSha256": "05c1828f9bf249e64f178ce1856f860b23b04a1bd171eadfab414831c17692a0",
+      "currentSha256": "0d2794da2d99e87610867326ea247a2a086cc85aa1309a9129d6ae6ba1d7be43"
+    },
+    {
+      "path": "tools/density_benchmark/construction/prepare.cpp",
+      "baselineSha256": "d76c4136e0438b8c483c289ba3d48cf951c9dcf32d5eb5cdb92657bbfc0e43a0",
+      "gitBlobSha256": "12d402175c30c8eb9d9e6e53077c56b675aaccfd57eee7c7155caa804391fa58",
+      "currentSha256": "86fc8172b1f95d3b3c02f26ed3d3c61ddd626999689bd24f09823dba0dd22efd"
+    },
+    {
+      "path": "tools/density_benchmark/construction/tests.cpp",
+      "baselineSha256": "c51f1b45dd8d3d83f03e4223e688498087606670a4193d249e959aab37bd6aba",
+      "gitBlobSha256": "993332d9903f993b2a964615bf0e552532d77cc96af90d262d81602b4b821cd8",
+      "currentSha256": "ccd1ba38e6dec0b70f46733d22de92ad95b8b0d4bae20f00f3c0b3733fa7524f"
+    },
+    {
+      "path": "src/cache/cache_reader.cpp",
+      "baselineSha256": "3b54dd1fe1a553218338a29122a8eecff614c607711e4b2a8c5a4dd5af294900",
+      "gitBlobSha256": "d4ff70789d1a2c902b4daae7d8b1f00785e3ff55650ed930e26afa7d427c3db4",
+      "currentSha256": "3b54dd1fe1a553218338a29122a8eecff614c607711e4b2a8c5a4dd5af294900"
+    },
+    {
+      "path": "src/cache/cache_reader.h",
+      "baselineSha256": "4bd2170915ebc074819b8ff6b07112dc3f1ef3ece336ea0ffb6fe005643bc7ad",
+      "gitBlobSha256": "a3080660d68e1e6c5f0d683405a2266602c18fd06c3c097b3e77fd27b6b4e630",
+      "currentSha256": "4bd2170915ebc074819b8ff6b07112dc3f1ef3ece336ea0ffb6fe005643bc7ad"
+    },
+    {
+      "path": "tools/density_benchmark/measurement.cpp",
+      "baselineSha256": "030db01369946f3e43923db2f608ea9284e29e40aec254fefa7b71bca57658e7",
+      "gitBlobSha256": "e8f18ada52b81ff4ef5dde3a6bdfaaa0c8f7fe9dc5ef8356f596613b4fad1cd1",
+      "currentSha256": "e8f18ada52b81ff4ef5dde3a6bdfaaa0c8f7fe9dc5ef8356f596613b4fad1cd1"
+    },
+    {
+      "path": "tools/density_benchmark/oracle.cpp",
+      "baselineSha256": "441b102419d6be799be5192e09cf13115e5c976c84358728feb4f9a7ff92f149",
+      "gitBlobSha256": "d6680ec0d4fcfcfcad990e20161baa0c9504ce1dd3616a4cdd8a78c7e891203e",
+      "currentSha256": "d6680ec0d4fcfcfcad990e20161baa0c9504ce1dd3616a4cdd8a78c7e891203e"
+    }
+  ]
+}

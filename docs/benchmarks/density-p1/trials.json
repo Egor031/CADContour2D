@@ -1,0 +1,758 @@
+[
+  {
+    "trial": "sparse-16383-c2-r0-baseline-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "baseline-C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r0-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r0-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r0-C2",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C2",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r0-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r1-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r1-C2",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C2",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r1-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r1-baseline-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "baseline-C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r1-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r2-C2",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C2",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r2-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r2-baseline-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "baseline-C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r2-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r2-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r3-C2",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C2",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r3-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r3-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c2-r3-baseline-C1",
+    "scenario": "sparse-16383-c2",
+    "candidate": "baseline-C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-r3-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c2-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r0-baseline-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "baseline-C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r0-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r0-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r0-C2",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C2",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r0-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r1-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r1-C2",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C2",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r1-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r1-baseline-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "baseline-C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r1-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r2-C2",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C2",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r2-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r2-baseline-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "baseline-C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r2-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r2-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r3-C2",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C2",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r3-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r3-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-16383-c1-r3-baseline-C1",
+    "scenario": "sparse-16383-c1",
+    "candidate": "baseline-C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-r3-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-16383-c1-job.json"
+  },
+  {
+    "trial": "sparse-32767-c1-r0-C1",
+    "scenario": "sparse-32767-c1",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-job.json"
+  },
+  {
+    "trial": "sparse-32767-c1-r1-C1",
+    "scenario": "sparse-32767-c1",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-job.json"
+  },
+  {
+    "trial": "sparse-32767-c1-r2-C1",
+    "scenario": "sparse-32767-c1",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-job.json"
+  },
+  {
+    "trial": "sparse-32767-c1-r3-C1",
+    "scenario": "sparse-32767-c1",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-32767-c1-job.json"
+  },
+  {
+    "trial": "sparse-131071-c1-r0-C1",
+    "scenario": "sparse-131071-c1",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-job.json"
+  },
+  {
+    "trial": "sparse-131071-c1-r1-C1",
+    "scenario": "sparse-131071-c1",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-job.json"
+  },
+  {
+    "trial": "sparse-131071-c1-r2-C1",
+    "scenario": "sparse-131071-c1",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-job.json"
+  },
+  {
+    "trial": "sparse-131071-c1-r3-C1",
+    "scenario": "sparse-131071-c1",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-131071-c1-job.json"
+  },
+  {
+    "trial": "sparse-1048575-c1-r0-C1",
+    "scenario": "sparse-1048575-c1",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-job.json"
+  },
+  {
+    "trial": "sparse-1048575-c1-r1-C1",
+    "scenario": "sparse-1048575-c1",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-job.json"
+  },
+  {
+    "trial": "sparse-1048575-c1-r2-C1",
+    "scenario": "sparse-1048575-c1",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-job.json"
+  },
+  {
+    "trial": "sparse-1048575-c1-r3-C1",
+    "scenario": "sparse-1048575-c1",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\sparse-1048575-c1-job.json"
+  },
+  {
+    "trial": "occupied-64-r0-baseline-C1",
+    "scenario": "occupied-64",
+    "candidate": "baseline-C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r0-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r0-C1",
+    "scenario": "occupied-64",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r0-C2",
+    "scenario": "occupied-64",
+    "candidate": "C2",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r0-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r1-C1",
+    "scenario": "occupied-64",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r1-C2",
+    "scenario": "occupied-64",
+    "candidate": "C2",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r1-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r1-baseline-C1",
+    "scenario": "occupied-64",
+    "candidate": "baseline-C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r1-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r2-C2",
+    "scenario": "occupied-64",
+    "candidate": "C2",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r2-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r2-baseline-C1",
+    "scenario": "occupied-64",
+    "candidate": "baseline-C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r2-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r2-C1",
+    "scenario": "occupied-64",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r3-C2",
+    "scenario": "occupied-64",
+    "candidate": "C2",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r3-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r3-C1",
+    "scenario": "occupied-64",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-64-r3-baseline-C1",
+    "scenario": "occupied-64",
+    "candidate": "baseline-C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-r3-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-64-job.json"
+  },
+  {
+    "trial": "occupied-1024-r0-baseline-C1",
+    "scenario": "occupied-1024",
+    "candidate": "baseline-C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r0-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r0-C1",
+    "scenario": "occupied-1024",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r0-C2",
+    "scenario": "occupied-1024",
+    "candidate": "C2",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r0-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r1-C1",
+    "scenario": "occupied-1024",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r1-C2",
+    "scenario": "occupied-1024",
+    "candidate": "C2",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r1-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r1-baseline-C1",
+    "scenario": "occupied-1024",
+    "candidate": "baseline-C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r1-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r2-C2",
+    "scenario": "occupied-1024",
+    "candidate": "C2",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r2-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r2-baseline-C1",
+    "scenario": "occupied-1024",
+    "candidate": "baseline-C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r2-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r2-C1",
+    "scenario": "occupied-1024",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r3-C2",
+    "scenario": "occupied-1024",
+    "candidate": "C2",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r3-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r3-C1",
+    "scenario": "occupied-1024",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-1024-r3-baseline-C1",
+    "scenario": "occupied-1024",
+    "candidate": "baseline-C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-r3-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-1024-job.json"
+  },
+  {
+    "trial": "occupied-4096-r0-baseline-C1",
+    "scenario": "occupied-4096",
+    "candidate": "baseline-C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r0-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r0-C1",
+    "scenario": "occupied-4096",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r0-C2",
+    "scenario": "occupied-4096",
+    "candidate": "C2",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r0-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r1-C1",
+    "scenario": "occupied-4096",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r1-C2",
+    "scenario": "occupied-4096",
+    "candidate": "C2",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r1-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r1-baseline-C1",
+    "scenario": "occupied-4096",
+    "candidate": "baseline-C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r1-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r2-C2",
+    "scenario": "occupied-4096",
+    "candidate": "C2",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r2-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r2-baseline-C1",
+    "scenario": "occupied-4096",
+    "candidate": "baseline-C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r2-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r2-C1",
+    "scenario": "occupied-4096",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r3-C2",
+    "scenario": "occupied-4096",
+    "candidate": "C2",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r3-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r3-C1",
+    "scenario": "occupied-4096",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "occupied-4096-r3-baseline-C1",
+    "scenario": "occupied-4096",
+    "candidate": "baseline-C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-r3-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\occupied-4096-job.json"
+  },
+  {
+    "trial": "42m-512-r0-baseline-C1",
+    "scenario": "42m-512",
+    "candidate": "baseline-C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r0-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r0-C1",
+    "scenario": "42m-512",
+    "candidate": "C1",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r0-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r0-C2",
+    "scenario": "42m-512",
+    "candidate": "C2",
+    "repetition": 0,
+    "runClass": "first",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r0-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r1-C1",
+    "scenario": "42m-512",
+    "candidate": "C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r1-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r1-C2",
+    "scenario": "42m-512",
+    "candidate": "C2",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r1-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r1-baseline-C1",
+    "scenario": "42m-512",
+    "candidate": "baseline-C1",
+    "repetition": 1,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r1-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r2-C2",
+    "scenario": "42m-512",
+    "candidate": "C2",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r2-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r2-baseline-C1",
+    "scenario": "42m-512",
+    "candidate": "baseline-C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r2-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r2-C1",
+    "scenario": "42m-512",
+    "candidate": "C1",
+    "repetition": 2,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r2-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r3-C2",
+    "scenario": "42m-512",
+    "candidate": "C2",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r3-C2",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r3-C1",
+    "scenario": "42m-512",
+    "candidate": "C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r3-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  },
+  {
+    "trial": "42m-512-r3-baseline-C1",
+    "scenario": "42m-512",
+    "candidate": "baseline-C1",
+    "repetition": 3,
+    "runClass": "subsequent",
+    "workerDirectory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-r3-baseline-C1",
+    "job": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\42m-512-job.json"
+  }
+]

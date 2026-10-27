@@ -1,0 +1,2660 @@
+{
+  "status": "PASS",
+  "exactOracleOutputs": 84,
+  "preparationJsonCsvRows": 8,
+  "resourceRefusals": 7,
+  "summary": [
+    {
+      "scenario": "sparse-16383-c2",
+      "candidate": "baseline-C1",
+      "firstMs": 195.5008,
+      "medianMs": 191.3778,
+      "minMs": 190.0589,
+      "maxMs": 221.5841,
+      "medianOpenPlusBuildMs": 192.91060000000002,
+      "peakWorkingSetBytes": 15257600,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 1.5048,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 92.32329999999997,
+        "countAndTileMs": 29.3863,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.3228,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4",
+          "nonzeroCells": "65536",
+          "oracleAvailable": false,
+          "outputBytes": "2097280",
+          "sha256": "efb0faedcc87fe62cf9c2b9fa4290cdd7474e223cab5fee680dff4e38f1e9560",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            16383,
+            16383
+          ],
+          "cellMm": 2,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "8192",
+          "width": "8192"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groups": "256",
+        "outputAndFinalizationMs": 5.6004,
+        "outputSinkMs": 5.897600000000001,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 61.32980000000002,
+        "scanInclusiveMs": 153.6531,
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolReadMs": 0.5162,
+        "spoolWriteMs": 3.0227000000000004,
+        "tileSide": 256
+      }
+    },
+    {
+      "scenario": "sparse-16383-c2",
+      "candidate": "C1",
+      "firstMs": 197.3672,
+      "medianMs": 224.4395,
+      "minMs": 195.3229,
+      "maxMs": 342.9917,
+      "medianOpenPlusBuildMs": 226.068,
+      "peakWorkingSetBytes": 14626816,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 1.705,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 92.3861,
+        "countAndTileMs": 31.356199999999994,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.28780000000000006,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4",
+          "nonzeroCells": "65536",
+          "oracleAvailable": false,
+          "outputBytes": "2097280",
+          "sha256": "efb0faedcc87fe62cf9c2b9fa4290cdd7474e223cab5fee680dff4e38f1e9560",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            16383,
+            16383
+          ],
+          "cellMm": 2,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "8192",
+          "width": "8192"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.009800000000000001,
+        "groups": "256",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 7.3491,
+        "outputSinkMs": 7.6874,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 59.59870000000001,
+        "scanInclusiveMs": 151.9848,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolOpenRemoveMs": 1.4364,
+        "spoolReadMs": 0.47709999999999997,
+        "spoolWriteMs": 3.0725,
+        "tileSide": 256,
+        "visitedGroups": "4"
+      }
+    },
+    {
+      "scenario": "sparse-16383-c2",
+      "candidate": "C2",
+      "firstMs": 848.8058,
+      "medianMs": 804.6543,
+      "minMs": 790.8218,
+      "maxMs": 805.4562,
+      "medianOpenPlusBuildMs": 806.0676000000001,
+      "peakWorkingSetBytes": 13582336,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 1.4756,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "256",
+          "pointPages": "637",
+          "readBytes": "58523648",
+          "readOperations": "893",
+          "returnedRecords": "262144",
+          "seekOperations": "893",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 95.48059999999998,
+        "countAndTileMs": 296.94250000000056,
+        "eventBufferBytes": "0",
+        "eventGroupingMs": 0,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4",
+          "nonzeroCells": "65536",
+          "oracleAvailable": false,
+          "outputBytes": "2097280",
+          "sha256": "efb0faedcc87fe62cf9c2b9fa4290cdd7474e223cab5fee680dff4e38f1e9560",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            16383,
+            16383
+          ],
+          "cellMm": 2,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "8192",
+          "width": "8192"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.5784000000000009,
+        "groups": "256",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 5.8592,
+        "outputSinkMs": 6.042299999999999,
+        "peakOwnedDatasetFileHandles": 2,
+        "queries": "256",
+        "scanExcludingCallbacksMs": 538.1870000000004,
+        "scanInclusiveMs": 633.6676000000003,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "0",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "0",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "0",
+        "spoolFiles": "0",
+        "spoolIo": {
+          "readBytes": "0",
+          "readOperations": "0",
+          "writeBytes": "0",
+          "writeOperations": "0"
+        },
+        "spoolOpenRemoveMs": 0,
+        "spoolReadMs": 0,
+        "spoolWriteMs": 0,
+        "tileSide": 256,
+        "visitedGroups": "256"
+      }
+    },
+    {
+      "scenario": "sparse-16383-c1",
+      "candidate": "baseline-C1",
+      "firstMs": 199.8061,
+      "medianMs": 197.9352,
+      "minMs": 195.9068,
+      "maxMs": 199.7348,
+      "medianOpenPlusBuildMs": 199.32240000000002,
+      "peakWorkingSetBytes": 14622720,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 3.4714,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 95.95769999999999,
+        "countAndTileMs": 28.688899999999993,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.38349999999999995,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4",
+          "nonzeroCells": "261121",
+          "oracleAvailable": false,
+          "outputBytes": "2089096",
+          "sha256": "9ac1161a3e54b395b0a328ed34d703ef789490e6299c32f2cf47c4cd8f148a8c",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            16383,
+            16383
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "16383",
+          "width": "16383"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groups": "1024",
+        "outputAndFinalizationMs": 5.9763,
+        "outputSinkMs": 6.0518,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 59.76950000000002,
+        "scanInclusiveMs": 155.7272,
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolReadMs": 0.5228,
+        "spoolWriteMs": 3.3613000000000004,
+        "tileSide": 256
+      }
+    },
+    {
+      "scenario": "sparse-16383-c1",
+      "candidate": "C1",
+      "firstMs": 202.5956,
+      "medianMs": 197.9953,
+      "minMs": 197.29,
+      "maxMs": 200.6116,
+      "medianOpenPlusBuildMs": 199.42929999999998,
+      "peakWorkingSetBytes": 14626816,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 3.0581,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 95.86180000000002,
+        "countAndTileMs": 28.5654,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.29510000000000003,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4",
+          "nonzeroCells": "261121",
+          "oracleAvailable": false,
+          "outputBytes": "2089096",
+          "sha256": "9ac1161a3e54b395b0a328ed34d703ef789490e6299c32f2cf47c4cd8f148a8c",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            16383,
+            16383
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "16383",
+          "width": "16383"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.025300000000000003,
+        "groups": "1024",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 5.448499999999999,
+        "outputSinkMs": 5.5121,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 59.53029999999998,
+        "scanInclusiveMs": 155.3921,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolOpenRemoveMs": 1.4546999999999999,
+        "spoolReadMs": 0.45630000000000004,
+        "spoolWriteMs": 2.7884,
+        "tileSide": 256,
+        "visitedGroups": "4"
+      }
+    },
+    {
+      "scenario": "sparse-16383-c1",
+      "candidate": "C2",
+      "firstMs": 2707.7237,
+      "medianMs": 2782.1376,
+      "minMs": 2701.4567,
+      "maxMs": 2803.284,
+      "medianOpenPlusBuildMs": 2783.5027,
+      "peakWorkingSetBytes": 13524992,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 2.9889,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "1024",
+          "pointPages": "2205",
+          "readBytes": "211615744",
+          "readOperations": "3229",
+          "returnedRecords": "262144",
+          "seekOperations": "3229",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 92.17069999999998,
+        "countAndTileMs": 867.0362000000026,
+        "eventBufferBytes": "0",
+        "eventGroupingMs": 0,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4",
+          "nonzeroCells": "261121",
+          "oracleAvailable": false,
+          "outputBytes": "2089096",
+          "sha256": "9ac1161a3e54b395b0a328ed34d703ef789490e6299c32f2cf47c4cd8f148a8c",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            16383,
+            16383
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "16383",
+          "width": "16383"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 2.2318000000000024,
+        "groups": "1024",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 5.382899999999999,
+        "outputSinkMs": 5.433,
+        "peakOwnedDatasetFileHandles": 2,
+        "queries": "1024",
+        "scanExcludingCallbacksMs": 1815.4193000000002,
+        "scanInclusiveMs": 1907.5900000000001,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "0",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "0",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "0",
+        "spoolFiles": "0",
+        "spoolIo": {
+          "readBytes": "0",
+          "readOperations": "0",
+          "writeBytes": "0",
+          "writeOperations": "0"
+        },
+        "spoolOpenRemoveMs": 0,
+        "spoolReadMs": 0,
+        "spoolWriteMs": 0,
+        "tileSide": 256,
+        "visitedGroups": "1024"
+      }
+    },
+    {
+      "scenario": "sparse-32767-c1",
+      "candidate": "C1",
+      "firstMs": 259.4617,
+      "medianMs": 203.3289,
+      "minMs": 201.9408,
+      "maxMs": 206.7764,
+      "medianOpenPlusBuildMs": 204.803,
+      "peakWorkingSetBytes": 14614528,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 6.1304,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 152.87,
+        "countAndTileMs": 30.06149999999999,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.2794,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "1",
+          "nonzeroCells": "262144",
+          "oracleAvailable": false,
+          "outputBytes": "2097280",
+          "sha256": "d84152c13d38149b188d47e1c7875d34728971d3a6c626628250fd64ab50173e",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            32767,
+            32767
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "32767",
+          "width": "32767"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.0099,
+        "groups": "4096",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 5.4293,
+        "outputSinkMs": 5.6253,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 59.8434,
+        "scanInclusiveMs": 212.7134,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolOpenRemoveMs": 1.3435000000000001,
+        "spoolReadMs": 0.5128,
+        "spoolWriteMs": 9.898600000000002,
+        "tileSide": 256,
+        "visitedGroups": "4"
+      }
+    },
+    {
+      "scenario": "sparse-131071-c1",
+      "candidate": "C1",
+      "firstMs": 229.2911,
+      "medianMs": 235.1814,
+      "minMs": 235.0891,
+      "maxMs": 237.722,
+      "medianOpenPlusBuildMs": 236.6068,
+      "peakWorkingSetBytes": 14659584,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 24.88,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 105.5406,
+        "countAndTileMs": 29.438799999999997,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.3883,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "1",
+          "nonzeroCells": "262144",
+          "oracleAvailable": false,
+          "outputBytes": "2097280",
+          "sha256": "2ca1dbf08ad9a5c9421e6f75398788711215e511d24776798ec56925cccdfe33",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            131071,
+            131071
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "131071",
+          "width": "131071"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.0124,
+        "groups": "65536",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 5.474800000000001,
+        "outputSinkMs": 5.6706,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 58.87830000000001,
+        "scanInclusiveMs": 164.4189,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolOpenRemoveMs": 1.4498,
+        "spoolReadMs": 0.49,
+        "spoolWriteMs": 3.2668999999999997,
+        "tileSide": 256,
+        "visitedGroups": "4"
+      }
+    },
+    {
+      "scenario": "sparse-1048575-c1",
+      "candidate": "C1",
+      "firstMs": 411.4809,
+      "medianMs": 411.9683,
+      "minMs": 410.7864,
+      "maxMs": 415.1813,
+      "medianOpenPlusBuildMs": 413.5067,
+      "peakWorkingSetBytes": 14655488,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 196.7598,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 116.30070000000003,
+        "countAndTileMs": 29.012200000000007,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 0.3033,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "1",
+          "nonzeroCells": "262144",
+          "oracleAvailable": false,
+          "outputBytes": "2097280",
+          "sha256": "376228b8af75453dc7ad4f878e68f46b54abd661437d2f1cf2d9946e7caa42c6",
+          "storedTiles": "4",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            1048575,
+            1048575
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "1048575",
+          "width": "1048575"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.009399999999999999,
+        "groups": "4194304",
+        "occupiedGroups": "4",
+        "occupiedMetadataPlannedBytes": "320",
+        "outputAndFinalizationMs": 5.2276,
+        "outputSinkMs": 5.4135,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 59.44689999999997,
+        "scanInclusiveMs": 175.7476,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "12",
+        "spoolFiles": "4",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4",
+          "writeBytes": "1048576",
+          "writeOperations": "8"
+        },
+        "spoolOpenRemoveMs": 1.2043,
+        "spoolReadMs": 0.4842,
+        "spoolWriteMs": 3.158,
+        "tileSide": 256,
+        "visitedGroups": "4"
+      }
+    },
+    {
+      "scenario": "occupied-64",
+      "candidate": "baseline-C1",
+      "firstMs": 239.6505,
+      "medianMs": 245.8534,
+      "minMs": 240.2358,
+      "maxMs": 278.467,
+      "medianOpenPlusBuildMs": 247.2739,
+      "peakWorkingSetBytes": 10461184,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.0487,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 110.30409999999998,
+        "countAndTileMs": 34.57250000000011,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 1.0941,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4096",
+          "nonzeroCells": "64",
+          "oracleAvailable": false,
+          "outputBytes": "133120",
+          "sha256": "e88ab51b04c7ee05de8119ced6a37c140dd6757305b09f05ee29d3920b5f41c5",
+          "storedTiles": "64",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            256,
+            256
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "256",
+          "width": "256"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groups": "64",
+        "outputAndFinalizationMs": 1.5116,
+        "outputSinkMs": 1.5961999999999998,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 67.01450000000003,
+        "scanInclusiveMs": 177.3186,
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "128",
+        "spoolFiles": "64",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "64",
+          "writeBytes": "1048576",
+          "writeOperations": "64"
+        },
+        "spoolReadMs": 1.2022999999999997,
+        "spoolWriteMs": 20.722800000000003,
+        "tileSide": 16
+      }
+    },
+    {
+      "scenario": "occupied-64",
+      "candidate": "C1",
+      "firstMs": 289.3814,
+      "medianMs": 297.8757,
+      "minMs": 242.3668,
+      "maxMs": 305.5191,
+      "medianOpenPlusBuildMs": 299.358,
+      "peakWorkingSetBytes": 10452992,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.0475,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 121.251,
+        "countAndTileMs": 41.03990000000002,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 1.0739,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4096",
+          "nonzeroCells": "64",
+          "oracleAvailable": false,
+          "outputBytes": "133120",
+          "sha256": "e88ab51b04c7ee05de8119ced6a37c140dd6757305b09f05ee29d3920b5f41c5",
+          "storedTiles": "64",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            256,
+            256
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "256",
+          "width": "256"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.16239999999999993,
+        "groups": "64",
+        "occupiedGroups": "64",
+        "occupiedMetadataPlannedBytes": "5120",
+        "outputAndFinalizationMs": 1.5299999999999991,
+        "outputSinkMs": 1.6857,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 90.17339999999999,
+        "scanInclusiveMs": 211.4244,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "128",
+        "spoolFiles": "64",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "64",
+          "writeBytes": "1048576",
+          "writeOperations": "64"
+        },
+        "spoolOpenRemoveMs": 30.300500000000007,
+        "spoolReadMs": 2.1491,
+        "spoolWriteMs": 27.9614,
+        "tileSide": 16,
+        "visitedGroups": "64"
+      }
+    },
+    {
+      "scenario": "occupied-64",
+      "candidate": "C2",
+      "firstMs": 291.0254,
+      "medianMs": 266.5025,
+      "minMs": 263.0143,
+      "maxMs": 306.8027,
+      "medianOpenPlusBuildMs": 268.1196,
+      "peakWorkingSetBytes": 9416704,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.0515,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "64",
+          "pointPages": "258",
+          "readBytes": "21102592",
+          "readOperations": "322",
+          "returnedRecords": "262144",
+          "seekOperations": "322",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 81.24630000000002,
+        "countAndTileMs": 81.60659999999997,
+        "eventBufferBytes": "0",
+        "eventGroupingMs": 0,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "4096",
+          "nonzeroCells": "64",
+          "oracleAvailable": false,
+          "outputBytes": "133120",
+          "sha256": "e88ab51b04c7ee05de8119ced6a37c140dd6757305b09f05ee29d3920b5f41c5",
+          "storedTiles": "64",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            256,
+            256
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "256",
+          "width": "256"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.10799999999999994,
+        "groups": "64",
+        "occupiedGroups": "64",
+        "occupiedMetadataPlannedBytes": "5120",
+        "outputAndFinalizationMs": 11.851499999999998,
+        "outputSinkMs": 11.9492,
+        "peakOwnedDatasetFileHandles": 2,
+        "queries": "64",
+        "scanExcludingCallbacksMs": 195.20420000000001,
+        "scanInclusiveMs": 276.45050000000003,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "0",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "0",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "0",
+        "spoolFiles": "0",
+        "spoolIo": {
+          "readBytes": "0",
+          "readOperations": "0",
+          "writeBytes": "0",
+          "writeOperations": "0"
+        },
+        "spoolOpenRemoveMs": 0,
+        "spoolReadMs": 0,
+        "spoolWriteMs": 0,
+        "tileSide": 16,
+        "visitedGroups": "64"
+      }
+    },
+    {
+      "scenario": "occupied-1024",
+      "candidate": "baseline-C1",
+      "firstMs": 827.4421,
+      "medianMs": 1021.6267,
+      "minMs": 790.3906,
+      "maxMs": 1152.4131,
+      "medianOpenPlusBuildMs": 1023.0263,
+      "peakWorkingSetBytes": 10563584,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.1848,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 384.3405,
+        "countAndTileMs": 30.5911000000012,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 2.2834,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "256",
+          "nonzeroCells": "1024",
+          "oracleAvailable": false,
+          "outputBytes": "2129920",
+          "sha256": "66c268c5f6d4bc1a8121c7cbc53d6319ad350e07ed32b008adf2467d5b66d580",
+          "storedTiles": "1024",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            1024,
+            1024
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "1024",
+          "width": "1024"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groups": "1024",
+        "outputAndFinalizationMs": 18.455999999999936,
+        "outputSinkMs": 19.134199999999993,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 78.05489999999998,
+        "scanInclusiveMs": 462.3954,
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "2048",
+        "spoolFiles": "1024",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "1024",
+          "writeBytes": "1048576",
+          "writeOperations": "1024"
+        },
+        "spoolReadMs": 14.917000000000003,
+        "spoolWriteMs": 287.70590000000004,
+        "tileSide": 16
+      }
+    },
+    {
+      "scenario": "occupied-1024",
+      "candidate": "C1",
+      "firstMs": 899.1913,
+      "medianMs": 1001.0563,
+      "minMs": 966.9057,
+      "maxMs": 1098.3966,
+      "medianOpenPlusBuildMs": 1002.4399,
+      "peakWorkingSetBytes": 10584064,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.1932,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 432.4293,
+        "countAndTileMs": 32.41870000000117,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 2.4874,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "256",
+          "nonzeroCells": "1024",
+          "oracleAvailable": false,
+          "outputBytes": "2129920",
+          "sha256": "66c268c5f6d4bc1a8121c7cbc53d6319ad350e07ed32b008adf2467d5b66d580",
+          "storedTiles": "1024",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            1024,
+            1024
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "1024",
+          "width": "1024"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groupTraversalMs": 2.0443000000000184,
+        "groups": "1024",
+        "occupiedGroups": "1024",
+        "occupiedMetadataPlannedBytes": "81920",
+        "outputAndFinalizationMs": 26.934099999999972,
+        "outputSinkMs": 27.843600000000023,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 78.04849999999999,
+        "scanInclusiveMs": 510.4778,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "4194304",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "2048",
+        "spoolFiles": "1024",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "1024",
+          "writeBytes": "1048576",
+          "writeOperations": "1024"
+        },
+        "spoolOpenRemoveMs": 289.7923999999995,
+        "spoolReadMs": 17.961600000000026,
+        "spoolWriteMs": 310.4307,
+        "tileSide": 16,
+        "visitedGroups": "1024"
+      }
+    },
+    {
+      "scenario": "occupied-1024",
+      "candidate": "C2",
+      "firstMs": 2902.8994,
+      "medianMs": 2662.3589,
+      "minMs": 2625.1058,
+      "maxMs": 2750.1543,
+      "medianOpenPlusBuildMs": 2663.782,
+      "peakWorkingSetBytes": 9515008,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.2021,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "1024",
+          "pointPages": "3392",
+          "readBytes": "289406976",
+          "readOperations": "4416",
+          "returnedRecords": "262144",
+          "seekOperations": "4416",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 85.37080000000007,
+        "countAndTileMs": 89.81589999999964,
+        "eventBufferBytes": "0",
+        "eventGroupingMs": 0,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "256",
+          "nonzeroCells": "1024",
+          "oracleAvailable": false,
+          "outputBytes": "2129920",
+          "sha256": "66c268c5f6d4bc1a8121c7cbc53d6319ad350e07ed32b008adf2467d5b66d580",
+          "storedTiles": "1024",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            1024,
+            1024
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "1024",
+          "width": "1024"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groupTraversalMs": 1.7511000000000172,
+        "groups": "1024",
+        "occupiedGroups": "1024",
+        "occupiedMetadataPlannedBytes": "81920",
+        "outputAndFinalizationMs": 22.68119999999996,
+        "outputSinkMs": 23.339399999999983,
+        "peakOwnedDatasetFileHandles": 2,
+        "queries": "1024",
+        "scanExcludingCallbacksMs": 2777.725600000001,
+        "scanInclusiveMs": 2863.0964000000013,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "0",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "0",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "0",
+        "spoolFiles": "0",
+        "spoolIo": {
+          "readBytes": "0",
+          "readOperations": "0",
+          "writeBytes": "0",
+          "writeOperations": "0"
+        },
+        "spoolOpenRemoveMs": 0,
+        "spoolReadMs": 0,
+        "spoolWriteMs": 0,
+        "tileSide": 16,
+        "visitedGroups": "1024"
+      }
+    },
+    {
+      "scenario": "occupied-4096",
+      "candidate": "baseline-C1",
+      "firstMs": 4345.5903,
+      "medianMs": 2895.5935,
+      "minMs": 2551.9303,
+      "maxMs": 3189.8316,
+      "medianOpenPlusBuildMs": 2897.2023,
+      "peakWorkingSetBytes": 10870784,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.3846,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 1986.6543000000004,
+        "countAndTileMs": 44.03280000000248,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 4.1872,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "64",
+          "nonzeroCells": "4096",
+          "oracleAvailable": false,
+          "outputBytes": "8519680",
+          "sha256": "7514622e05cf6d98840346402fe4e573aaaa87b724d70d5bc99f225a7b2aa3c7",
+          "storedTiles": "4096",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            2048,
+            2048
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "2048",
+          "width": "2048"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groups": "4096",
+        "outputAndFinalizationMs": 64.0422999999997,
+        "outputSinkMs": 66.6564000000001,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 63.34519999999952,
+        "scanInclusiveMs": 2049.9995,
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "8192",
+        "spoolFiles": "4096",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4096",
+          "writeBytes": "1048576",
+          "writeOperations": "4096"
+        },
+        "spoolReadMs": 58.56639999999994,
+        "spoolWriteMs": 1885.1566,
+        "tileSide": 16
+      }
+    },
+    {
+      "scenario": "occupied-4096",
+      "candidate": "C1",
+      "firstMs": 2813.999,
+      "medianMs": 2952.1613,
+      "minMs": 2371.6585,
+      "maxMs": 3021.6571,
+      "medianOpenPlusBuildMs": 2953.5916,
+      "peakWorkingSetBytes": 10878976,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.439,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "0",
+          "pointPages": "97",
+          "readBytes": "6356992",
+          "readOperations": "97",
+          "returnedRecords": "262144",
+          "seekOperations": "97",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 1449.4597999999992,
+        "countAndTileMs": 49.24850000000204,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 4.0145,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "64",
+          "nonzeroCells": "4096",
+          "oracleAvailable": false,
+          "outputBytes": "8519680",
+          "sha256": "7514622e05cf6d98840346402fe4e573aaaa87b724d70d5bc99f225a7b2aa3c7",
+          "storedTiles": "4096",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            2048,
+            2048
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "2048",
+          "width": "2048"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groupTraversalMs": 7.926999999999715,
+        "groups": "4096",
+        "occupiedGroups": "4096",
+        "occupiedMetadataPlannedBytes": "327680",
+        "outputAndFinalizationMs": 62.70089999999997,
+        "outputSinkMs": 65.50920000000018,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 74.73720000000071,
+        "scanInclusiveMs": 1524.197,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "1048576",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "1048576",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "8192",
+        "spoolFiles": "4096",
+        "spoolIo": {
+          "readBytes": "1048576",
+          "readOperations": "4096",
+          "writeBytes": "1048576",
+          "writeOperations": "4096"
+        },
+        "spoolOpenRemoveMs": 1059.6904999999988,
+        "spoolReadMs": 56.906000000000205,
+        "spoolWriteMs": 1349.123,
+        "tileSide": 16,
+        "visitedGroups": "4096"
+      }
+    },
+    {
+      "scenario": "occupied-4096",
+      "candidate": "C2",
+      "firstMs": 10852.7932,
+      "medianMs": 10701.1377,
+      "minMs": 10642.4634,
+      "maxMs": 10766.6577,
+      "medianOpenPlusBuildMs": 10702.636199999999,
+      "peakWorkingSetBytes": 9670656,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.3799,
+        "cacheReaderScans": {
+          "bufferBytes": "188200",
+          "indexPages": "4096",
+          "pointPages": "13863",
+          "readBytes": "1176961024",
+          "readOperations": "17959",
+          "returnedRecords": "262144",
+          "seekOperations": "17959",
+          "traversalFrames": "1"
+        },
+        "callbackInclusiveMs": 108.55800000000018,
+        "countAndTileMs": 126.38419999999576,
+        "eventBufferBytes": "0",
+        "eventGroupingMs": 0,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "64",
+          "nonzeroCells": "4096",
+          "oracleAvailable": false,
+          "outputBytes": "8519680",
+          "sha256": "7514622e05cf6d98840346402fe4e573aaaa87b724d70d5bc99f225a7b2aa3c7",
+          "storedTiles": "4096",
+          "sum": "262144"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            2048,
+            2048
+          ],
+          "cellMm": 1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "2048",
+          "width": "2048"
+        },
+        "groupBufferBytes": "8192",
+        "groupTiles": 2,
+        "groupTraversalMs": 6.754299999999652,
+        "groups": "4096",
+        "occupiedGroups": "4096",
+        "occupiedMetadataPlannedBytes": "327680",
+        "outputAndFinalizationMs": 109.38500000000013,
+        "outputSinkMs": 111.85469999999995,
+        "peakOwnedDatasetFileHandles": 2,
+        "queries": "4096",
+        "scanExcludingCallbacksMs": 10573.402900000005,
+        "scanInclusiveMs": 10681.960900000005,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "0",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "0",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "262144",
+        "spoolFileOpens": "0",
+        "spoolFiles": "0",
+        "spoolIo": {
+          "readBytes": "0",
+          "readOperations": "0",
+          "writeBytes": "0",
+          "writeOperations": "0"
+        },
+        "spoolOpenRemoveMs": 0,
+        "spoolReadMs": 0,
+        "spoolWriteMs": 0,
+        "tileSide": 16,
+        "visitedGroups": "4096"
+      }
+    },
+    {
+      "scenario": "42m-512",
+      "candidate": "baseline-C1",
+      "firstMs": 30050.6055,
+      "medianMs": 27985.7094,
+      "minMs": 27657.4668,
+      "maxMs": 30122.7092,
+      "medianOpenPlusBuildMs": 27987.2494,
+      "peakWorkingSetBytes": 35856384,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.9206,
+        "cacheReaderScans": {
+          "bufferBytes": "245440",
+          "indexPages": "0",
+          "pointPages": "15408",
+          "readBytes": "1009778688",
+          "readOperations": "15408",
+          "returnedRecords": "42000000",
+          "seekOperations": "15408",
+          "traversalFrames": "2"
+        },
+        "callbackInclusiveMs": 14864.275900000144,
+        "countAndTileMs": 4644.7409,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 73.74560000000008,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "121",
+          "nonzeroCells": "420000",
+          "oracleAvailable": true,
+          "outputBytes": "3361280",
+          "sha256": "26890e30ef0628958b9816b11b55dffcae1677399a9b51549b5a54c8f3a8f982",
+          "storedTiles": "40",
+          "sum": "42000000"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            999.99,
+            4.19
+          ],
+          "cellMm": 0.1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "42",
+          "width": "10000"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groups": "20",
+        "outputAndFinalizationMs": 10.795000000000002,
+        "outputSinkMs": 11.7451,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 10377.751599999856,
+        "scanInclusiveMs": 25242.0275,
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "168000000",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "42000000",
+        "spoolFileOpens": "1367",
+        "spoolFiles": "20",
+        "spoolIo": {
+          "readBytes": "168000000",
+          "readOperations": "645",
+          "writeBytes": "168000000",
+          "writeOperations": "1347"
+        },
+        "spoolReadMs": 100.06590000000006,
+        "spoolWriteMs": 825.9378999999986,
+        "tileSide": 256
+      }
+    },
+    {
+      "scenario": "42m-512",
+      "candidate": "C1",
+      "firstMs": 28196.3285,
+      "medianMs": 27483.0457,
+      "minMs": 27458.5677,
+      "maxMs": 27719.0243,
+      "medianOpenPlusBuildMs": 27484.606499999998,
+      "peakWorkingSetBytes": 35815424,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "0",
+        "boundaryValidationMs": 0.9757,
+        "cacheReaderScans": {
+          "bufferBytes": "245440",
+          "indexPages": "0",
+          "pointPages": "15408",
+          "readBytes": "1009778688",
+          "readOperations": "15408",
+          "returnedRecords": "42000000",
+          "seekOperations": "15408",
+          "traversalFrames": "2"
+        },
+        "callbackInclusiveMs": 14429.181100000023,
+        "countAndTileMs": 3890.4957999999974,
+        "eventBufferBytes": "1048576",
+        "eventGroupingMs": 66.29350000000005,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "121",
+          "nonzeroCells": "420000",
+          "oracleAvailable": true,
+          "outputBytes": "3361280",
+          "sha256": "26890e30ef0628958b9816b11b55dffcae1677399a9b51549b5a54c8f3a8f982",
+          "storedTiles": "40",
+          "sum": "42000000"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            999.99,
+            4.19
+          ],
+          "cellMm": 0.1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "42",
+          "width": "10000"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.04610000000000001,
+        "groups": "20",
+        "occupiedGroups": "20",
+        "occupiedMetadataPlannedBytes": "1600",
+        "outputAndFinalizationMs": 7.858500000000001,
+        "outputSinkMs": 8.993500000000001,
+        "peakOwnedDatasetFileHandles": 3,
+        "queries": "0",
+        "scanExcludingCallbacksMs": 9787.182399999976,
+        "scanInclusiveMs": 24216.3635,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "168017920",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "168000000",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "42000000",
+        "spoolFileOpens": "1367",
+        "spoolFiles": "20",
+        "spoolIo": {
+          "readBytes": "168000000",
+          "readOperations": "645",
+          "writeBytes": "168000000",
+          "writeOperations": "1347"
+        },
+        "spoolOpenRemoveMs": 31.292099999999998,
+        "spoolReadMs": 41.13200000000007,
+        "spoolWriteMs": 674.1598,
+        "tileSide": 256,
+        "visitedGroups": "20"
+      }
+    },
+    {
+      "scenario": "42m-512",
+      "candidate": "C2",
+      "firstMs": 24838.1608,
+      "medianMs": 26559.6389,
+      "minMs": 25099.9575,
+      "maxMs": 26758.1779,
+      "medianOpenPlusBuildMs": 26561.2239,
+      "peakWorkingSetBytes": 35827712,
+      "details": {
+        "boundaryNeighbourRecordsRejected": "7980",
+        "boundaryValidationMs": 0.9153,
+        "cacheReaderScans": {
+          "bufferBytes": "245440",
+          "indexPages": "178",
+          "pointPages": "19554",
+          "readBytes": "1293156352",
+          "readOperations": "19732",
+          "returnedRecords": "42007980",
+          "seekOperations": "19732",
+          "traversalFrames": "2"
+        },
+        "callbackInclusiveMs": 12926.636999999993,
+        "countAndTileMs": 12930.67089999999,
+        "eventBufferBytes": "0",
+        "eventGroupingMs": 0,
+        "fingerprint": {
+          "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+          "maximum": "121",
+          "nonzeroCells": "420000",
+          "oracleAvailable": true,
+          "outputBytes": "3361280",
+          "sha256": "26890e30ef0628958b9816b11b55dffcae1677399a9b51549b5a54c8f3a8f982",
+          "storedTiles": "40",
+          "sum": "42000000"
+        },
+        "grid": {
+          "bounds": [
+            0,
+            0,
+            999.99,
+            4.19
+          ],
+          "cellMm": 0.1,
+          "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+          "height": "42",
+          "width": "10000"
+        },
+        "groupBufferBytes": "2097152",
+        "groupTiles": 2,
+        "groupTraversalMs": 0.0579,
+        "groups": "20",
+        "occupiedGroups": "20",
+        "occupiedMetadataPlannedBytes": "1600",
+        "outputAndFinalizationMs": 9.534,
+        "outputSinkMs": 10.653,
+        "peakOwnedDatasetFileHandles": 2,
+        "queries": "20",
+        "scanExcludingCallbacksMs": 11893.065000000004,
+        "scanInclusiveMs": 24819.701999999997,
+        "scratchAllocatedFinalBytes": "0",
+        "scratchAllocatedPeakBytes": "0",
+        "scratchFinalBytes": "0",
+        "scratchLogicalPeakBytes": "0",
+        "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+        "seenPoints": "42000000",
+        "spoolFileOpens": "0",
+        "spoolFiles": "0",
+        "spoolIo": {
+          "readBytes": "0",
+          "readOperations": "0",
+          "writeBytes": "0",
+          "writeOperations": "0"
+        },
+        "spoolOpenRemoveMs": 0,
+        "spoolReadMs": 0,
+        "spoolWriteMs": 0,
+        "tileSide": 256,
+        "visitedGroups": "20"
+      }
+    }
+  ],
+  "tests": {
+    "core-debug.xml": 36,
+    "formats-debug.xml": 13,
+    "core-release.xml": 36,
+    "formats-release.xml": 13
+  },
+  "evidence": [
+    {
+      "path": ".gitattributes",
+      "sha256": "4ab630370b2b7872ee07ad510259f8f141b4fab24562820fa4d82e04533ea1bd",
+      "bytes": 40
+    },
+    {
+      "path": "baseline.json",
+      "sha256": "aac93b6ae4c3499b0a24a4a939df326e6ea27d6db48ba13c91cc81af7115672f",
+      "bytes": 3440
+    },
+    {
+      "path": "disks.json",
+      "sha256": "dcc2d2a1661b5a4c4c8d28662f37f679adb9f3e35b8de1e818799797ec27313c",
+      "bytes": 205
+    },
+    {
+      "path": "executables.json",
+      "sha256": "228766f5174b534a26845d1661880f1fbb4fc4554871f80ed0726afa28072a6c",
+      "bytes": 505
+    },
+    {
+      "path": "matrix.json",
+      "sha256": "037870a521c796511c09eb1b6a7c8a061b9b9b810f3f7560b4733d55ef09ae16",
+      "bytes": 2635
+    },
+    {
+      "path": "raw\\42m-512-r0-baseline-C1.csv",
+      "sha256": "6edc2c2a4fd3d5103e10bedab6867b85b5dd4f021ec234192638805ceeab71d4",
+      "bytes": 3107
+    },
+    {
+      "path": "raw\\42m-512-r0-baseline-C1.json",
+      "sha256": "5a63f7e86495f67ffdb1345a0eec9f37207500d9055b0d01c1cd054ba712e330",
+      "bytes": 7875
+    },
+    {
+      "path": "raw\\42m-512-r0-C1.csv",
+      "sha256": "185d5fe547ff5201d6c87b1d37e1aaee54ea32a67db7335188a1a723a7d7a31b",
+      "bytes": 3365
+    },
+    {
+      "path": "raw\\42m-512-r0-C1.json",
+      "sha256": "eafb0b440453e58eaa7aee1f07ea2a179fee09e34835659166de919e1cacdfb7",
+      "bytes": 8239
+    },
+    {
+      "path": "raw\\42m-512-r0-C2.csv",
+      "sha256": "f5a98a78cd6fed6f092a03c87c7e8706f08a5f67e06acd04c3039116a274b01b",
+      "bytes": 3254
+    },
+    {
+      "path": "raw\\42m-512-r0-C2.json",
+      "sha256": "12ca60207ef9d655d0df4b487f96f10c8dc50f2d6723eb0610820f3cbb3e5701",
+      "bytes": 8097
+    },
+    {
+      "path": "raw\\42m-512-r1-baseline-C1.csv",
+      "sha256": "48722164510ce38d2bdad39308b8660c31894b5324b1a1fb3cd04823366c7eaf",
+      "bytes": 3139
+    },
+    {
+      "path": "raw\\42m-512-r1-baseline-C1.json",
+      "sha256": "100daca0d0cb50a7dbe9da7d8f23114d1b8187f3c988e51f2455cc6adc5f02c4",
+      "bytes": 7932
+    },
+    {
+      "path": "raw\\42m-512-r1-C1.csv",
+      "sha256": "23cb7fc8cb592ff56eb7b7010ee0c87dd793dc979e9e86d86347eb06298923ea",
+      "bytes": 3315
+    },
+    {
+      "path": "raw\\42m-512-r1-C1.json",
+      "sha256": "5a57bd74f10068097ed63184c8587f89e97b7a350b12b592856cbb4a77c4c603",
+      "bytes": 8205
+    },
+    {
+      "path": "raw\\42m-512-r1-C2.csv",
+      "sha256": "0ca3c728ad1075eb19e6e067f9e061c314e92324d8557368332573c759f7414e",
+      "bytes": 3276
+    },
+    {
+      "path": "raw\\42m-512-r1-C2.json",
+      "sha256": "f1a725be9e03433928697f39782f08b50d583ff4dfe5101d5a638a205c7b4c08",
+      "bytes": 8186
+    },
+    {
+      "path": "raw\\42m-512-r2-baseline-C1.csv",
+      "sha256": "64f18068e0d5f96374b131ce0a01a66fa16d656c4acb60cdf2b74582c7f48102",
+      "bytes": 3079
+    },
+    {
+      "path": "raw\\42m-512-r2-baseline-C1.json",
+      "sha256": "5096668d72cae38efd3e98cfb5fcf494038561a02519e306fadd165cadef6e6c",
+      "bytes": 7930
+    },
+    {
+      "path": "raw\\42m-512-r2-C1.csv",
+      "sha256": "602db56fd2256ec91502bd7421a603528726039a5869f2ce4472e8f79124b948",
+      "bytes": 3366
+    },
+    {
+      "path": "raw\\42m-512-r2-C1.json",
+      "sha256": "e1416a07c943d876d4ca5491113bb2d1ee0f16505ecb9b83d891b9128b95b6bf",
+      "bytes": 8281
+    },
+    {
+      "path": "raw\\42m-512-r2-C2.csv",
+      "sha256": "55bf48c9fddddc22d8e96c9dd05007432e7bf0ba2015bb8b21dab6c5f2c3799c",
+      "bytes": 3266
+    },
+    {
+      "path": "raw\\42m-512-r2-C2.json",
+      "sha256": "f345db13df694df1f1736cf028b0a14f377fa4c794ca9e453b54b57e8e001bfc",
+      "bytes": 8173
+    },
+    {
+      "path": "raw\\42m-512-r3-baseline-C1.csv",
+      "sha256": "a6c8ef6fc812f2615244ff3fc1ad83fbd4d655d94a467436a45e8e4abf98abc0",
+      "bytes": 3113
+    },
+    {
+      "path": "raw\\42m-512-r3-baseline-C1.json",
+      "sha256": "7fa6982b925d9b85df3abc7a0264084a16a36b62e1e7f81c5c4f0b0da772efbb",
+      "bytes": 7929
+    },
+    {
+      "path": "raw\\42m-512-r3-C1.csv",
+      "sha256": "eae5570a3d401cb48de515eb333b0cf8ea4c9442f0780cb91a470ee1335d3eb8",
+      "bytes": 3375
+    },
+    {
+      "path": "raw\\42m-512-r3-C1.json",
+      "sha256": "4e77e61c2688bd5d6c182be5f3eda10909930442ec23da88e98cce86742250d4",
+      "bytes": 8293
+    },
+    {
+      "path": "raw\\42m-512-r3-C2.csv",
+      "sha256": "7971f971f96860913a5d4e6c1b90cf5a5d9ac7a09504f2ced7647418a8573a69",
+      "bytes": 3242
+    },
+    {
+      "path": "raw\\42m-512-r3-C2.json",
+      "sha256": "ab46bfcd9e6b60b5b1c213fe8d0358af8ee0ae630ff3aa83ba6751dcf6ddf206",
+      "bytes": 8170
+    },
+    {
+      "path": "raw\\occupied-1024-r0-baseline-C1.csv",
+      "sha256": "c7c37afa91f694d13353c3608be82fb4384362cb2c8011ebe9be90c95bc3b90e",
+      "bytes": 3078
+    },
+    {
+      "path": "raw\\occupied-1024-r0-baseline-C1.json",
+      "sha256": "14a12e76ef091ce7e933c2591e7143600a4f812ce9e3e32083fdc41fbbea7565",
+      "bytes": 7834
+    },
+    {
+      "path": "raw\\occupied-1024-r0-C1.csv",
+      "sha256": "c646393b29d971c5521f742d239ba4b40b262c8991327cf1ec199d2e3dd44681",
+      "bytes": 3329
+    },
+    {
+      "path": "raw\\occupied-1024-r0-C1.json",
+      "sha256": "14766d770ad0b522183ae1fd202ce2b0f424f4b9d243a35478c6fed2bd4c3851",
+      "bytes": 8185
+    },
+    {
+      "path": "raw\\occupied-1024-r0-C2.csv",
+      "sha256": "762468b0ed15962b22919b28fa3d0df0fb99bdc9badf99b4e35d7894ee5005ce",
+      "bytes": 3239
+    },
+    {
+      "path": "raw\\occupied-1024-r0-C2.json",
+      "sha256": "5ae5f582b2d077e41b0f68fa883907b62e1bea4ccae09e563595195b91ab6ec7",
+      "bytes": 8124
+    },
+    {
+      "path": "raw\\occupied-1024-r1-baseline-C1.csv",
+      "sha256": "d447804144bfa455be936fc0fbe63350bfd49939029d88beca0d57786b577fd1",
+      "bytes": 3077
+    },
+    {
+      "path": "raw\\occupied-1024-r1-baseline-C1.json",
+      "sha256": "0080f34b1e75c38a3c4b7fab80a3151602b0920cd2ed1be1a2c141d17aab1729",
+      "bytes": 7834
+    },
+    {
+      "path": "raw\\occupied-1024-r1-C1.csv",
+      "sha256": "c1759067e8696846dac7baa12533a7ac560e3d84f9ee185c0bd157a8137a3cec",
+      "bytes": 3314
+    },
+    {
+      "path": "raw\\occupied-1024-r1-C1.json",
+      "sha256": "55efa9ce265af9e7e16806a940c191024d7dddeedb7ac9d09b4f4e45b82b182a",
+      "bytes": 8183
+    },
+    {
+      "path": "raw\\occupied-1024-r1-C2.csv",
+      "sha256": "ae445d29eb061c2a920ec2834c93bec60e626f848e7fc29b82263f009213e06d",
+      "bytes": 3232
+    },
+    {
+      "path": "raw\\occupied-1024-r1-C2.json",
+      "sha256": "1fbb1cf326daf9df40776dde93314773093a9a0193c22cb06a0892aed5f0d5eb",
+      "bytes": 8094
+    },
+    {
+      "path": "raw\\occupied-1024-r2-baseline-C1.csv",
+      "sha256": "c1c809fb7d6e377a7c46189734e86bf93b8e996b383257f9733b5486303397c7",
+      "bytes": 3073
+    },
+    {
+      "path": "raw\\occupied-1024-r2-baseline-C1.json",
+      "sha256": "306bcf31ae7c0de156b389741cfb46d4c81eb4d8f0412d2f400edad15ae66dea",
+      "bytes": 7827
+    },
+    {
+      "path": "raw\\occupied-1024-r2-C1.csv",
+      "sha256": "865f0e2acebd0948c0a72494b84a403cc8d4537e12e63b2c1765a0b7f393fe27",
+      "bytes": 3317
+    },
+    {
+      "path": "raw\\occupied-1024-r2-C1.json",
+      "sha256": "bb661e5492eb6883fa3a0e3e3396dda032cf6954dbcd3ea801ae83e4e35dea00",
+      "bytes": 8197
+    },
+    {
+      "path": "raw\\occupied-1024-r2-C2.csv",
+      "sha256": "e5196c1b8b96f8ecaab37afd42861cf0a311cdea575a8a76956115ad612e4a1c",
+      "bytes": 3252
+    },
+    {
+      "path": "raw\\occupied-1024-r2-C2.json",
+      "sha256": "8f4eabfc8c8b5cc113534e2b9812b6dfe8e49070f68a83ad06f99d03c558644f",
+      "bytes": 8122
+    },
+    {
+      "path": "raw\\occupied-1024-r3-baseline-C1.csv",
+      "sha256": "7ca23ee4bdfabe467baf0d6e41ec47516b995da6337f329f75a60cb7191d7c68",
+      "bytes": 3061
+    },
+    {
+      "path": "raw\\occupied-1024-r3-baseline-C1.json",
+      "sha256": "a6f2a50ab0c9c06c11147325d0fa76100dde8b70e4a4e30b2ab5bdf477d8515e",
+      "bytes": 7837
+    },
+    {
+      "path": "raw\\occupied-1024-r3-C1.csv",
+      "sha256": "60edfd753156c675039c4dfcc6aebbb4f8f257606ada8a74a832cb568adc2ddb",
+      "bytes": 3360
+    },
+    {
+      "path": "raw\\occupied-1024-r3-C1.json",
+      "sha256": "9d1aa5e62e65a36576bf360dede8834fc0da20eae35f775efe61a30252388f3f",
+      "bytes": 8217
+    },
+    {
+      "path": "raw\\occupied-1024-r3-C2.csv",
+      "sha256": "2867bb568e98971e940f56456416c23a905424c9b77419ea75398a75d6662dba",
+      "bytes": 3251
+    },
+    {
+      "path": "raw\\occupied-1024-r3-C2.json",
+      "sha256": "fc2769eec87c5092456c7403e5e8625079a9a19f581c868d9fdf9a3ae2aabcc1",
+      "bytes": 8124
+    },
+    {
+      "path": "raw\\occupied-4096-r0-baseline-C1.csv",
+      "sha256": "cfc7cc21ee50d306a26923adf652117f1163bbac4d84cde9ad4ce71ffcf108e5",
+      "bytes": 3075
+    },
+    {
+      "path": "raw\\occupied-4096-r0-baseline-C1.json",
+      "sha256": "c153c715c0c953865996ea7542558143f6b771205a14f1609131e91d9ad0eddd",
+      "bytes": 7835
+    },
+    {
+      "path": "raw\\occupied-4096-r0-C1.csv",
+      "sha256": "e03e846743f0a10b3f9b545dbaca219cf2f167516812cdba0fda88f4525f305f",
+      "bytes": 3345
+    },
+    {
+      "path": "raw\\occupied-4096-r0-C1.json",
+      "sha256": "8051f1fbcaf28accbf89a7fb35950e21c7699c15cf974ae3fbac88113c1d3967",
+      "bytes": 8194
+    },
+    {
+      "path": "raw\\occupied-4096-r0-C2.csv",
+      "sha256": "1e14195525df4ff8f84c69032cab1476ea11358a6144eaa60d84a9549150132c",
+      "bytes": 3264
+    },
+    {
+      "path": "raw\\occupied-4096-r0-C2.json",
+      "sha256": "4c1a08b733577a197a2b27eaa8474a07c6c34ede55a10d3f300bff1aeb0506fa",
+      "bytes": 8135
+    },
+    {
+      "path": "raw\\occupied-4096-r1-baseline-C1.csv",
+      "sha256": "867aad48304751647b187eff756886b4259c6cabc08476f88ce69701b543ba7a",
+      "bytes": 3078
+    },
+    {
+      "path": "raw\\occupied-4096-r1-baseline-C1.json",
+      "sha256": "a4f8f8f9d5d7dfc93573a7bb97b0bb6c81eaa440c8092880823a3bdd60ca7655",
+      "bytes": 7838
+    },
+    {
+      "path": "raw\\occupied-4096-r1-C1.csv",
+      "sha256": "18d1c01c02c137e8d9ce75ebcf848b4cf45ffb2f7791b50520556565972869f4",
+      "bytes": 3356
+    },
+    {
+      "path": "raw\\occupied-4096-r1-C1.json",
+      "sha256": "4fa2f4eb402c1baae8884d3f0b3cc76d455ac72af6a76404fefb904081cb8530",
+      "bytes": 8203
+    },
+    {
+      "path": "raw\\occupied-4096-r1-C2.csv",
+      "sha256": "c7b9973666ec9ac0b1a3a2385e6b906fdac36b4c4d31f00660ba7da38ef9085c",
+      "bytes": 3285
+    },
+    {
+      "path": "raw\\occupied-4096-r1-C2.json",
+      "sha256": "4b5065f59bcf559df1ae44ac1c198efdb3f4d10f9dfbcaa197ac70bd66240aa1",
+      "bytes": 8133
+    },
+    {
+      "path": "raw\\occupied-4096-r2-baseline-C1.csv",
+      "sha256": "92458d70df8ea2d6e3c27baf494bce35332838047f784baf63586fde5fde44bb",
+      "bytes": 3065
+    },
+    {
+      "path": "raw\\occupied-4096-r2-baseline-C1.json",
+      "sha256": "8e7d875efe46705421756dfb3cf39eaef82bb7e6e4306493ec0a92340a268ec5",
+      "bytes": 7843
+    },
+    {
+      "path": "raw\\occupied-4096-r2-C1.csv",
+      "sha256": "9dcf1b4d03a03337e92f8ddd8842da7862d82f043619f30fbe91d97ad9d02adc",
+      "bytes": 3328
+    },
+    {
+      "path": "raw\\occupied-4096-r2-C1.json",
+      "sha256": "37f6e9712a7f55301380113a524e69566f44896c1674d1f0e5b2e66745d17689",
+      "bytes": 8196
+    },
+    {
+      "path": "raw\\occupied-4096-r2-C2.csv",
+      "sha256": "4e35af9bf867037014962a38d8f40baa5719f8c6c88d4a6cc409e017da6ac7b1",
+      "bytes": 3274
+    },
+    {
+      "path": "raw\\occupied-4096-r2-C2.json",
+      "sha256": "9dd81dd081649e3299791ea31202f8473985273d9c9627c20b5a96bde28f4a7f",
+      "bytes": 8134
+    },
+    {
+      "path": "raw\\occupied-4096-r3-baseline-C1.csv",
+      "sha256": "a336bf87bfb6b3097f0d3129179763cc97b95e5016281e10383c1dc20a60cc83",
+      "bytes": 3103
+    },
+    {
+      "path": "raw\\occupied-4096-r3-baseline-C1.json",
+      "sha256": "8a508984dfe8731c2b4a3cd89b833fb0174661c7ef93347c0d23c58f037a2028",
+      "bytes": 7845
+    },
+    {
+      "path": "raw\\occupied-4096-r3-C1.csv",
+      "sha256": "e47194aaf9394a10d333e95dc4f33f241664e485915f08cc80675aa83f07a134",
+      "bytes": 3333
+    },
+    {
+      "path": "raw\\occupied-4096-r3-C1.json",
+      "sha256": "e16a50903b7a27c2be299b16e67d01d7b987873a62649bd220c497e9d200f4bd",
+      "bytes": 8204
+    },
+    {
+      "path": "raw\\occupied-4096-r3-C2.csv",
+      "sha256": "68e16f1a8662d1403e7e748787e7fe5c4d5eb9cdd23fa32a6130936cc7f4e36b",
+      "bytes": 3262
+    },
+    {
+      "path": "raw\\occupied-4096-r3-C2.json",
+      "sha256": "11dca0a0d1731a3efa2dc91dfe5117e54900803e2a59379f4a9ebb8013a12de0",
+      "bytes": 8131
+    },
+    {
+      "path": "raw\\occupied-64-r0-baseline-C1.csv",
+      "sha256": "3cbb74310b7b42c8ebd6aee6e9c742c42b11a038fabbf5ca4046a9b36011432b",
+      "bytes": 3049
+    },
+    {
+      "path": "raw\\occupied-64-r0-baseline-C1.json",
+      "sha256": "349959e6cd6f0c304ee4897c44d4702e701450ed340a9749f0945d07930ceba2",
+      "bytes": 7806
+    },
+    {
+      "path": "raw\\occupied-64-r0-C1.csv",
+      "sha256": "a38bd1f2ba4843b4a62ca1177d08ba008600a07d6ad98856b2b7aeeb40a7f94e",
+      "bytes": 3272
+    },
+    {
+      "path": "raw\\occupied-64-r0-C1.json",
+      "sha256": "7e3dd81c66b8082f8c828bbf1f5656441822278e5f8160709c81a7403cee5b8b",
+      "bytes": 8128
+    },
+    {
+      "path": "raw\\occupied-64-r0-C2.csv",
+      "sha256": "251a8accb495818977bb3d0f2aff39f9d4167e8195d6ad645672023d2c5072e1",
+      "bytes": 3230
+    },
+    {
+      "path": "raw\\occupied-64-r0-C2.json",
+      "sha256": "f6298350ef23419da2aac970d29f7bf34c2b2d5713cae9a47c12acba12d68cc9",
+      "bytes": 8077
+    },
+    {
+      "path": "raw\\occupied-64-r1-baseline-C1.csv",
+      "sha256": "7b9a4e791ed872ecf765da2f67ae5b2d77a121b0a6ef5cbd9d23eebe22f6394e",
+      "bytes": 3074
+    },
+    {
+      "path": "raw\\occupied-64-r1-baseline-C1.json",
+      "sha256": "923651279eb4272650a2210f789337fe90c196dffbb63f40bd34c506797b79bc",
+      "bytes": 7818
+    },
+    {
+      "path": "raw\\occupied-64-r1-C1.csv",
+      "sha256": "72e3537c94265df45e886db6c834b65bdf024260db7ec19f25966c3400f0fd7f",
+      "bytes": 3283
+    },
+    {
+      "path": "raw\\occupied-64-r1-C1.json",
+      "sha256": "c9ec5e4fbc90c25c08dce2f65052e72041fa54686e4807bfd2dab93380a9a660",
+      "bytes": 8127
+    },
+    {
+      "path": "raw\\occupied-64-r1-C2.csv",
+      "sha256": "0d21f1450fbccea3433400fed7d2007c81563785a5dcace8262df7ea19939afe",
+      "bytes": 3194
+    },
+    {
+      "path": "raw\\occupied-64-r1-C2.json",
+      "sha256": "b4b6fb8fcd4ed029046e283db7da3fb6d0fb4f0506b4e7b5228c14a0d0666bfd",
+      "bytes": 8085
+    },
+    {
+      "path": "raw\\occupied-64-r2-baseline-C1.csv",
+      "sha256": "cc815bf13a65504c6cf491a358824ac1548799e44b1c3d07aa956734d7f52d3b",
+      "bytes": 3050
+    },
+    {
+      "path": "raw\\occupied-64-r2-baseline-C1.json",
+      "sha256": "7cc8f0adb8a60bbb9f1289983c0b03e9442e80d0a6ff3b41c6ec670b92c6695f",
+      "bytes": 7807
+    },
+    {
+      "path": "raw\\occupied-64-r2-C1.csv",
+      "sha256": "e9b9258a6aa256a780ce4e262f425cee26f0d7efb3b43522c9e69ffdd16f2777",
+      "bytes": 3236
+    },
+    {
+      "path": "raw\\occupied-64-r2-C1.json",
+      "sha256": "2ad0234346cc412b636d191439812167e181b5a8aeade7f048773f4d3a74dbe3",
+      "bytes": 8129
+    },
+    {
+      "path": "raw\\occupied-64-r2-C2.csv",
+      "sha256": "422445499ddd8b7799255a4fd5093a821081e4351040698f19af0c20908e9bc0",
+      "bytes": 3210
+    },
+    {
+      "path": "raw\\occupied-64-r2-C2.json",
+      "sha256": "399393b40e08f73a111a9c0e88171ff99ff9f9a287088c951303229526fb5d9b",
+      "bytes": 8054
+    },
+    {
+      "path": "raw\\occupied-64-r3-baseline-C1.csv",
+      "sha256": "45a936d9fb104fe0ff2598b496c405d391e1006c61e51a52c60caf353ee38fee",
+      "bytes": 3076
+    },
+    {
+      "path": "raw\\occupied-64-r3-baseline-C1.json",
+      "sha256": "1e67ed2107c21b1ff5519f6f2ba9687766c9b8c4715cf62da1da2299c2ef279b",
+      "bytes": 7806
+    },
+    {
+      "path": "raw\\occupied-64-r3-C1.csv",
+      "sha256": "66f3e346ee833b42b2af4a2ab7b52e5e70a79872a61fb28e6fc052f5ae6c9a71",
+      "bytes": 3306
+    },
+    {
+      "path": "raw\\occupied-64-r3-C1.json",
+      "sha256": "2e0a3e3915e6c2fd96fb15f4968e3a41c5a9a1c8a4eeab415869d61ac3e3e9c8",
+      "bytes": 8162
+    },
+    {
+      "path": "raw\\occupied-64-r3-C2.csv",
+      "sha256": "919ee88e0632484ed9384c411644a5ba9442055e3a807089067dc883bc15d5ea",
+      "bytes": 3206
+    },
+    {
+      "path": "raw\\occupied-64-r3-C2.json",
+      "sha256": "f933048b33533fb330ec01edee848209dbdee5ce3e492bbe3a97ada07cbccf25",
+      "bytes": 8065
+    },
+    {
+      "path": "raw\\refused-baseline-logical-guard.json",
+      "sha256": "61edf7b598fc718189833f46e15e15aca0cb0e8f522c22032ca5462681a99f6c",
+      "bytes": 2887
+    },
+    {
+      "path": "raw\\refused-baseline-output-envelope.json",
+      "sha256": "80f4be998e7a88c94b3384b3dd804a3ac09fdfb25d72ea37db8127f605a1d76c",
+      "bytes": 2932
+    },
+    {
+      "path": "raw\\refused-boundary-work.json",
+      "sha256": "c3c1ea32e2564d48da35991c5cd2c8ab5e4a15e24c397ccef4bd14284f9f52fd",
+      "bytes": 2867
+    },
+    {
+      "path": "raw\\refused-occupied-limit.json",
+      "sha256": "d0526f5d4a62c323173a5dced6bea9681add26e0468e1c157a8a2fb8d75a3ff8",
+      "bytes": 4470
+    },
+    {
+      "path": "raw\\refused-tiny-output.json",
+      "sha256": "60553ab85bf9f8db95a93adb05a374b1224fb7cf77d374dffe50c7c39e645653",
+      "bytes": 2932
+    },
+    {
+      "path": "raw\\refused-tiny-ram.json",
+      "sha256": "58766f7529dc55912f09e5feedb6d139c75469f24c6635cab8f6631f7c39e17b",
+      "bytes": 2823
+    },
+    {
+      "path": "raw\\refused-tiny-scratch.json",
+      "sha256": "cba1a2b84bdea2c25bb028278d3b4358e1d26b02851f02e6030178e741541b52",
+      "bytes": 2931
+    },
+    {
+      "path": "raw\\regular-reference.csv",
+      "sha256": "f090c3a972a82b2698bda78b6d1ae92d417fd41f9b87a921b9bab78e8f7f59af",
+      "bytes": 12690
+    },
+    {
+      "path": "raw\\regular-reference.json",
+      "sha256": "66a6ec2d79f1088ca44ffcad9e2f81c25e290d390db9420bbc57d2d2d9358779",
+      "bytes": 31474
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r0-C1.csv",
+      "sha256": "968915100a240bfa0eab6dd67724a962896d284258f6a6b1c75c7d65ed89d56c",
+      "bytes": 3302
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r0-C1.json",
+      "sha256": "2d3a9ca5cbf54c8bb992df04e0f10e9718f899db1eec8516db0029c17b4ef8e9",
+      "bytes": 8147
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r1-C1.csv",
+      "sha256": "1244c6c047f8f16db28c59f824486913aae1d219fab6ed6fa7901106a4fae250",
+      "bytes": 3290
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r1-C1.json",
+      "sha256": "8eb97b7e343d3db1196e00873dd84104c5dbe7d914674d36c64ab74a508a9d2f",
+      "bytes": 8172
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r2-C1.csv",
+      "sha256": "4693552d66727900b0b25d4962c07deb59e3601ba99ff2b4b12c5905d4791f88",
+      "bytes": 3286
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r2-C1.json",
+      "sha256": "2eed06013a78a1f18d424b91d6b381495d5bb60abc70f99466d1f803a2274e1b",
+      "bytes": 8146
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r3-C1.csv",
+      "sha256": "855cfdd1c432769cfaec36cc73486a4bf8a3816fc8ea2a8c6e88922d83ef21af",
+      "bytes": 3327
+    },
+    {
+      "path": "raw\\sparse-1048575-c1-r3-C1.json",
+      "sha256": "c4b2cf9bb6f7f0c9213280c8dcbe99e47e3d3195d3b348e1a883ece56e8810fd",
+      "bytes": 8175
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r0-C1.csv",
+      "sha256": "7133c62e603303203877c82a5c6f2ac9ea569dd22acf4df702ac061adfe93742",
+      "bytes": 3242
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r0-C1.json",
+      "sha256": "581c43f590e8b4b644ebb39a08f13ea90098bbb13788e8617bf2f21d41780a6b",
+      "bytes": 8134
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r1-C1.csv",
+      "sha256": "83ef9aaaf7966e20fb64174646caccad0822566de0a7b39ece4f35b655b1f307",
+      "bytes": 3273
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r1-C1.json",
+      "sha256": "41922f6e16f9fcdb8ee15572540bb3c0cf29afb641875ce6fb80b2f646b02614",
+      "bytes": 8149
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r2-C1.csv",
+      "sha256": "4ab99e38bb4a0edfcc7b234bd7e9e908f19689b2ee19d400ea4d7604dc5c5b14",
+      "bytes": 3285
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r2-C1.json",
+      "sha256": "70b279aee26590fa0579175ffa6dc4a8c6ee9ed1f1db469e9fdcaaa3c00ed17e",
+      "bytes": 8128
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r3-C1.csv",
+      "sha256": "c79169c739eabcf49cc4adc9e07891a29b623275b00eece4fd5015d69ae3b251",
+      "bytes": 3266
+    },
+    {
+      "path": "raw\\sparse-131071-c1-r3-C1.json",
+      "sha256": "eb9f19f6b1d4afecff8854941479f3f1ad90ed20253418594be7be5610da5cfc",
+      "bytes": 8125
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r0-baseline-C1.csv",
+      "sha256": "fd4bfda29004721a79c5db3e89b77da5df2342593bee836a5596092f94c7e01e",
+      "bytes": 3050
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r0-baseline-C1.json",
+      "sha256": "4d5928e32e71c4a0517880adad2853b68f55937600b797857df3e47436599613",
+      "bytes": 7815
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r0-C1.csv",
+      "sha256": "955d025c4050c9e6aa84f11b686322759019c790c0be469714df57bfac69060e",
+      "bytes": 3324
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r0-C1.json",
+      "sha256": "c5de2c5514b815e349baa56d1f2344ae0405ad04d63395000896997dac89baad",
+      "bytes": 8168
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r0-C2.csv",
+      "sha256": "aae2961948e1f188e02ae366283d1490bf77482015457816b8bb96db23097fd3",
+      "bytes": 3267
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r0-C2.json",
+      "sha256": "f7da0a6f2bbf44230d8a554dbd53ad1b303ada7124e88fb012b998a9aab43279",
+      "bytes": 8110
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r1-baseline-C1.csv",
+      "sha256": "278fe8b8171ce479f7055dc4b24e164264ecc510d852eea9c50189a2498be2ee",
+      "bytes": 3073
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r1-baseline-C1.json",
+      "sha256": "1bd5314fe2dc0f6d5eca92c126b7764d727a533eb2953ae14b47cf66d690140f",
+      "bytes": 7829
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r1-C1.csv",
+      "sha256": "3fe6efa476fc2b685c583b4259014726281a71ee52480100de74d8c41bd9cc80",
+      "bytes": 3245
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r1-C1.json",
+      "sha256": "c236398e7ff4fe6b8e44043369329359fad5884bee84d66de34c0fdf80adfd06",
+      "bytes": 8101
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r1-C2.csv",
+      "sha256": "f16848f7ae063afd4f6433a77718b106281074c2a0c2ec49b9bc5121a3575ef3",
+      "bytes": 3220
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r1-C2.json",
+      "sha256": "7bfb8ab0b0027b84e07f061d1b11b098a2272168977576abb0a5359e8aa8b837",
+      "bytes": 8091
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r2-baseline-C1.csv",
+      "sha256": "ca3ca68c97776292ccd0bf24b8e406d7a937c328da0611d01963241b2262c666",
+      "bytes": 3037
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r2-baseline-C1.json",
+      "sha256": "f6ee517931b48dcd782e2676b6d8f8e0d292d3314c14e6b7cdcb0b853ef123e7",
+      "bytes": 7793
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r2-C1.csv",
+      "sha256": "5287f4b5721d120057a77ba418491671dd2287323199cf346a948502e42678d3",
+      "bytes": 3342
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r2-C1.json",
+      "sha256": "873b91b8ed8de79e7951f08e021e5618cb516ea08c34bbc5b714415c91001f52",
+      "bytes": 8189
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r2-C2.csv",
+      "sha256": "6a0834ceb10bcefc106cd64fa2b62edc86c07bf019b4fcdd55138a60f30aab29",
+      "bytes": 3222
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r2-C2.json",
+      "sha256": "aa6b821a0b1728c04f981b8349caf8a62f3ca5ebdfe4522c0c3e5be00c5c31bb",
+      "bytes": 8101
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r3-baseline-C1.csv",
+      "sha256": "b0faac86922bce6af5f5ffa1680b57566d5c1a0e23ab1e3f8205ace467772e6c",
+      "bytes": 3037
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r3-baseline-C1.json",
+      "sha256": "616daee6e2174d11f1748047114f4da9496be173ff8955a0888b8d36f30dbed1",
+      "bytes": 7803
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r3-C1.csv",
+      "sha256": "fa57f9c9202cadb19aaaff3ea33268070a2839471d329d14d8dc305d5b70a706",
+      "bytes": 3279
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r3-C1.json",
+      "sha256": "dfe99da2c6e471952fd63a04b9d36040c2e35b1356d8cfd738438dc56c7061ea",
+      "bytes": 8125
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r3-C2.csv",
+      "sha256": "4a8e44049bfba12189b10b586d71f78cc47a8adca7498d3de885696130f3ee91",
+      "bytes": 3242
+    },
+    {
+      "path": "raw\\sparse-16383-c1-r3-C2.json",
+      "sha256": "5c3a52a4bee07bdcf79d63e5667523ffbf02fe49c040256d74e33eff1c69b314",
+      "bytes": 8086
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r0-baseline-C1.csv",
+      "sha256": "c4b166a2a8408bc623fd2289e877971bf54f928701569056d105876bcd529e83",
+      "bytes": 3008
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r0-baseline-C1.json",
+      "sha256": "f6c84ddbf8e37df253ca4c015ae59a1967210ebf2bac3d3378e251445b8c09dc",
+      "bytes": 7797
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r0-C1.csv",
+      "sha256": "c26590db04d4879a60ce0708d2849048d99571feb5a8105cde31b1fe12acaf00",
+      "bytes": 3249
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r0-C1.json",
+      "sha256": "1db10f848419f437abd9232b2f778c9afb8b2cfcaea7d600cfe5a94d617134de",
+      "bytes": 8141
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r0-C2.csv",
+      "sha256": "97d6a37ccf09202152a9cd151689cebf64bc46679f277033a87c640d656de12a",
+      "bytes": 3248
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r0-C2.json",
+      "sha256": "61bba9d33861d96cd0e21781ebf1adce286eb57998923897414f46d3a22de513",
+      "bytes": 8096
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r1-baseline-C1.csv",
+      "sha256": "a70b3981a50c0d4e05b7b96d90188d5179467f86403a6ccf78cc5ebcc1987a25",
+      "bytes": 3006
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r1-baseline-C1.json",
+      "sha256": "cad01eb94936beb6cd47266d338c2b327496288bcf96a6b7b0ab7d32c4e9b270",
+      "bytes": 7762
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r1-C1.csv",
+      "sha256": "74f25740d2a69e08284697f5c0eaac90ae7f2265a07ee90eb05e95b328b6631c",
+      "bytes": 3253
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r1-C1.json",
+      "sha256": "9fb788b8155d9974617fe427a65b63f16a4210a23685bc6f7acab4b861b0881e",
+      "bytes": 8113
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r1-C2.csv",
+      "sha256": "18f7e2425d10d4a93aed9d2c4cd5c386b8ab21a5d5b0db9685216b1883fb4eb0",
+      "bytes": 3224
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r1-C2.json",
+      "sha256": "8dec3486ac03c11f16b4827f9a878b000f1cb8b054c42730f76be0e73e42632c",
+      "bytes": 8084
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r2-baseline-C1.csv",
+      "sha256": "3386f01aff388d245b87c0dbcf8581a5c789faed09596676947f11b5bf0b1643",
+      "bytes": 3042
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r2-baseline-C1.json",
+      "sha256": "73501830f3842c98cce53e2301cb837a836d21eb2745935a744c8b7d09bf54da",
+      "bytes": 7811
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r2-C1.csv",
+      "sha256": "9ef5bc922f69705965962a99573910b41184c6d076ec9bd83daa5354080fecc2",
+      "bytes": 3288
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r2-C1.json",
+      "sha256": "7cc418e00ce443b36f009c309cc93177519f61e6adcee581d2eebd1b68291fca",
+      "bytes": 8136
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r2-C2.csv",
+      "sha256": "792339ced585b982d333fa7bb168cde3154a6920a633571d604140c68c723a89",
+      "bytes": 3215
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r2-C2.json",
+      "sha256": "f6b4041b88395425e0f20706734359689d4ba5c3f633a6b536e99091aea57074",
+      "bytes": 8082
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r3-baseline-C1.csv",
+      "sha256": "54574fc110aa7cce21b9e74e1274bfa9092c77e3bbfe5034650ed68cf7e30dd5",
+      "bytes": 3008
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r3-baseline-C1.json",
+      "sha256": "a5dd760f62f0dae21d489b1b25861759bff780d19da41e652d4c4ad0afacee1e",
+      "bytes": 7775
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r3-C1.csv",
+      "sha256": "6f5b34786484b08e4003beffb13c69b1202c69b459bcefc58e2be632facbd4d7",
+      "bytes": 3248
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r3-C1.json",
+      "sha256": "bac3d70a4b39b3649349ab9e6bec681cd92aca7967c2c11bb0dd627ee976803d",
+      "bytes": 8124
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r3-C2.csv",
+      "sha256": "3b85529a232df1caaa311e9632754d6f54d7be78e0b8adb459ddcd4f1f802a75",
+      "bytes": 3200
+    },
+    {
+      "path": "raw\\sparse-16383-c2-r3-C2.json",
+      "sha256": "44d0546721cb170ec11ee00d82d0930d75fb48c7bdee047339eb39f7b1f2213c",
+      "bytes": 8067
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r0-C1.csv",
+      "sha256": "ae1ae73a0e8a7b8ced8513d3c16e2a392b4e715148879e46cba465fe83e39814",
+      "bytes": 3233
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r0-C1.json",
+      "sha256": "8a6b04d5b5ddc987c9589581ee803f82bcaaedf455eb11080346b74039482408",
+      "bytes": 8116
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r1-C1.csv",
+      "sha256": "07488d65acbc74f71d0256af0ca458550bbe5bb77720e8a12554b25c5fd68828",
+      "bytes": 3299
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r1-C1.json",
+      "sha256": "c56e1b36a3f4d241ee768297341a044ceadfaa490ae785ddf7d9f35d6fd10ea6",
+      "bytes": 8169
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r2-C1.csv",
+      "sha256": "600590cb5846cd3c2cb832ce96a98d4d547fc795e70e234c92ca99d77e2c6f78",
+      "bytes": 3274
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r2-C1.json",
+      "sha256": "33c6f0141c2034f9aae520242e063b517f5aabe1b55203db5e6468fa66d4382a",
+      "bytes": 8143
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r3-C1.csv",
+      "sha256": "705b93f4d223da487cce86fd78291b47d5d6201e124a1db6024743f863fb2be6",
+      "bytes": 3235
+    },
+    {
+      "path": "raw\\sparse-32767-c1-r3-C1.json",
+      "sha256": "6ef6a5a6fc96b1f415c509911b9b3c1c3d080f7838918b61d87a1223c3a94ec3",
+      "bytes": 8117
+    },
+    {
+      "path": "README.md",
+      "sha256": "e7396cd43ebddbb10d647fb64aef60fcfd6b269bcf69331db59bb9c7f7fe85b4",
+      "bytes": 2568
+    },
+    {
+      "path": "refusals.json",
+      "sha256": "72e6e443df4b8742ee1249ed06509541745c0fe8c0108a5fb8d7f48e6039be87",
+      "bytes": 1226
+    },
+    {
+      "path": "resources.json",
+      "sha256": "06084ba3f036793129ee65384ff91c83c2dcad26450fa6b223f8e979488564db",
+      "bytes": 74
+    },
+    {
+      "path": "source-hashes.json",
+      "sha256": "dee4ab4e23f11165fe41c63643078d8b7d61dd448729318fafe7a7123c3321ee",
+      "bytes": 1293
+    },
+    {
+      "path": "tests\\build-baseline.log",
+      "sha256": "32841d440446487ad15c1a78eac53cebdc8bce4e669196f580f500bbd8deea3e",
+      "bytes": 1749
+    },
+    {
+      "path": "tests\\build-debug.log",
+      "sha256": "9c96c3e638937243b4625c39b00a23f8417ca3c807f1c2e01e69bee826e2cb6c",
+      "bytes": 406
+    },
+    {
+      "path": "tests\\build-formats-debug.log",
+      "sha256": "71aa391ec7d7e291b419a7f40fba91919e14ac2394ab4e8b66ed126e267d70f6",
+      "bytes": 23
+    },
+    {
+      "path": "tests\\build-formats-release.log",
+      "sha256": "71aa391ec7d7e291b419a7f40fba91919e14ac2394ab4e8b66ed126e267d70f6",
+      "bytes": 23
+    },
+    {
+      "path": "tests\\build-release.log",
+      "sha256": "9c96c3e638937243b4625c39b00a23f8417ca3c807f1c2e01e69bee826e2cb6c",
+      "bytes": 406
+    },
+    {
+      "path": "tests\\core-debug.xml",
+      "sha256": "e9b33dee1c1e454a7caee7f253d3324b03c58a290d0ee7661df4bfcaffec2ce3",
+      "bytes": 37286
+    },
+    {
+      "path": "tests\\core-release.xml",
+      "sha256": "ef3cb04e5d67568dc43404d80fdd5951b109f1d1557f5f3ee6899486bbc6ebf6",
+      "bytes": 37268
+    },
+    {
+      "path": "tests\\formats-debug.xml",
+      "sha256": "566089a74c8181f0b6ba066d6956c6eee0622917587a49d2a278dee0f0292b0f",
+      "bytes": 13565
+    },
+    {
+      "path": "tests\\formats-release.xml",
+      "sha256": "84934b41ae51bb2fec396f091ece4c4ba5ee034319a4d30e4ec3178a47c25427",
+      "bytes": 13551
+    },
+    {
+      "path": "trials.json",
+      "sha256": "a5fc7e8be5a1b4bee0410547fc50f7de00a1867251febd254163e8fe60edd1d3",
+      "bytes": 29898
+    },
+    {
+      "path": "volume.json",
+      "sha256": "430aff4094826e817edc414083295fbc2c782b6890fc60f0b7a122ac6066fe58",
+      "bytes": 84
+    }
+  ]
+}

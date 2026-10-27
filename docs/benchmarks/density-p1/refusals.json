@@ -1,0 +1,37 @@
+[
+  {
+    "name": "baseline-logical-guard",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-baseline-logical-guard",
+    "status": "resource_refused"
+  },
+  {
+    "name": "baseline-output-envelope",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-baseline-output-envelope",
+    "status": "resource_refused"
+  },
+  {
+    "name": "occupied-limit",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-occupied-limit",
+    "status": "resource_refused"
+  },
+  {
+    "name": "boundary-work",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-boundary-work",
+    "status": "resource_refused"
+  },
+  {
+    "name": "tiny-ram",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-tiny-ram",
+    "status": "resource_refused"
+  },
+  {
+    "name": "tiny-scratch",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-tiny-scratch",
+    "status": "resource_refused"
+  },
+  {
+    "name": "tiny-output",
+    "directory": "D:\\ZherlitsynEE\\CADContour2D\\build\\density-p1-matrix\\refused-tiny-output",
+    "status": "resource_refused"
+  }
+]

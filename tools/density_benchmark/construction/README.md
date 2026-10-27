@@ -36,15 +36,28 @@ Chunk сортируется по group, затем каждая подпосл�
 
 После успешного scan группы читаются по Y/X. По завершении чтения удаляется только
 собственный event file; при ошибке RAII удаляет собственный `QTemporaryDir`.
-Количество event files не больше `min(N,groups)`, ограничено `maxGroups`.
-Это явный экспериментальный guard, не универсальная политика production.
-Occupied-group set и output descriptors учтены в RAM plan.
+После P1 группы перечисляются непосредственно из ordered occupied set, без
+цикла по пустым logical groups. `visitedGroups == occupiedGroups` для C1;
+линейный uint64 group ID `y*columns+x` даёт порядок Y/X.
+Количество event files ограничено `maxOccupiedGroups` (CLI
+`--max-occupied-groups`, default 1 000 000). `maxGroups` / `--max-groups`
+ограничивает только число spatial queries C2. Это экспериментальные guards,
+не универсальная политика production.
+Occupied-group set и output descriptors учтены в RAM plan. Число occupied groups
+в плане — `min(N,logicalGroups,maxOccupiedGroups)`. Output descriptors дополнительно
+ограничены числом тайлов в разрешённых occupied groups. Превышение occupied
+лимита даёт resource refusal до создания лишнего spool файла. Для sparse jobs
+можно явно задать небольшой occupied limit и тем самым уменьшить консервативный
+preflight; это ограничение trial, а не предсказание распределения точек.
 
 Точный peak суммы логических EOF event files равен 4*N: первая фаза только
 дописывает, вторая только читает и удаляет. Отдельно фиксируются read/write bytes,
 operations, opens, buffers и peak одновременно открытых **dataset file handles**
 (C1 — до трёх вместе с Reader и output; C2 — два). Peak всех process handles
-и allocated disk clusters не измерены. Preflight дополнительно резервирует 4096
+не измеряется. P1 дополнительно фиксирует `FILE_STANDARD_INFO::AllocationSize`
+для открытого spool через borrowed CRT/native handle: максимум суммы после
+flush, и ноль после cleanup. MFT/directory metadata этим не измеряются.
+Сумма allocation также проверяется против scratch budget. Preflight резервирует 4096
 bytes на spool file. Budgets cooperative, без OS hard cap и гарантии свободного
 диска после preflight; process working set проверяется на checkpoints.
 
@@ -123,4 +136,28 @@ Audit Python использует только stdlib: JSON/CSV equality, сам
 каждый count относительно reference, точное сравнение canonical tile streams,
 SHA-256 и контрольные cells, scratch invariants, source hashes и evidence manifest.
 
-Результаты и ограничения: [отчёт 06.0C](../../../docs/reports/task-06/density-construction.md).
+P1 сохраняет проверку boundaries `O(width+height)`. Отдельный
+`--max-boundary-checks` (default 100 000 000) ограничивает число внутренних
+axis boundaries **до** их обхода; это настраиваемый экспериментальный work guard.
+Он не зависит от площади карты и не определяет coordinate convention.
+`groupTraversalMs` включает выбор следующей группы и checkpoint, исключая
+её накопление/output; `spoolOpenRemoveMs` — read-side open/allocation/close/remove.
+Write-side opens, allocation queries и flush входят в `spoolWriteMs`.
+
+Адресная матрица P1, после сборки исходного baseline в отдельном build tree,
+при Qt bin в PATH (оба каталога должны отсутствовать):
+
+```powershell
+python tools/density_benchmark/construction/run-p1.py build/density-p1-matrix docs/benchmarks/density-p1 --baseline build/density-p1-baseline-release/density_construction_benchmark.exe
+python tools/density_benchmark/construction/audit-p1.py docs/benchmarks/density-p1
+```
+
+Матрица вызывает существующие `prepare --p1`, workers и `measure()`; first +
+три subsequent trials каждого кандидата, с ротацией порядка. Входные caches
+создаются заново; 42M cache переиспользуется и проверяется по каждой записи.
+Output budget 4096 MiB общий для трёх кандидатов: исходный C1 резервирует до
+2 GiB для 16383² даже при четырёх nonzero tiles. RAM 512 / scratch 1024 MiB.
+Для корректной интерпретации отказов и воспроизведения baseline см.
+[отчёт P1](../../../docs/reports/task-06/density-construction-p1.md).
+
+Исторические результаты: [отчёт 06.0C](../../../docs/reports/task-06/density-construction.md).

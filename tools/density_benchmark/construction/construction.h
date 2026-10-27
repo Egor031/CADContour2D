@@ -9,7 +9,8 @@ enum class Candidate { Sequential, Spatial };
 struct Parameters {
     Grid grid;
     std::uint32_t tileSide = 256, groupTiles = 2;
-    U64 eventCapacity = 65536, maxGroups = 1000000;
+    U64 eventCapacity = 65536, maxGroups = 1000000, maxOccupiedGroups = 1000000;
+    U64 maxBoundaryChecks = 100000000;
     Limits limits{512 * MiB, 1024 * MiB, 1024 * MiB};
 };
 using Check = std::function<void()>;
@@ -43,7 +44,7 @@ QJsonObject build(Candidate candidate, cadcontour::cache::CacheReader &reader,
 // One file, sparse in zero regions. Descriptors are explicitly budgeted.
 class Output {
 public:
-    Output(const QString &path, const Spec &spec, U64 points, U64 budget, FileIo &io);
+    Output(const QString &path, const Spec &spec, U64 points, U64 budget, FileIo &io, U64 maxTiles = U64(-1));
     void append(const Tile &tile);
     void finish(U64 expectedPoints);
     QJsonObject verify(const std::vector<U64> &expected, const Check &check);

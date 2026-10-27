@@ -15,11 +15,37 @@ namespace cache = cadcontour::cache;
 int main(int argc,char **argv) {
     QCoreApplication app(argc,argv);
     try {
-        require(argc == 2,"usage: density_construction_prepare NEW_DIRECTORY");
+        require(argc == 2 || (argc == 3 && app.arguments()[2] == "--p1"),"usage: density_construction_prepare NEW_DIRECTORY [--p1]");
         const auto dir = QFileInfo(app.arguments()[1]).absoluteFilePath();
         require(!QFileInfo::exists(dir) && QDir().exists(QFileInfo(dir).absolutePath()),"new directory with existing parent required");
         preflight(QFileInfo(dir).absolutePath(),{512*MiB,256*MiB,256*MiB},{64*MiB,128*MiB,128*MiB});
         require(QDir().mkdir(dir),"cannot create preparation directory"); FileIo io;
+        if (argc == 3) {
+            QJsonArray jobs;
+            for (U64 groups : {0ULL,64ULL,1024ULL,4096ULL}) {
+                const auto name = groups ? "occupied-"+decimal(groups) : QString("four-clusters");
+                const auto path = QDir(dir).filePath(name+".pc2dcache");
+                auto writer = take(cache::CacheWriter::create(path,{8*MiB,128*MiB,4},dir));
+                std::vector<cache::Measurement> batch; batch.reserve(4096);
+                U64 axis = 1; while (axis*axis < groups) ++axis;
+                for (U64 i = 0; i < 262144; ++i) {
+                    double x, y;
+                    if (!groups) {
+                        const U64 cluster = i/65536, local = i%65536;
+                        x = double((cluster%2)*16128+local%256); y = double((cluster/2)*16128+local/256);
+                    } else {
+                        const U64 group = i%groups;
+                        x = double((group%axis)*32)+.5; y = double((group/axis)*32)+.5;
+                    }
+                    batch.push_back({x,y,0});
+                    if (batch.size() == 4096) { take(writer->append(batch)); batch.clear(); }
+                }
+                auto pending = take(writer->finish()); pending.releaseToOwner();
+                jobs.append(QJsonObject{{"name",name},{"cachePath",path},{"pointCount","262144"},{"occupiedFixtureGroups",decimal(groups)}});
+            }
+            writeNew(QDir(dir).filePath("p1-inputs.json"),QJsonDocument(QJsonObject{{"fixtures",jobs}}).toJson(),io);
+            return 0;
+        }
         const QString fixtures = QStringLiteral(DENSITY_SOURCE_DIR "/tests/fixtures/synthetic/");
         const auto geometryBytes = readFile(fixtures+"geometry/rectangle.json",MiB,io);
         const auto geometry = synthetic::parseGeometry(geometryBytes);

@@ -381,7 +381,19 @@ tile side 256/512/1024 и huge-sparse; исходный side для дальне
 проверки — 256, не production default. [Числа, API limitations и методика](reports/task-06/density-formats.md).
 Это **рекомендация, требующая согласования**: production storage, PNG encoding,
 mapping и ресурсный workflow остаются Open decisions; rough/precise methods на
-representative real scans этим не подтверждены. 06.0C не выполнялась.
+representative real scans этим не подтверждены.
+
+Последующая 06.0C предварительно рекомендовала C2, но адресная проверка
+06.0D/P1 выявила обязательный обход пустых spatial groups. Экспериментальный
+C1 теперь перечисляет только occupied groups после одного scanAll, с bounded
+events, отдельными occupied/file guards и safe refusal. На sparse growth,
+many-occupied и 42M synthetic cache рекомендован **C1 как единственный основной
+алгоритм**, статус **P1 CLOSED WITH LIMITATIONS**. Сохраняются axis validation
+`O(width+height)` и экспериментальный tunable resource plan; million-file,
+cold physical HDD/network и representative real scans не подтверждены.
+[Методика, exact oracle, ресурсы и границы рекомендации](reports/task-06/density-construction-p1.md).
+Это рекомендация для архитектурного согласования, не утверждение D/C1,
+production coordinate policy или переход к 06.1.
 
 ---
 

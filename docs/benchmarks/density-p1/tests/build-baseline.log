@@ -1,0 +1,19 @@
+[1/19] Building CXX object CMakeFiles\cadcontour_core.dir\src\core\coordinates.cpp.obj
+[2/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\binary_codec.cpp.obj
+[3/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\cache_types.cpp.obj
+[4/19] Building CXX object CMakeFiles\cadcontour_core.dir\src\core\project_state.cpp.obj
+[5/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\point_cache_format.cpp.obj
+[6/19] Linking CXX static library cadcontour_core.lib
+[7/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\cache_file.cpp.obj
+[8/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\point_stream_sort.cpp.obj
+[9/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\cache_writer.cpp.obj
+[10/19] Building CXX object CMakeFiles\cadcontour_cache.dir\src\cache\cache_reader.cpp.obj
+[11/19] Linking CXX static library cadcontour_cache.lib
+[12/19] Building CXX object tools\density_benchmark\CMakeFiles\density_experiment.dir\dataset.cpp.obj
+[13/19] Building CXX object tools\density_benchmark\CMakeFiles\density_experiment.dir\oracle.cpp.obj
+[14/19] Building CXX object tools\density_benchmark\CMakeFiles\density_experiment.dir\measurement.cpp.obj
+[15/19] Linking CXX static library tools\density_benchmark\density_experiment.lib
+[16/19] Building CXX object tools\density_benchmark\construction\CMakeFiles\density_construction.dir\construction.cpp.obj
+[17/19] Linking CXX static library tools\density_benchmark\construction\density_construction.lib
+[18/19] Building CXX object tools\density_benchmark\construction\CMakeFiles\density_construction_benchmark.dir\benchmark.cpp.obj
+[19/19] Linking CXX executable density_construction_benchmark.exe

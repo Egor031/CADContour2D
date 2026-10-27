@@ -1,0 +1,659 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Win32-ninja"
+	tests="36"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="DESKTOP-DF97PJ2"
+	time="35"
+	timestamp="2026-10-27T14:27:59"
+	>
+	<testcase name="DensityConstruction.ManualLabelsBothCandidatesAndPartialDegenerateAxes" classname="DensityConstruction.ManualLabelsBothCandidatesAndPartialDegenerateAxes" time="1.20958" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.ManualLabelsBothCandidatesAndPartialDegenerateAxes
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.ManualLabelsBothCandidatesAndPartialDegenerateAxes
+[       OK ] DensityConstruction.ManualLabelsBothCandidatesAndPartialDegenerateAxes (1174 ms)
+[----------] 1 test from DensityConstruction (1174 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1174 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.NextafterNonRepresentableCellAndGroupBoundaries" classname="DensityConstruction.NextafterNonRepresentableCellAndGroupBoundaries" time="1.26798" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.NextafterNonRepresentableCellAndGroupBoundaries
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.NextafterNonRepresentableCellAndGroupBoundaries
+[       OK ] DensityConstruction.NextafterNonRepresentableCellAndGroupBoundaries (1237 ms)
+[----------] 1 test from DensityConstruction (1237 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1238 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.PassesDuplicatesDenseSparseShiftedAndInputOrder" classname="DensityConstruction.PassesDuplicatesDenseSparseShiftedAndInputOrder" time="1.60775" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.PassesDuplicatesDenseSparseShiftedAndInputOrder
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.PassesDuplicatesDenseSparseShiftedAndInputOrder
+[       OK ] DensityConstruction.PassesDuplicatesDenseSparseShiftedAndInputOrder (1583 ms)
+[----------] 1 test from DensityConstruction (1583 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1584 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.RandomBoundaryMappingAgreesWithIntervalOracle" classname="DensityConstruction.RandomBoundaryMappingAgreesWithIntervalOracle" time="0.165954" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.RandomBoundaryMappingAgreesWithIntervalOracle
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.RandomBoundaryMappingAgreesWithIntervalOracle
+[       OK ] DensityConstruction.RandomBoundaryMappingAgreesWithIntervalOracle (132 ms)
+[----------] 1 test from DensityConstruction (132 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (133 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.HugeEmptyRegionsHaveNoFullRasterAllocation" classname="DensityConstruction.HugeEmptyRegionsHaveNoFullRasterAllocation" time="6.11343" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.HugeEmptyRegionsHaveNoFullRasterAllocation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.HugeEmptyRegionsHaveNoFullRasterAllocation
+[       OK ] DensityConstruction.HugeEmptyRegionsHaveNoFullRasterAllocation (6088 ms)
+[----------] 1 test from DensityConstruction (6088 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6089 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.InclusiveNeighboursAreFilteredAndStatisticsSummed" classname="DensityConstruction.InclusiveNeighboursAreFilteredAndStatisticsSummed" time="0.149213" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.InclusiveNeighboursAreFilteredAndStatisticsSummed
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.InclusiveNeighboursAreFilteredAndStatisticsSummed
+[       OK ] DensityConstruction.InclusiveNeighboursAreFilteredAndStatisticsSummed (68 ms)
+[----------] 1 test from DensityConstruction (68 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (68 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.ResourceRefusalAndCollapsedBinary64Grid" classname="DensityConstruction.ResourceRefusalAndCollapsedBinary64Grid" time="0.0923687" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.ResourceRefusalAndCollapsedBinary64Grid
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.ResourceRefusalAndCollapsedBinary64Grid
+[       OK ] DensityConstruction.ResourceRefusalAndCollapsedBinary64Grid (35 ms)
+[----------] 1 test from DensityConstruction (35 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (35 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.SequentialVisitsOnlyOccupiedGroupsBeyondLogicalGuardAndUint32" classname="DensityConstruction.SequentialVisitsOnlyOccupiedGroupsBeyondLogicalGuardAndUint32" time="4.83731" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.SequentialVisitsOnlyOccupiedGroupsBeyondLogicalGuardAndUint32
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.SequentialVisitsOnlyOccupiedGroupsBeyondLogicalGuardAndUint32
+[       OK ] DensityConstruction.SequentialVisitsOnlyOccupiedGroupsBeyondLogicalGuardAndUint32 (4812 ms)
+[----------] 1 test from DensityConstruction (4813 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4813 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.OccupiedLimitIsEnforcedAndEmptyRasterVisitsNoGroups" classname="DensityConstruction.OccupiedLimitIsEnforcedAndEmptyRasterVisitsNoGroups" time="0.0833782" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.OccupiedLimitIsEnforcedAndEmptyRasterVisitsNoGroups
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.OccupiedLimitIsEnforcedAndEmptyRasterVisitsNoGroups
+[       OK ] DensityConstruction.OccupiedLimitIsEnforcedAndEmptyRasterVisitsNoGroups (56 ms)
+[----------] 1 test from DensityConstruction (56 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (56 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.CancellationAndSinkIoFailureNeverCompleteOrModifySource" classname="DensityConstruction.CancellationAndSinkIoFailureNeverCompleteOrModifySource" time="0.342337" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.CancellationAndSinkIoFailureNeverCompleteOrModifySource
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.CancellationAndSinkIoFailureNeverCompleteOrModifySource
+[       OK ] DensityConstruction.CancellationAndSinkIoFailureNeverCompleteOrModifySource (307 ms)
+[----------] 1 test from DensityConstruction (307 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (308 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.ReaderCorruptionAndOutputIoErrorsAreFailures" classname="DensityConstruction.ReaderCorruptionAndOutputIoErrorsAreFailures" time="0.0975963" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.ReaderCorruptionAndOutputIoErrorsAreFailures
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.ReaderCorruptionAndOutputIoErrorsAreFailures
+[       OK ] DensityConstruction.ReaderCorruptionAndOutputIoErrorsAreFailures (74 ms)
+[----------] 1 test from DensityConstruction (74 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (74 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.LateCancellationAfterEmittedPrefixAndRealSpoolOpenFailure" classname="DensityConstruction.LateCancellationAfterEmittedPrefixAndRealSpoolOpenFailure" time="0.126678" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.LateCancellationAfterEmittedPrefixAndRealSpoolOpenFailure
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.LateCancellationAfterEmittedPrefixAndRealSpoolOpenFailure
+[       OK ] DensityConstruction.LateCancellationAfterEmittedPrefixAndRealSpoolOpenFailure (106 ms)
+[----------] 1 test from DensityConstruction (106 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (106 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.OutputCanonicalDigestIndependentOfGroupOrderAndExactReadback" classname="DensityConstruction.OutputCanonicalDigestIndependentOfGroupOrderAndExactReadback" time="0.0378234" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.OutputCanonicalDigestIndependentOfGroupOrderAndExactReadback
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.OutputCanonicalDigestIndependentOfGroupOrderAndExactReadback
+[       OK ] DensityConstruction.OutputCanonicalDigestIndependentOfGroupOrderAndExactReadback (9 ms)
+[----------] 1 test from DensityConstruction (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityConstruction.CliBalancedWorkersRefusalAndExistingDirectoryPreserved" classname="DensityConstruction.CliBalancedWorkersRefusalAndExistingDirectoryPreserved" time="1.6926" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_construction"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityConstruction.CliBalancedWorkersRefusalAndExistingDirectoryPreserved
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityConstruction
+[ RUN      ] DensityConstruction.CliBalancedWorkersRefusalAndExistingDirectoryPreserved
+[       OK ] DensityConstruction.CliBalancedWorkersRefusalAndExistingDirectoryPreserved (1663 ms)
+[----------] 1 test from DensityConstruction (1663 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1663 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.AllScenariosAreDeterministicAndRoundTrip" classname="DensityData.AllScenariosAreDeterministicAndRoundTrip" time="0.557418" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.AllScenariosAreDeterministicAndRoundTrip
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.AllScenariosAreDeterministicAndRoundTrip
+[       OK ] DensityData.AllScenariosAreDeterministicAndRoundTrip (452 ms)
+[----------] 1 test from DensityData (452 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (452 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.LiteralControlValuesAndIndependentSums" classname="DensityData.LiteralControlValuesAndIndependentSums" time="0.0484798" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.LiteralControlValuesAndIndependentSums
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.LiteralControlValuesAndIndependentSums
+[       OK ] DensityData.LiteralControlValuesAndIndependentSums (9 ms)
+[----------] 1 test from DensityData (10 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (10 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.EntropySeedAndEmptyHaveDifferentDigests" classname="DensityData.EntropySeedAndEmptyHaveDifferentDigests" time="0.0464881" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.EntropySeedAndEmptyHaveDifferentDigests
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.EntropySeedAndEmptyHaveDifferentDigests
+[       OK ] DensityData.EntropySeedAndEmptyHaveDifferentDigests (15 ms)
+[----------] 1 test from DensityData (15 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (15 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.EntropyGoldenControls" classname="DensityData.EntropyGoldenControls" time="0.045439" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.EntropyGoldenControls
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.EntropyGoldenControls
+[       OK ] DensityData.EntropyGoldenControls (4 ms)
+[----------] 1 test from DensityData (4 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (4 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.PartialTilesAndHugeLogicalRasterStayBounded" classname="DensityData.PartialTilesAndHugeLogicalRasterStayBounded" time="0.042079" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.PartialTilesAndHugeLogicalRasterStayBounded
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.PartialTilesAndHugeLogicalRasterStayBounded
+[       OK ] DensityData.PartialTilesAndHugeLogicalRasterStayBounded (1 ms)
+[----------] 1 test from DensityData (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.PlansSelectExactTilesAndRoiIntersections" classname="DensityData.PlansSelectExactTilesAndRoiIntersections" time="0.0385625" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.PlansSelectExactTilesAndRoiIntersections
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.PlansSelectExactTilesAndRoiIntersections
+[       OK ] DensityData.PlansSelectExactTilesAndRoiIntersections (1 ms)
+[----------] 1 test from DensityData (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.CodecExactUint64AndInvalidLengths" classname="DensityData.CodecExactUint64AndInvalidLengths" time="0.0354335" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.CodecExactUint64AndInvalidLengths
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.CodecExactUint64AndInvalidLengths
+[       OK ] DensityData.CodecExactUint64AndInvalidLengths (0 ms)
+[----------] 1 test from DensityData (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.CorruptionAndWrongTileAddressAreRejected" classname="DensityData.CorruptionAndWrongTileAddressAreRejected" time="0.140336" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.CorruptionAndWrongTileAddressAreRejected
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.CorruptionAndWrongTileAddressAreRejected
+[       OK ] DensityData.CorruptionAndWrongTileAddressAreRejected (11 ms)
+[----------] 1 test from DensityData (11 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (11 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.CancellationStopsWithoutRemovingOtherFiles" classname="DensityData.CancellationStopsWithoutRemovingOtherFiles" time="0.115497" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.CancellationStopsWithoutRemovingOtherFiles
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.CancellationStopsWithoutRemovingOtherFiles
+[       OK ] DensityData.CancellationStopsWithoutRemovingOtherFiles (5 ms)
+[----------] 1 test from DensityData (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (5 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.InvalidSpecificationsAndOverflow" classname="DensityData.InvalidSpecificationsAndOverflow" time="0.0492444" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.InvalidSpecificationsAndOverflow
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.InvalidSpecificationsAndOverflow
+[       OK ] DensityData.InvalidSpecificationsAndOverflow (0 ms)
+[----------] 1 test from DensityData (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityData.ExtendedTileSizesKeepInterchangeAndRejectBeyondLimit" classname="DensityData.ExtendedTileSizesKeepInterchangeAndRejectBeyondLimit" time="6.36115" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityData.ExtendedTileSizesKeepInterchangeAndRejectBeyondLimit
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityData
+[ RUN      ] DensityData.ExtendedTileSizesKeepInterchangeAndRejectBeyondLimit
+[       OK ] DensityData.ExtendedTileSizesKeepInterchangeAndRejectBeyondLimit (6320 ms)
+[----------] 1 test from DensityData (6320 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6320 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityOracle.ManualPerRecordCellsAndSums" classname="DensityOracle.ManualPerRecordCellsAndSums" time="0.0236445" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityOracle.ManualPerRecordCellsAndSums
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityOracle
+[ RUN      ] DensityOracle.ManualPerRecordCellsAndSums
+[       OK ] DensityOracle.ManualPerRecordCellsAndSums (2 ms)
+[----------] 1 test from DensityOracle (2 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (3 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityOracle.InvalidGridAndPoints" classname="DensityOracle.InvalidGridAndPoints" time="0.0219614" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityOracle.InvalidGridAndPoints
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityOracle
+[ RUN      ] DensityOracle.InvalidGridAndPoints
+[       OK ] DensityOracle.InvalidGridAndPoints (0 ms)
+[----------] 1 test from DensityOracle (0 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (0 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityResults.ExactDecimalValuesAndCsvEscaping" classname="DensityResults.ExactDecimalValuesAndCsvEscaping" time="0.0220073" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityResults.ExactDecimalValuesAndCsvEscaping
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityResults
+[ RUN      ] DensityResults.ExactDecimalValuesAndCsvEscaping
+[       OK ] DensityResults.ExactDecimalValuesAndCsvEscaping (1 ms)
+[----------] 1 test from DensityResults (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityResults.StatisticsExcludeFirstAndFailures" classname="DensityResults.StatisticsExcludeFirstAndFailures" time="0.023305" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityResults.StatisticsExcludeFirstAndFailures
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityResults
+[ RUN      ] DensityResults.StatisticsExcludeFirstAndFailures
+[       OK ] DensityResults.StatisticsExcludeFirstAndFailures (1 ms)
+[----------] 1 test from DensityResults (1 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityResults.CandidateGroupsAndNearestRankP95AreIndependent" classname="DensityResults.CandidateGroupsAndNearestRankP95AreIndependent" time="0.0303311" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityResults.CandidateGroupsAndNearestRankP95AreIndependent
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityResults
+[ RUN      ] DensityResults.CandidateGroupsAndNearestRankP95AreIndependent
+[       OK ] DensityResults.CandidateGroupsAndNearestRankP95AreIndependent (7 ms)
+[----------] 1 test from DensityResults (7 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (7 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityMeasurement.UnitsIoAndVerificationOutsideTimedPhase" classname="DensityMeasurement.UnitsIoAndVerificationOutsideTimedPhase" time="0.0624868" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityMeasurement.UnitsIoAndVerificationOutsideTimedPhase
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityMeasurement
+[ RUN      ] DensityMeasurement.UnitsIoAndVerificationOutsideTimedPhase
+[       OK ] DensityMeasurement.UnitsIoAndVerificationOutsideTimedPhase (41 ms)
+[----------] 1 test from DensityMeasurement (41 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (41 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityMeasurement.ErrorResourceCancellationAndWrongResultsAreDistinct" classname="DensityMeasurement.ErrorResourceCancellationAndWrongResultsAreDistinct" time="0.0263012" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityMeasurement.ErrorResourceCancellationAndWrongResultsAreDistinct
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityMeasurement
+[ RUN      ] DensityMeasurement.ErrorResourceCancellationAndWrongResultsAreDistinct
+[       OK ] DensityMeasurement.ErrorResourceCancellationAndWrongResultsAreDistinct (5 ms)
+[----------] 1 test from DensityMeasurement (5 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (6 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityResources.PreflightBudgetsAndRuntimeCancellation" classname="DensityResources.PreflightBudgetsAndRuntimeCancellation" time="0.0304473" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityResources.PreflightBudgetsAndRuntimeCancellation
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityResources
+[ RUN      ] DensityResources.PreflightBudgetsAndRuntimeCancellation
+[       OK ] DensityResources.PreflightBudgetsAndRuntimeCancellation (8 ms)
+[----------] 1 test from DensityResources (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityCli.InvalidInputDoesNotTouchExistingData" classname="DensityCli.InvalidInputDoesNotTouchExistingData" time="0.119008" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityCli.InvalidInputDoesNotTouchExistingData
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityCli
+[ RUN      ] DensityCli.InvalidInputDoesNotTouchExistingData
+[       OK ] DensityCli.InvalidInputDoesNotTouchExistingData (96 ms)
+[----------] 1 test from DensityCli (96 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (96 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityCli.ResourceRefusalHasStructuredReportAndNoDataset" classname="DensityCli.ResourceRefusalHasStructuredReportAndNoDataset" time="0.780579" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityCli.ResourceRefusalHasStructuredReportAndNoDataset
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityCli
+[ RUN      ] DensityCli.ResourceRefusalHasStructuredReportAndNoDataset
+[       OK ] DensityCli.ResourceRefusalHasStructuredReportAndNoDataset (760 ms)
+[----------] 1 test from DensityCli (760 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (761 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityCli.EndToEndSharedInputsAndReadOnlyExternalCache" classname="DensityCli.EndToEndSharedInputsAndReadOnlyExternalCache" time="9.36799" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_experiment"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityCli.EndToEndSharedInputsAndReadOnlyExternalCache
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityCli
+[ RUN      ] DensityCli.EndToEndSharedInputsAndReadOnlyExternalCache
+[       OK ] DensityCli.EndToEndSharedInputsAndReadOnlyExternalCache (9321 ms)
+[----------] 1 test from DensityCli (9321 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9321 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+</testsuite>

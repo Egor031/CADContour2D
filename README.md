@@ -499,6 +499,16 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.0D/P1 — масштабирование C1: P1 CLOSED WITH LIMITATIONS** (2026-10-27).
+Экспериментальный C1 обходит только occupied groups; logical и occupied guards
+разделены. Debug/Release: **36/36 общих/construction + 13/13 format tests PASS**.
+84 Release trials проверены независимым oracle: sparse до 4 194 304 logical
+groups при четырёх occupied, до 4096 spool files и cache 42 млн measurements.
+Рекомендован C1 как единственный основной алгоритм; million-file, cold-HDD и
+representative real scans не подтверждены. Production и 06.1 не начаты;
+окончательное архитектурное утверждение D/C1 остаётся за пользователем.
+[Отчёт, raw evidence, guards и границы вывода](docs/reports/task-06/density-construction-p1.md).
+
 **06.0C — сравнение построения counts C1/C2: READY WITH LIMITATIONS** (2026-10-27).
 Оба экспериментальных алгоритма проверены; Debug/Release — **12/12 C1/C2,
 22/22 общих и 13/13 format tests PASS**. Выполнены девять Release серий на HDD,
@@ -506,7 +516,8 @@ build\windows-release\operation_probe.exe
 182 точных сравнений и сохранность 15 sources. Предварительно рекомендован C2
 с группами 512×512 cells; cold-HDD и representative real scans не подтверждены.
 [Отчёт, evidence и границы рекомендации](docs/reports/task-06/density-construction.md).
-Production Density Map и 06.0D не реализованы; архитектура требует согласования.
+Это историческая рекомендация; последующая адресная проверка P1 приведена выше.
+Production Density Map не реализована; архитектура требует согласования.
 
 **06.0B — сравнение count-tile/zlib и TIFF/BigTIFF: READY WITH LIMITATIONS** (2026-10-27).
 Изолированы оба адаптера; Debug/Release — **22/22 общих + 13/13 format tests PASS**.

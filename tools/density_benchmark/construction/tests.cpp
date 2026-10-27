@@ -108,7 +108,7 @@ TEST(DensityConstruction, InclusiveNeighboursAreFilteredAndStatisticsSummed) {
 }
 TEST(DensityConstruction, ResourceRefusalAndCollapsedBinary64Grid) {
     Parameters p; p.grid = makeGrid({0,0,10,10},1); p.tileSide = 2; p.groupTiles = 1; p.maxGroups = 2;
-    EXPECT_THROW(layout(p),Failure); p.maxGroups = 100; p.groupTiles = 65535;
+    EXPECT_EQ(layout(p).groups,25); p.maxGroups = 100; p.groupTiles = 65535;
     EXPECT_THROW(layout(p),Failure);
     EXPECT_THROW(validateGrid(makeGrid({1e16,0,1e16+4,0},1),noop),Failure);
     QTemporaryDir root; auto path = writeCache(root,{{0,0,0}}); auto reader = take(cache::CacheReader::open(path,{8*MiB,0,1}));
@@ -118,6 +118,43 @@ TEST(DensityConstruction, ResourceRefusalAndCollapsedBinary64Grid) {
     EXPECT_FALSE(QFileInfo::exists(root.filePath("scratch")));
     p.limits.ramBytes = 512*MiB; p.limits.temporaryBytes = 1;
     EXPECT_THROW(build(Candidate::Sequential,*reader,p,root.filePath("scratch2"),[](const Tile &) {},io,noop),Failure);
+}
+TEST(DensityConstruction, SequentialVisitsOnlyOccupiedGroupsBeyondLogicalGuardAndUint32) {
+    for (U64 extent : {10001ULL,2000001ULL}) {
+        QTemporaryDir root; const double maximum = double(extent);
+        auto path = writeCache(root,{{0,0,0},{maximum,maximum,0},{maximum,maximum,0}});
+        Parameters p; p.grid = makeGrid({0,0,maximum,maximum},1); p.tileSide = 8; p.groupTiles = 2;
+        p.maxGroups = 4; p.maxOccupiedGroups = 2;
+        auto reader = take(cache::CacheReader::open(path,{8*MiB,0,1})); FileIo io; U64 tiles = 0;
+        const U64 last = (extent-1)/8;
+        auto result = build(Candidate::Sequential,*reader,p,root.filePath("ok"),[&](const Tile &tile) {
+            ++tiles;
+            if (tiles == 1) { EXPECT_EQ(tile.key.x,0); EXPECT_EQ(tile.key.y,0); EXPECT_EQ(sum(tile),1); EXPECT_EQ(tile.counts[0],1); }
+            else { EXPECT_EQ(tile.key.x,last); EXPECT_EQ(tile.key.y,last); EXPECT_EQ(tile.width,1); EXPECT_EQ(tile.height,1); EXPECT_EQ(tile.counts,(std::vector<U64>{2})); }
+        },io,noop);
+        EXPECT_EQ(tiles,2); EXPECT_EQ(integer(result,"visitedGroups"),2); EXPECT_EQ(integer(result,"occupiedGroups"),2);
+        EXPECT_EQ(integer(result,"spoolFiles"),2); EXPECT_EQ(integer(result,"queries"),0);
+        EXPECT_EQ(integer(result,"scratchFinalBytes"),0); EXPECT_EQ(integer(result,"scratchAllocatedFinalBytes"),0);
+        EXPECT_EQ(integer(result,"occupiedMetadataPlannedBytes"),160);
+        if (extent > 10001) EXPECT_GT(layout(p).groups,std::numeric_limits<std::uint32_t>::max());
+        EXPECT_THROW(build(Candidate::Spatial,*reader,p,root.filePath("spatial"),[](const Tile &) {},io,noop),Failure);
+        EXPECT_FALSE(QFileInfo::exists(root.filePath("spatial")));
+    }
+}
+TEST(DensityConstruction, OccupiedLimitIsEnforcedAndEmptyRasterVisitsNoGroups) {
+    QTemporaryDir root; auto path = writeCache(root,{{0,0,0},{10,10,0}});
+    Parameters p; p.grid = makeGrid({0,0,10,10},1); p.tileSide = 1; p.groupTiles = 2; p.maxOccupiedGroups = 1; p.eventCapacity = 1;
+    auto reader = take(cache::CacheReader::open(path,{8*MiB,0,1})); FileIo io;
+    try { build(Candidate::Sequential,*reader,p,root.filePath("refused"),[](const Tile &) {},io,noop); FAIL(); }
+    catch (const Failure &e) { EXPECT_EQ(e.status,"resource_refused"); EXPECT_TRUE(QString::fromUtf8(e.what()).contains("maxOccupiedGroups")); }
+    EXPECT_EQ(directoryBytes(root.filePath("refused")),0);
+    auto empty = writeCache(root,{},"empty"); reader = take(cache::CacheReader::open(empty,{8*MiB,0,1}));
+    auto result = build(Candidate::Sequential,*reader,p,root.filePath("empty-scratch"),[](const Tile &) { ADD_FAILURE(); },io,noop);
+    EXPECT_EQ(integer(result,"visitedGroups"),0); EXPECT_EQ(integer(result,"occupiedGroups"),0);
+    EXPECT_EQ(integer(result,"spoolFiles"),0);
+    p.maxBoundaryChecks = 1; EXPECT_THROW(layout(p),Failure); p.maxBoundaryChecks = 100000000;
+    p.eventCapacity = std::numeric_limits<U64>::max(); EXPECT_THROW(layout(p),Failure);
+    EXPECT_THROW(makeGrid({0,0,4294967296.,4294967296.},1),Failure);
 }
 TEST(DensityConstruction, CancellationAndSinkIoFailureNeverCompleteOrModifySource) {
     for (auto candidate : {Candidate::Sequential,Candidate::Spatial}) for (int stop : {1,5,20}) {
