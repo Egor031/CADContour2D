@@ -183,6 +183,11 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ### Configure / Build / Tests
 
+Эксперимент 06.0A при `CADCONTOUR2D_BUILD_TOOLS=ON` имеет отдельные проверенные
+targets `density_benchmark density_benchmark_tests` и CTest label `density_experiment`
+в Debug/Release. [Configure/build/test, smoke run и методика](tools/density_benchmark/README.md)
+не запускают production Density Map и не требуют новых зависимостей.
+
 Из корня репозитория в указанной CMD-среде:
 
 ```bat
@@ -488,6 +493,15 @@ build\windows-release\operation_probe.exe
 - Расхождение Qt 6.12.0 `wait(0)` с полным завершением C++ TLS воспроизведено и покрыто независимым Windows-guard. Подробности и повторяемая проверка — [thread-completion-check.md](docs/reports/task-02/thread-completion-check.md).
 
 ## Project Status
+
+**06.0A — экспериментальный стенд Density Map: READY WITH LIMITATIONS** (2026-10-27).
+Изолированный [density_benchmark](tools/density_benchmark/README.md): точные count inputs,
+независимый малый oracle, production CacheReader inputs, resource preflight,
+process memory/logical I/O и JSON/CSV. Debug/Release experimental builds и **20/20 tests**
+в каждой конфигурации — PASS; отдельный Release smoke — **230 rows ok**.
+[Baseline, методика, команды, результаты и ограничения](docs/reports/task-06/density-harness.md).
+Форматы/алгоритмы 06.0B/C ещё не реализованы; production Density Map/PNG/Canvas
+и задача 06 целиком остаются будущей работой.
 
 **Задачи 01–04 и этапы 05.1–05.4: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 

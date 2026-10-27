@@ -151,6 +151,15 @@ target_link_libraries(operation_probe PRIVATE cadcontour_verification cadcontour
 target_compile_options(operation_probe PRIVATE /W4 /permissive- /utf-8)
 
 if(CADCONTOUR2D_BUILD_TOOLS)
+    add_executable(density_benchmark_tests density_benchmark_tests.cpp)
+    set_target_properties(density_benchmark_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+    target_link_libraries(density_benchmark_tests PRIVATE density_experiment GTest::gtest_main)
+    target_compile_options(density_benchmark_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+    target_compile_definitions(density_benchmark_tests PRIVATE DENSITY_BENCHMARK_EXE="$<TARGET_FILE:density_benchmark>")
+    add_dependencies(density_benchmark_tests density_benchmark)
+    gtest_discover_tests(density_benchmark_tests DISCOVERY_MODE PRE_TEST
+        PROPERTIES LABELS density_experiment TIMEOUT 60)
+
     add_executable(cache_benchmark_tests cache_benchmark_tests.cpp)
     set_target_properties(cache_benchmark_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
     target_link_libraries(cache_benchmark_tests PRIVATE Qt6::Core GTest::gtest_main)
