@@ -16,3 +16,5 @@ target_link_libraries(density_benchmark PRIVATE density_experiment synthetic_gen
 target_compile_options(density_benchmark PRIVATE /W4 /permissive- /fp:precise /utf-8)
 target_compile_definitions(density_benchmark PRIVATE
     DENSITY_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+
+add_subdirectory(construction)

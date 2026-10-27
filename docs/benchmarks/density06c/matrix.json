@@ -1,0 +1,64 @@
+[
+  {
+    "tile": 2,
+    "name": "small",
+    "inputs": "build/density-06a-smoke/inputs.json",
+    "group": 1
+  },
+  {
+    "tile": 4,
+    "name": "distributions-g1",
+    "inputs": "prepared/inputs.json",
+    "group": 1
+  },
+  {
+    "tile": 4,
+    "name": "distributions-g4",
+    "inputs": "prepared/inputs.json",
+    "group": 4
+  },
+  {
+    "tile": 64,
+    "name": "1m-g1",
+    "cell": "0.1",
+    "group": 1,
+    "cache": "build/task052-resource-1m/source.pc2dcache"
+  },
+  {
+    "tile": 64,
+    "name": "1m-g4",
+    "cell": "0.1",
+    "group": 4,
+    "cache": "build/task052-resource-1m/source.pc2dcache"
+  },
+  {
+    "tile": 64,
+    "name": "1m-g8",
+    "cell": "0.1",
+    "group": 8,
+    "cache": "build/task052-resource-1m/source.pc2dcache"
+  },
+  {
+    "group": 4,
+    "padY": "0.625",
+    "cell": "0.1",
+    "padX": "0.375",
+    "cache": "build/task052-resource-1m/source.pc2dcache",
+    "name": "1m-shift",
+    "tile": 64
+  },
+  {
+    "tile": 64,
+    "name": "42m-g4",
+    "cell": "0.1",
+    "group": 4,
+    "cache": "build/task052-resource-42m/source.pc2dcache"
+  },
+  {
+    "tile": 64,
+    "name": "42m-g8",
+    "cell": "0.1",
+    "group": 8,
+    "cache": "build/task052-resource-42m/source.pc2dcache"
+  }
+]

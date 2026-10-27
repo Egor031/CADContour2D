@@ -1,0 +1,1326 @@
+{
+    "environment": {
+        "architecture": "x86_64",
+        "buildConfiguration": "Release",
+        "buildHead": "fd6581f67d422785daec9b8afb268841ecdaf3e0",
+        "compiler": "MSVC-19.51.36260.0",
+        "cpu": "Intel64 Family 6 Model 158 Stepping 9, GenuineIntel",
+        "fileSystem": "NTFS",
+        "filesystemCache": "uncontrolled; never claimed cold",
+        "gitStatus": "M tools/density_benchmark/CMakeLists.txt\n?? docs/benchmarks/density06c/\n?? tools/density_benchmark/construction/",
+        "ioDefinition": "GetProcessIoCounters deltas: process logical transfers/operations, NOT physical disk I/O",
+        "memoryDefinition": "Windows PeakWorkingSetSize: process-lifetime resident high-water mark; privateBytes is a snapshot",
+        "msvcFullVersion": "195136260",
+        "os": "Windows 10 Version 22H2",
+        "physicalDiskIo": null,
+        "physicalRamBytes": "17135476736",
+        "qtVersion": "6.12.0",
+        "runtimeHead": "fd6581f67d422785daec9b8afb268841ecdaf3e0",
+        "startedUtc": "2026-10-27T10:13:47.724Z",
+        "storageLabel": "D: Hitachi HDS721050CLA362 SATA HDD NTFS; verified Get-Partition/Get-Disk/Get-PhysicalDisk",
+        "toolExecutableSha256": "f6d692c98aba7bb4c57ddd476414daff685b04aa51414bc4127df04bda1e3a67",
+        "volume": "D:/",
+        "volumeDevice": "\\\\?\\Volume{db953991-9984-4193-8397-491f2c9afecb}\\"
+    },
+    "measurements": [
+        {
+            "candidate": "C1",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298663632896",
+                    "availableRamBytes": "4728549376",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.611,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22740992",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35852288",
+            "repetition": 0,
+            "runClass": "first",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.7322,
+            "verificationMs": 0.0015,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r0-C1",
+            "workingSetAfterBytes": "26214400",
+            "workingSetBeforeBytes": "27508736"
+        },
+        {
+            "candidate": "C1",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "0",
+                "boundaryValidationMs": 0.9849,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "0",
+                    "pointPages": "15408",
+                    "readBytes": "1009778688",
+                    "readOperations": "15408",
+                    "returnedRecords": "42000000",
+                    "seekOperations": "15408",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 14597.821400000008,
+                "countAndTileMs": 4271.516300000003,
+                "eventBufferBytes": "1048576",
+                "eventGroupingMs": 79.57099999999996,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 8.7837,
+                "outputSinkMs": 8.938199999999998,
+                "peakOwnedDatasetFileHandles": 3,
+                "queries": "0",
+                "scanExcludingCallbacksMs": 10004.377699999994,
+                "scanInclusiveMs": 24602.1991,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "168000000",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "2079",
+                "spoolFiles": "40",
+                "spoolIo": {
+                    "readBytes": "168000000",
+                    "readOperations": "665",
+                    "writeBytes": "168000000",
+                    "writeOperations": "2039"
+                },
+                "spoolReadMs": 2703.890600000001,
+                "spoolWriteMs": 1055.4103999999998,
+                "tileSide": 64
+            },
+            "elapsedMs": 31630.1631,
+            "fileIo": {
+                "readBytes": "168000000",
+                "readOperations": "665",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "23060480",
+            "processIo": {
+                "readBytes": "1177778688",
+                "readOperations": "16073",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "processPeakWorkingSetBytes": "35852288",
+            "repetition": 0,
+            "runClass": "first",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 31660.751,
+            "verificationMs": 30.3967,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r0-C1",
+            "workingSetAfterBytes": "26537984",
+            "workingSetBeforeBytes": "26226688"
+        },
+        {
+            "candidate": "C2",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298660253696",
+                    "availableRamBytes": "4692709376",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 2.0127,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22786048",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35901440",
+            "repetition": 0,
+            "runClass": "first",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 2.1352,
+            "verificationMs": 0.0016,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r0-C2",
+            "workingSetAfterBytes": "26292224",
+            "workingSetBeforeBytes": "27586560"
+        },
+        {
+            "candidate": "C2",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "16380",
+                "boundaryValidationMs": 0.9921,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "346",
+                    "pointPages": "23722",
+                    "readBytes": "1577320448",
+                    "readOperations": "24068",
+                    "returnedRecords": "42016380",
+                    "seekOperations": "24068",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 13047.03599999995,
+                "countAndTileMs": 13049.081699999946,
+                "eventBufferBytes": "0",
+                "eventGroupingMs": 0,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 8.404599999999997,
+                "outputSinkMs": 8.547300000000002,
+                "peakOwnedDatasetFileHandles": 2,
+                "queries": "40",
+                "scanExcludingCallbacksMs": 14705.917500000058,
+                "scanInclusiveMs": 27752.953500000007,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "0",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "0",
+                "spoolFiles": "0",
+                "spoolIo": {
+                    "readBytes": "0",
+                    "readOperations": "0",
+                    "writeBytes": "0",
+                    "writeOperations": "0"
+                },
+                "spoolReadMs": 0,
+                "spoolWriteMs": 0,
+                "tileSide": 64
+            },
+            "elapsedMs": 27767.0521,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "23220224",
+            "processIo": {
+                "readBytes": "1577320448",
+                "readOperations": "24068",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "processPeakWorkingSetBytes": "35901440",
+            "repetition": 0,
+            "runClass": "first",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 27800.9148,
+            "verificationMs": 33.6004,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r0-C2",
+            "workingSetAfterBytes": "26652672",
+            "workingSetBeforeBytes": "26370048"
+        },
+        {
+            "candidate": "C2",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298656874496",
+                    "availableRamBytes": "4640407552",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.5154,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22732800",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35868672",
+            "repetition": 1,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.6214,
+            "verificationMs": 0.0014,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r1-C2",
+            "workingSetAfterBytes": "26271744",
+            "workingSetBeforeBytes": "27574272"
+        },
+        {
+            "candidate": "C2",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "16380",
+                "boundaryValidationMs": 0.9105,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "346",
+                    "pointPages": "23722",
+                    "readBytes": "1577320448",
+                    "readOperations": "24068",
+                    "returnedRecords": "42016380",
+                    "seekOperations": "24068",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 12872.995899999964,
+                "countAndTileMs": 12874.961699999958,
+                "eventBufferBytes": "0",
+                "eventGroupingMs": 0,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 26.95900000000001,
+                "outputSinkMs": 27.0645,
+                "peakOwnedDatasetFileHandles": 2,
+                "queries": "40",
+                "scanExcludingCallbacksMs": 14559.32580000003,
+                "scanInclusiveMs": 27432.321699999993,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "0",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "0",
+                "spoolFiles": "0",
+                "spoolIo": {
+                    "readBytes": "0",
+                    "readOperations": "0",
+                    "writeBytes": "0",
+                    "writeOperations": "0"
+                },
+                "spoolReadMs": 0,
+                "spoolWriteMs": 0,
+                "tileSide": 64
+            },
+            "elapsedMs": 27464.8108,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "23736320",
+            "processIo": {
+                "readBytes": "1577320448",
+                "readOperations": "24068",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "processPeakWorkingSetBytes": "35868672",
+            "repetition": 1,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 27605.2718,
+            "verificationMs": 140.2558,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r1-C2",
+            "workingSetAfterBytes": "26624000",
+            "workingSetBeforeBytes": "26345472"
+        },
+        {
+            "candidate": "C1",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298652778496",
+                    "availableRamBytes": "4612935680",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.5676,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22745088",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35831808",
+            "repetition": 1,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.6874,
+            "verificationMs": 0.0016,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r1-C1",
+            "workingSetAfterBytes": "26243072",
+            "workingSetBeforeBytes": "27533312"
+        },
+        {
+            "candidate": "C1",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "0",
+                "boundaryValidationMs": 0.9103,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "0",
+                    "pointPages": "15408",
+                    "readBytes": "1009778688",
+                    "readOperations": "15408",
+                    "returnedRecords": "42000000",
+                    "seekOperations": "15408",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 13823.762200000108,
+                "countAndTileMs": 4450.5147000000015,
+                "eventBufferBytes": "1048576",
+                "eventGroupingMs": 77.10089999999992,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 8.675000000000008,
+                "outputSinkMs": 8.871100000000004,
+                "peakOwnedDatasetFileHandles": 3,
+                "queries": "0",
+                "scanExcludingCallbacksMs": 9582.972399999891,
+                "scanInclusiveMs": 23406.7346,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "168000000",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "2079",
+                "spoolFiles": "40",
+                "spoolIo": {
+                    "readBytes": "168000000",
+                    "readOperations": "665",
+                    "writeBytes": "168000000",
+                    "writeOperations": "2039"
+                },
+                "spoolReadMs": 2765.5379999999996,
+                "spoolWriteMs": 830.7624000000008,
+                "tileSide": 64
+            },
+            "elapsedMs": 30696.6365,
+            "fileIo": {
+                "readBytes": "168000000",
+                "readOperations": "665",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22929408",
+            "processIo": {
+                "readBytes": "1177778688",
+                "readOperations": "16073",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "processPeakWorkingSetBytes": "35831808",
+            "repetition": 1,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 30726.3902,
+            "verificationMs": 29.5555,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r1-C1",
+            "workingSetAfterBytes": "26423296",
+            "workingSetBeforeBytes": "26251264"
+        },
+        {
+            "candidate": "C1",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298648875008",
+                    "availableRamBytes": "4494794752",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.5858,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22732800",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35819520",
+            "repetition": 2,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.7057,
+            "verificationMs": 0.0014,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r2-C1",
+            "workingSetAfterBytes": "26202112",
+            "workingSetBeforeBytes": "27488256"
+        },
+        {
+            "candidate": "C1",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "0",
+                "boundaryValidationMs": 0.9081,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "0",
+                    "pointPages": "15408",
+                    "readBytes": "1009778688",
+                    "readOperations": "15408",
+                    "returnedRecords": "42000000",
+                    "seekOperations": "15408",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 14731.71860000007,
+                "countAndTileMs": 4468.743900000007,
+                "eventBufferBytes": "1048576",
+                "eventGroupingMs": 77.89710000000001,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 8.733700000000002,
+                "outputSinkMs": 8.905499999999998,
+                "peakOwnedDatasetFileHandles": 3,
+                "queries": "0",
+                "scanExcludingCallbacksMs": 9854.007599999932,
+                "scanInclusiveMs": 24585.7262,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "168000000",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "2079",
+                "spoolFiles": "40",
+                "spoolIo": {
+                    "readBytes": "168000000",
+                    "readOperations": "665",
+                    "writeBytes": "168000000",
+                    "writeOperations": "2039"
+                },
+                "spoolReadMs": 2815.6562999999996,
+                "spoolWriteMs": 1125.4274000000016,
+                "tileSide": 64
+            },
+            "elapsedMs": 31938.5887,
+            "fileIo": {
+                "readBytes": "168000000",
+                "readOperations": "665",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "23080960",
+            "processIo": {
+                "readBytes": "1177778688",
+                "readOperations": "16073",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "processPeakWorkingSetBytes": "35819520",
+            "repetition": 2,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 31969.0758,
+            "verificationMs": 30.2686,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r2-C1",
+            "workingSetAfterBytes": "26546176",
+            "workingSetBeforeBytes": "26214400"
+        },
+        {
+            "candidate": "C2",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298644955136",
+                    "availableRamBytes": "4166156288",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.6015,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22736896",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35827712",
+            "repetition": 2,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.7174,
+            "verificationMs": 0.0015,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r2-C2",
+            "workingSetAfterBytes": "26251264",
+            "workingSetBeforeBytes": "27541504"
+        },
+        {
+            "candidate": "C2",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "16380",
+                "boundaryValidationMs": 0.9906,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "346",
+                    "pointPages": "23722",
+                    "readBytes": "1577320448",
+                    "readOperations": "24068",
+                    "returnedRecords": "42016380",
+                    "seekOperations": "24068",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 13906.104499999894,
+                "countAndTileMs": 13908.219299999892,
+                "eventBufferBytes": "0",
+                "eventGroupingMs": 0,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 8.755399999999996,
+                "outputSinkMs": 8.897799999999997,
+                "peakOwnedDatasetFileHandles": 2,
+                "queries": "40",
+                "scanExcludingCallbacksMs": 15398.848000000095,
+                "scanInclusiveMs": 29304.95249999999,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "0",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "0",
+                "spoolFiles": "0",
+                "spoolIo": {
+                    "readBytes": "0",
+                    "readOperations": "0",
+                    "writeBytes": "0",
+                    "writeOperations": "0"
+                },
+                "spoolReadMs": 0,
+                "spoolWriteMs": 0,
+                "tileSide": 64
+            },
+            "elapsedMs": 29319.4946,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "23056384",
+            "processIo": {
+                "readBytes": "1577320448",
+                "readOperations": "24068",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "processPeakWorkingSetBytes": "35827712",
+            "repetition": 2,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 29352.6415,
+            "verificationMs": 32.9304,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r2-C2",
+            "workingSetAfterBytes": "26537984",
+            "workingSetBeforeBytes": "26329088"
+        },
+        {
+            "candidate": "C2",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298641571840",
+                    "availableRamBytes": "4353449984",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.5849,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22736896",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35827712",
+            "repetition": 3,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.693,
+            "verificationMs": 0.0015,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r3-C2",
+            "workingSetAfterBytes": "26210304",
+            "workingSetBeforeBytes": "27504640"
+        },
+        {
+            "candidate": "C2",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "16380",
+                "boundaryValidationMs": 0.9186,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "346",
+                    "pointPages": "23722",
+                    "readBytes": "1577320448",
+                    "readOperations": "24068",
+                    "returnedRecords": "42016380",
+                    "seekOperations": "24068",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 13564.22299999997,
+                "countAndTileMs": 13566.283599999972,
+                "eventBufferBytes": "0",
+                "eventGroupingMs": 0,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 8.3769,
+                "outputSinkMs": 8.5077,
+                "peakOwnedDatasetFileHandles": 2,
+                "queries": "40",
+                "scanExcludingCallbacksMs": 15292.09640000003,
+                "scanInclusiveMs": 28856.3194,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "0",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "0",
+                "spoolFiles": "0",
+                "spoolIo": {
+                    "readBytes": "0",
+                    "readOperations": "0",
+                    "writeBytes": "0",
+                    "writeOperations": "0"
+                },
+                "spoolReadMs": 0,
+                "spoolWriteMs": 0,
+                "tileSide": 64
+            },
+            "elapsedMs": 28870.5119,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "23150592",
+            "processIo": {
+                "readBytes": "1577320448",
+                "readOperations": "24068",
+                "writeBytes": "3365024",
+                "writeOperations": "157"
+            },
+            "processPeakWorkingSetBytes": "35827712",
+            "repetition": 3,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 28897.6638,
+            "verificationMs": 26.9344,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r3-C2",
+            "workingSetAfterBytes": "26554368",
+            "workingSetBeforeBytes": "26292224"
+        },
+        {
+            "candidate": "C1",
+            "correctness": null,
+            "dataset": "source",
+            "details": {
+                "cacheReaderOpen": {
+                    "bufferBytes": "245440",
+                    "indexPages": "1",
+                    "pointPages": "0",
+                    "readBytes": "73728",
+                    "readOperations": "3",
+                    "returnedRecords": "0",
+                    "seekOperations": "3",
+                    "traversalFrames": "2"
+                },
+                "preflight": {
+                    "availableDiskBytes": "298638192640",
+                    "availableRamBytes": "4333903872",
+                    "outputBudgetBytes": "1073741824",
+                    "plannedOutputBytes": "7246752",
+                    "plannedRamBytes": "52573120",
+                    "plannedTemporaryBytes": "168163840",
+                    "ramBudgetBytes": "536870912",
+                    "temporaryBudgetBytes": "1073741824"
+                }
+            },
+            "elapsedMs": 1.8519,
+            "fileIo": {
+                "readBytes": "0",
+                "readOperations": "0",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "open",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22740992",
+            "processIo": {
+                "readBytes": "73728",
+                "readOperations": "3",
+                "writeBytes": "0",
+                "writeOperations": "0"
+            },
+            "processPeakWorkingSetBytes": "35803136",
+            "repetition": 3,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 1.9721,
+            "verificationMs": 0.0016,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r3-C1",
+            "workingSetAfterBytes": "26218496",
+            "workingSetBeforeBytes": "27512832"
+        },
+        {
+            "candidate": "C1",
+            "correctness": true,
+            "dataset": "source",
+            "details": {
+                "boundaryNeighbourRecordsRejected": "0",
+                "boundaryValidationMs": 0.9794,
+                "cacheReaderScans": {
+                    "bufferBytes": "245440",
+                    "indexPages": "0",
+                    "pointPages": "15408",
+                    "readBytes": "1009778688",
+                    "readOperations": "15408",
+                    "returnedRecords": "42000000",
+                    "seekOperations": "15408",
+                    "traversalFrames": "2"
+                },
+                "callbackInclusiveMs": 16146.39060000004,
+                "countAndTileMs": 4200.848899999994,
+                "eventBufferBytes": "1048576",
+                "eventGroupingMs": 91.52400000000004,
+                "fingerprint": {
+                    "digestDefinition": "SHA256 Spec + nonzero encode(Tile), sorted Y/X; zero tiles implicit",
+                    "maximum": "121",
+                    "nonzeroCells": "420000",
+                    "oracleAvailable": true,
+                    "outputBytes": "3365024",
+                    "sha256": "6fe6d01824288d20886e3ed8292a107dfce7aa74a62326da9f263dfc28c235aa",
+                    "storedTiles": "157",
+                    "sum": "42000000"
+                },
+                "grid": {
+                    "bounds": [
+                        0,
+                        0,
+                        999.99,
+                        4.19
+                    ],
+                    "cellMm": 0.1,
+                    "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                    "height": "42",
+                    "width": "10000"
+                },
+                "groupBufferBytes": "524288",
+                "groupTiles": 4,
+                "groups": "40",
+                "outputAndFinalizationMs": 9.318900000000001,
+                "outputSinkMs": 9.472000000000001,
+                "peakOwnedDatasetFileHandles": 3,
+                "queries": "0",
+                "scanExcludingCallbacksMs": 11211.18169999996,
+                "scanInclusiveMs": 27357.5723,
+                "scratchFinalBytes": "0",
+                "scratchLogicalPeakBytes": "168000000",
+                "scratchPeakDefinition": "exact sum of owned event EOF lengths; monotone write phase then remove; excludes filesystem allocation",
+                "seenPoints": "42000000",
+                "spoolFileOpens": "2079",
+                "spoolFiles": "40",
+                "spoolIo": {
+                    "readBytes": "168000000",
+                    "readOperations": "665",
+                    "writeBytes": "168000000",
+                    "writeOperations": "2039"
+                },
+                "spoolReadMs": 2406.213400000001,
+                "spoolWriteMs": 1351.7612,
+                "tileSide": 64
+            },
+            "elapsedMs": 34028.6052,
+            "fileIo": {
+                "readBytes": "168000000",
+                "readOperations": "665",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "fileIoDefinition": "Actual successful bytes and attempted QIODevice calls in fixture wrappers only; CacheReader has separate statistics",
+            "ownedFilesAfterBytes": "0",
+            "phase": "build_counts",
+            "physicalDiskIo": null,
+            "privateBytesAfter": "22822912",
+            "processIo": {
+                "readBytes": "1177778688",
+                "readOperations": "16073",
+                "writeBytes": "171365024",
+                "writeOperations": "2196"
+            },
+            "processPeakWorkingSetBytes": "35803136",
+            "repetition": 3,
+            "runClass": "subsequent",
+            "status": "ok",
+            "temporaryPeakBytes": null,
+            "totalElapsedMs": 34062.7117,
+            "verificationMs": 33.9146,
+            "workerDirectory": "D:/ZherlitsynEE/CADContour2D/build/density-06c-matrix/42m-g4/job-0-r3-C1",
+            "workingSetAfterBytes": "26402816",
+            "workingSetBeforeBytes": "26226688"
+        }
+    ],
+    "order": "r0 C1/C2, r1 C2/C1 alternating; fresh worker each; inputs/reference/SHA scans warm OS cache; first is not cold",
+    "schema": "density-construction-06c-1",
+    "seriesPreflight": {
+        "availableDiskBytes": "298669789184",
+        "availableRamBytes": "4746252288",
+        "outputBudgetBytes": "1073741824",
+        "plannedOutputBytes": "57974016",
+        "plannedRamBytes": "52573120",
+        "plannedTemporaryBytes": "168163840",
+        "ramBudgetBytes": "536870912",
+        "temporaryBudgetBytes": "1073741824"
+    },
+    "sources": [
+        {
+            "bytes": "1010900992",
+            "grid": {
+                "bounds": [
+                    0,
+                    0,
+                    999.99,
+                    4.19
+                ],
+                "cellMm": 0.1,
+                "convention": "experimental-min-origin-y-up-half-open-clamped-max-v1",
+                "height": "42",
+                "width": "10000"
+            },
+            "oracleAvailable": true,
+            "path": "D:/ZherlitsynEE/CADContour2D/build/task052-resource-42m/source.pc2dcache",
+            "pointCount": "42000000",
+            "preflight": {
+                "availableDiskBytes": "298669789184",
+                "availableRamBytes": "4744708096",
+                "outputBudgetBytes": "1073741824",
+                "plannedOutputBytes": "7246752",
+                "plannedRamBytes": "52573120",
+                "plannedTemporaryBytes": "168163840",
+                "ramBudgetBytes": "536870912",
+                "temporaryBudgetBytes": "1073741824"
+            },
+            "sha256After": "0b183f02b0f08a7b61a4bbe9438a5acb56ea3914410635fe9d028e3d2ba252f9",
+            "sha256Before": "0b183f02b0f08a7b61a4bbe9438a5acb56ea3914410635fe9d028e3d2ba252f9"
+        }
+    ],
+    "success": true,
+    "summarySubsequent": {
+        "source/C1/build_counts": {
+            "maxMs": 34028.6052,
+            "meanMs": 32221.2768,
+            "medianMs": 31938.5887,
+            "minMs": 30696.6365,
+            "n": 3,
+            "p95Ms": 34028.6052,
+            "sampleStddevMs": 1683.8759680736957
+        },
+        "source/C1/open": {
+            "maxMs": 1.8519,
+            "meanMs": 1.6684333333333337,
+            "medianMs": 1.5858,
+            "minMs": 1.5676,
+            "n": 3,
+            "p95Ms": 1.8519,
+            "sampleStddevMs": 0.1591471750717974
+        },
+        "source/C2/build_counts": {
+            "maxMs": 29319.4946,
+            "meanMs": 28551.605766666667,
+            "medianMs": 28870.5119,
+            "minMs": 27464.8108,
+            "n": 3,
+            "p95Ms": 29319.4946,
+            "sampleStddevMs": 967.5943576229793
+        },
+        "source/C2/open": {
+            "maxMs": 1.6015,
+            "meanMs": 1.5672666666666668,
+            "medianMs": 1.5849,
+            "minMs": 1.5154,
+            "n": 3,
+            "p95Ms": 1.6015,
+            "sampleStddevMs": 0.045678258869327824
+        }
+    }
+}

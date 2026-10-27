@@ -1,4 +1,8 @@
-# Density Map experiment harness — 06.0A / 06.0B
+# Density Map experiment harness — 06.0A / 06.0B / 06.0C
+
+06.0C добавляет изолированное [сравнение построения counts C1/C2](construction/README.md)
+через production CacheReader, общий Grid/oracle/measure и новые opt-in targets.
+Production Density Map не реализована; итог — экспериментальная рекомендация.
 
 06.0B добавляет изолированный [эксперимент форматов D/E](formats/README.md)
 со своей CMake/vcpkg configuration; он использует эти же Spec/Tile/ReadPlan,

@@ -499,6 +499,15 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.0C — сравнение построения counts C1/C2: READY WITH LIMITATIONS** (2026-10-27).
+Оба экспериментальных алгоритма проверены; Debug/Release — **12/12 C1/C2,
+22/22 общих и 13/13 format tests PASS**. Выполнены девять Release серий на HDD,
+включая готовый cache 42 млн measurements; audit подтвердил 208 count outputs,
+182 точных сравнений и сохранность 15 sources. Предварительно рекомендован C2
+с группами 512×512 cells; cold-HDD и representative real scans не подтверждены.
+[Отчёт, evidence и границы рекомендации](docs/reports/task-06/density-construction.md).
+Production Density Map и 06.0D не реализованы; архитектура требует согласования.
+
 **06.0B — сравнение count-tile/zlib и TIFF/BigTIFF: READY WITH LIMITATIONS** (2026-10-27).
 Изолированы оба адаптера; Debug/Release — **22/22 общих + 13/13 format tests PASS**.
 На synthetic maps 3/12/48 млн cells и huge-sparse выполнены 12 Release серий:
@@ -506,7 +515,7 @@ build\windows-release\operation_probe.exe
 по sparse/integrity/dependency cost при близкой обычной производительности;
 это рекомендация к рассмотрению, а не утверждение production формата.
 [Отчёт, raw JSON/CSV, ограничения и команды](docs/reports/task-06/density-formats.md).
-06.0C и production Density Map/PNG/Canvas остаются будущей работой.
+Результаты 06.0C приведены выше; production Density Map/PNG/Canvas остаётся будущей работой.
 
 **06.0A — экспериментальный стенд Density Map: READY WITH LIMITATIONS** (2026-10-27).
 Изолированный [density_benchmark](tools/density_benchmark/README.md): точные count inputs,
