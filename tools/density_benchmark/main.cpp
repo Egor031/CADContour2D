@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
     QCommandLineParser p; p.setApplicationDescription("06.0A experimental input/measurement harness; no storage/raster candidates"); p.addHelpOption();
     p.addOptions({{"output-dir", "New experiment directory; existing paths are refused", "path"},
         {"scenario", "all or one count scenario", "name", "all"},
-        {"tile-size", "Count tile side (4..256)", "cells", "8"},
+        {"tile-size", "Count tile side (4..1024)", "cells", "8"},
         {"grid-side", "Tiles along an ordinary scenario side (>=2)", "tiles", "3"},
         {"seed", "Count generator seed", "uint64", "6001"},
         {"repeats", "Fresh worker processes reading identical inputs (1..50)", "n", "4"},
@@ -276,7 +276,7 @@ int main(int argc, char **argv) {
         o.limits = {multiply(argument(p, "ram-mib"), MiB), multiply(argument(p, "temp-mib"), MiB), multiply(argument(p, "output-mib"), MiB)};
         bool cellOk = false; o.cell = p.value("cell").toDouble(&cellOk);
         require(cellOk && std::isfinite(o.cell) && o.cell > 0, "invalid --cell");
-        require(o.side >= 4 && o.side <= 256 && o.gridSide >= 2 && o.repeats >= 1 && o.repeats <= 50, "invalid tile/grid/repeat options");
+        require(o.side >= 4 && o.side <= 1024 && o.gridSide >= 2 && o.repeats >= 1 && o.repeats <= 50, "invalid tile/grid/repeat options");
         o.externalCache = p.value("cache"); o.storage = p.value("storage-label");
         std::vector<Spec> specs;
         for (const auto &name : o.scenario == "all" ? scenarioNames() : QStringList{o.scenario})

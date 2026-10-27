@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="Win32-ninja"
+	tests="13"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname="DESKTOP-DF97PJ2"
+	time="45"
+	timestamp="2026-10-27T11:29:56"
+	>
+	<testcase name="DensityFormats.EveryScenarioExactRoundTripAndCanonicalDigest" classname="DensityFormats.EveryScenarioExactRoundTripAndCanonicalDigest" time="1.24173" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.EveryScenarioExactRoundTripAndCanonicalDigest
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.EveryScenarioExactRoundTripAndCanonicalDigest
+[       OK ] DensityFormats.EveryScenarioExactRoundTripAndCanonicalDigest (1199 ms)
+[----------] 1 test from DensityFormats (1199 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1199 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.IndependentDefaultGridSumsAndLiteralEntropyControls" classname="DensityFormats.IndependentDefaultGridSumsAndLiteralEntropyControls" time="0.0876419" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.IndependentDefaultGridSumsAndLiteralEntropyControls
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.IndependentDefaultGridSumsAndLiteralEntropyControls
+[       OK ] DensityFormats.IndependentDefaultGridSumsAndLiteralEntropyControls (56 ms)
+[----------] 1 test from DensityFormats (56 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (56 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.TileSizesAndPartialEdges" classname="DensityFormats.TileSizesAndPartialEdges" time="39.276" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.TileSizesAndPartialEdges
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.TileSizesAndPartialEdges
+[       OK ] DensityFormats.TileSizesAndPartialEdges (39247 ms)
+[----------] 1 test from DensityFormats (39247 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (39247 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.RoiOrderAndCropValuesIndependentOfTileVisitor" classname="DensityFormats.RoiOrderAndCropValuesIndependentOfTileVisitor" time="0.0950892" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.RoiOrderAndCropValuesIndependentOfTileVisitor
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.RoiOrderAndCropValuesIndependentOfTileVisitor
+[       OK ] DensityFormats.RoiOrderAndCropValuesIndependentOfTileVisitor (73 ms)
+[----------] 1 test from DensityFormats (73 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (73 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.ExactUint64MaximumAndUint32OverflowRefusal" classname="DensityFormats.ExactUint64MaximumAndUint32OverflowRefusal" time="0.0309195" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.ExactUint64MaximumAndUint32OverflowRefusal
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.ExactUint64MaximumAndUint32OverflowRefusal
+[       OK ] DensityFormats.ExactUint64MaximumAndUint32OverflowRefusal (9 ms)
+[----------] 1 test from DensityFormats (9 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (9 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.ZeroOmissionAndHugeSparseStayBounded" classname="DensityFormats.ZeroOmissionAndHugeSparseStayBounded" time="1.30976" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.ZeroOmissionAndHugeSparseStayBounded
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.ZeroOmissionAndHugeSparseStayBounded
+[       OK ] DensityFormats.ZeroOmissionAndHugeSparseStayBounded (1288 ms)
+[----------] 1 test from DensityFormats (1288 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (1288 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.ClassicTiffAndBigTiffBothRoundTrip" classname="DensityFormats.ClassicTiffAndBigTiffBothRoundTrip" time="0.0500003" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.ClassicTiffAndBigTiffBothRoundTrip
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.ClassicTiffAndBigTiffBothRoundTrip
+[       OK ] DensityFormats.ClassicTiffAndBigTiffBothRoundTrip (29 ms)
+[----------] 1 test from DensityFormats (29 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (29 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.RefuseIndexBudgetInvalidDimensionsAndUnsafeOverwrite" classname="DensityFormats.RefuseIndexBudgetInvalidDimensionsAndUnsafeOverwrite" time="0.0392937" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.RefuseIndexBudgetInvalidDimensionsAndUnsafeOverwrite
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.RefuseIndexBudgetInvalidDimensionsAndUnsafeOverwrite
+[       OK ] DensityFormats.RefuseIndexBudgetInvalidDimensionsAndUnsafeOverwrite (18 ms)
+[----------] 1 test from DensityFormats (19 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (19 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormats.CancellationLeavesUnreadablePartialAndPreservesOtherData" classname="DensityFormats.CancellationLeavesUnreadablePartialAndPreservesOtherData" time="0.0301776" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormats.CancellationLeavesUnreadablePartialAndPreservesOtherData
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormats
+[ RUN      ] DensityFormats.CancellationLeavesUnreadablePartialAndPreservesOtherData
+[       OK ] DensityFormats.CancellationLeavesUnreadablePartialAndPreservesOtherData (8 ms)
+[----------] 1 test from DensityFormats (8 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (8 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityCountContainer.CorruptHeaderIndexOffsetsLengthsAndPayload" classname="DensityCountContainer.CorruptHeaderIndexOffsetsLengthsAndPayload" time="0.275507" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityCountContainer.CorruptHeaderIndexOffsetsLengthsAndPayload
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityCountContainer
+[ RUN      ] DensityCountContainer.CorruptHeaderIndexOffsetsLengthsAndPayload
+[       OK ] DensityCountContainer.CorruptHeaderIndexOffsetsLengthsAndPayload (130 ms)
+[----------] 1 test from DensityCountContainer (130 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (130 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityTiff.CorruptHeaderTagsOffsetsLengthsAndPayloadNeverReturnEmptySuccess" classname="DensityTiff.CorruptHeaderTagsOffsetsLengthsAndPayloadNeverReturnEmptySuccess" time="0.123622" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityTiff.CorruptHeaderTagsOffsetsLengthsAndPayloadNeverReturnEmptySuccess
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityTiff
+[ RUN      ] DensityTiff.CorruptHeaderTagsOffsetsLengthsAndPayloadNeverReturnEmptySuccess
+[       OK ] DensityTiff.CorruptHeaderTagsOffsetsLengthsAndPayloadNeverReturnEmptySuccess (103 ms)
+[----------] 1 test from DensityTiff (103 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (104 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityTiff.ShortDeflateTrailerIsRejected" classname="DensityTiff.ShortDeflateTrailerIsRejected" time="0.151673" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityTiff.ShortDeflateTrailerIsRejected
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityTiff
+[ RUN      ] DensityTiff.ShortDeflateTrailerIsRejected
+[       OK ] DensityTiff.ShortDeflateTrailerIsRejected (32 ms)
+[----------] 1 test from DensityTiff (32 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (32 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+	<testcase name="DensityFormatsCli.EndToEndBalancedProcessesAndResourceRefusal" classname="DensityFormatsCli.EndToEndBalancedProcessesAndResourceRefusal" time="2.7468" status="run">
+		<properties>
+			<property name="cmake_labels" value="density_formats"/>
+		</properties>
+		<system-out>Running main() from D:\ZherlitsynEE\CADContour2D\build\windows-release\vcpkg_installed\vcpkg\blds\gtest\src\v1.17.0-e243b8ee0f.clean\googletest\src\gtest_main.cc
+Note: Google Test filter = DensityFormatsCli.EndToEndBalancedProcessesAndResourceRefusal
+[==========] Running 1 test from 1 test suite.
+[----------] Global test environment set-up.
+[----------] 1 test from DensityFormatsCli
+[ RUN      ] DensityFormatsCli.EndToEndBalancedProcessesAndResourceRefusal
+[       OK ] DensityFormatsCli.EndToEndBalancedProcessesAndResourceRefusal (2611 ms)
+[----------] 1 test from DensityFormatsCli (2611 ms total)
+
+[----------] Global test environment tear-down
+[==========] 1 test from 1 test suite ran. (2611 ms total)
+[  PASSED  ] 1 test.
+</system-out>
+	</testcase>
+</testsuite>

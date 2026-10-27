@@ -371,6 +371,18 @@ countA < countB
 
 Это необходимо определить до окончательной реализации raster detection, поскольку rough algorithms анализируют именно PNG.
 
+### Эксперимент хранения counts 06.0B
+
+В изолированном сравнении собственного immutable count-tile/zlib и tiled
+TIFF/BigTIFF 4.7.2 предварительно рекомендован **count-tile (D)**: точные uint32/
+uint64, sparse omission, checksummed index и меньшая dependency/profile cost при
+близкой производительности обычных maps. Сопоставлены synthetic 3/12/48 млн cells,
+tile side 256/512/1024 и huge-sparse; исходный side для дальнейшей экспериментальной
+проверки — 256, не production default. [Числа, API limitations и методика](reports/task-06/density-formats.md).
+Это **рекомендация, требующая согласования**: production storage, PNG encoding,
+mapping и ресурсный workflow остаются Open decisions; rough/precise methods на
+representative real scans этим не подтверждены. 06.0C не выполнялась.
+
 ---
 
 ## 7. Общие правила Rough Stage

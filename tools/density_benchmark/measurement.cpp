@@ -137,7 +137,7 @@ QJsonObject measure(const QString &phase, const QString &dataset, const QString 
     return row;
 }
 QByteArray csv(const QJsonArray &rows) {
-    const QStringList keys{"dataset", "phase", "repetition", "runClass", "status", "correctness", "elapsedMs",
+    const QStringList keys{"dataset", "candidate", "phase", "repetition", "runClass", "status", "correctness", "elapsedMs",
         "verificationMs", "totalElapsedMs", "processPeakWorkingSetBytes", "ownedFilesAfterBytes", "fileIo", "processIo", "details", "diagnostic"};
     auto quote = [](QString value) { value.replace('"', "\"\""); return '"' + value + '"'; };
     QByteArray bytes = keys.join(',').toUtf8() + '\n';
@@ -161,7 +161,8 @@ QJsonObject summary(const QJsonArray &rows) {
     for (auto v : rows) {
         auto r = v.toObject();
         if (r["status"] == "ok" && r["runClass"] == "subsequent")
-            groups[r["dataset"].toString() + "/" + r["phase"].toString()].push_back(r["elapsedMs"].toDouble());
+            groups[r["dataset"].toString() + (r.contains("candidate") ? "/" + r["candidate"].toString() : QString())
+                + "/" + r["phase"].toString()].push_back(r["elapsedMs"].toDouble());
     }
     QJsonObject out;
     for (auto it = groups.begin(); it != groups.end(); ++it) {
@@ -170,6 +171,7 @@ QJsonObject summary(const QJsonArray &rows) {
         double mean = 0, variance = 0; for (auto x : a) mean += x / double(n);
         for (auto x : a) variance += (x - mean) * (x - mean);
         out[it.key()] = QJsonObject{{"n", int(n)}, {"minMs", a.front()}, {"medianMs", median},
+            {"p95Ms", a[static_cast<std::size_t>(std::ceil(.95*double(n)))-1]},
             {"maxMs", a.back()}, {"meanMs", mean}, {"sampleStddevMs", n > 1 ? QJsonValue(std::sqrt(variance / double(n-1))) : QJsonValue(QJsonValue::Null)}};
     }
     return out;

@@ -41,7 +41,7 @@ U64 randomWord(U64 x) {
     return x ^ (x >> 31);
 }
 void validate(const Spec &s) {
-    require(scenarioNames().contains(s.name) && s.side >= 4 && s.side <= 256
+    require(scenarioNames().contains(s.name) && s.side >= 4 && s.side <= 1024
         && s.width && s.height && s.wide == (s.name == "u64"), "invalid dataset specification");
     multiply(s.width, s.height);
     if (huge(s)) require(columns(s) > 1 && rows(s) > 1, "huge-sparse needs distinct corners");
@@ -58,7 +58,7 @@ QStringList scenarioNames() {
             "overlap", "u32", "u64", "entropy", "huge-sparse"};
 }
 Spec makeSpec(const QString &name, std::uint32_t side, U64 gridSide, U64 seed) {
-    require(side >= 4 && side <= 256 && gridSide >= 2, "tile-size must be 4..256 and grid-side >= 2");
+    require(side >= 4 && side <= 1024 && gridSide >= 2, "tile-size must be 4..1024 and grid-side >= 2");
     auto extent = multiply(side, gridSide);
     Spec s{name, extent - 1, extent - 3, side, seed, name == "u64"};
     if (huge(s)) { s.width = 1000000003; s.height = 1000000001; }
@@ -72,7 +72,7 @@ QJsonObject toJson(const Spec &s) {
 Spec specFromJson(const QJsonObject &j) {
     require(j["inputSchema"] == "density-input-06.0A-v1", "unsupported experimental input schema");
     auto side = integer(j, "tileSide");
-    require(side <= 256 && (j["countBits"] == 32 || j["countBits"] == 64), "invalid input encoding");
+    require(side <= 1024 && (j["countBits"] == 32 || j["countBits"] == 64), "invalid input encoding");
     Spec s{j["name"].toString(), integer(j, "width"), integer(j, "height"),
         static_cast<std::uint32_t>(side), integer(j, "seed"), j["countBits"] == 64};
     validate(s); return s;
@@ -139,7 +139,7 @@ U64 inputBytes(const Spec &s) {
     return add(multiply(tileCount(s), 32), multiply(multiply(s.width, s.height), 8));
 }
 QByteArray encode(const Tile &t) {
-    require(t.width && t.height && t.width <= 256 && t.height <= 256
+    require(t.width && t.height && t.width <= 1024 && t.height <= 1024
         && t.counts.size() == U64(t.width) * t.height, "invalid count tile");
     QByteArray b("D06AIN01", 8);
     put(b, t.key.x); put(b, t.key.y); put(b, t.width); put(b, t.height);
@@ -149,7 +149,7 @@ QByteArray encode(const Tile &t) {
 Tile decode(const QByteArray &b) {
     require(b.size() >= 32 && b.first(8) == "D06AIN01", "invalid count input header");
     Tile t{{get<U64>(b, 8), get<U64>(b, 16)}, get<std::uint32_t>(b, 24), get<std::uint32_t>(b, 28), {}};
-    require(t.width && t.height && t.width <= 256 && t.height <= 256
+    require(t.width && t.height && t.width <= 1024 && t.height <= 1024
         && U64(b.size()) == 32 + U64(t.width) * t.height * 8, "invalid count input length");
     for (qsizetype i = 32; i < b.size(); i += 8) t.counts.push_back(get<U64>(b, i));
     return t;

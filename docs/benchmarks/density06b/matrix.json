@@ -1,0 +1,98 @@
+[
+  {
+    "name": "small",
+    "side": 16,
+    "scenario": "all",
+    "height": 45,
+    "repeats": 2,
+    "width": 47
+  },
+  {
+    "name": "3m-all-t256",
+    "side": 256,
+    "scenario": "all",
+    "height": 1731,
+    "repeats": 5,
+    "width": 1733
+  },
+  {
+    "name": "12m-entropy-t256",
+    "side": 256,
+    "scenario": "entropy",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-sparse-t256",
+    "side": 256,
+    "scenario": "sparse",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-uniform-t256",
+    "side": 256,
+    "scenario": "uniform",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-entropy-t512",
+    "side": 512,
+    "scenario": "entropy",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-sparse-t512",
+    "side": 512,
+    "scenario": "sparse",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-uniform-t512",
+    "side": 512,
+    "scenario": "uniform",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-entropy-t1024",
+    "side": 1024,
+    "scenario": "entropy",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-sparse-t1024",
+    "side": 1024,
+    "scenario": "sparse",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "12m-uniform-t1024",
+    "side": 1024,
+    "scenario": "uniform",
+    "height": 3463,
+    "repeats": 5,
+    "width": 3465
+  },
+  {
+    "name": "48m-sparse-t512",
+    "side": 512,
+    "scenario": "sparse",
+    "height": 6927,
+    "repeats": 5,
+    "width": 6929
+  }
+]

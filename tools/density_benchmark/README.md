@@ -1,9 +1,15 @@
-# Density Map experiment harness — 06.0A
+# Density Map experiment harness — 06.0A / 06.0B
+
+06.0B добавляет изолированный [эксперимент форматов D/E](formats/README.md)
+со своей CMake/vcpkg configuration; он использует эти же Spec/Tile/ReadPlan,
+генератор, fingerprints, `measure` и ресурсные проверки. Production зависимости
+не изменены. Ниже описан исходный стенд 06.0A; его executable по-прежнему
+подготавливает и проверяет inputs, а не сравнивает форматы.
 
 Изолированный C++20 стенд подготовки входов, независимых малых эталонов и измерений
-для 06.0B/06.0C. Production targets не зависят от него. Собственных compressed
-count containers, TIFF, rasterization candidates, PNG, GUI и project persistence
-здесь нет. Числа smoke run характеризуют только инфраструктуру.
+для 06.0B/06.0C. Production targets не зависят от него. Executable 06.0A не
+включает compressed count containers, TIFF, rasterization candidates, PNG, GUI
+и project persistence. Числа его smoke run характеризуют только инфраструктуру.
 
 ## Сборка и запуск
 
@@ -22,6 +28,10 @@ build\windows-release\density_benchmark.exe --output-dir build\density-06a-smoke
 
 `--output-dir` обязателен: конечный каталог должен отсутствовать, его родитель —
 существовать. Для повторения всей подготовки задайте **другой новый каталог**.
+С 06.0B допустимый tile side расширен до 1024; проверки размеров и оценки RAM/
+output используют фактический side. В CSV добавлен candidate, статистика
+разделяет кандидатов и содержит nearest-rank p95; прежние поля сохранены.
+
 Внутри одного запуска все workers читают одни и те же файлы. Первый worker и
 последующие workers учитываются отдельно. `--help` описывает параметры;
 `--scenario` принимает `all` или имя из таблицы ниже. По умолчанию tile side = 8,

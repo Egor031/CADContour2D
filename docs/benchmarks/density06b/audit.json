@@ -1,0 +1,303 @@
+﻿{
+    "status":  "ok",
+    "runs":  12,
+    "successfulRows":  2363,
+    "unsupportedRows":  7,
+    "maximumObservedProcessPeakBytes":  "35704832",
+    "generatedUtc":  "2026-10-27T09:26:08.1062566+00:00",
+    "definitions":  "Independent PowerShell JSON/CSV parser; exact paired read coverage/sums/requests; fingerprints across candidates/repetitions; byte-identical raw evidence",
+    "digests":  [
+                    {
+                        "run":  "small",
+                        "dataset":  "empty",
+                        "sha256":  "86b4f58ffe6194501933a8250db05ce69be715598e99e3e6adc8e91c90a6641e"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "uniform",
+                        "sha256":  "577b546db8a8ce8d29f53ecab901729bd4e8badc259b7081f92ca753016de28e"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "dense",
+                        "sha256":  "86b5b9af307f504a6750881ce5b7545ac85d2d4bd96e9afd0bf1fed065c600fc"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "sparse",
+                        "sha256":  "ed617788b4642bf182f9f6abe17e90aba7456360f5f58fca5114a3fcd49f9054"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "horizontal",
+                        "sha256":  "dd864897395d50464005206ecae7b099a364842a27b151c90071ecc48c65bb76"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "vertical",
+                        "sha256":  "b067ca186b23a6c8c6eead4812ad436d954622e8737a782ff64471b4cc5813cc"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "clustered",
+                        "sha256":  "6abe2aa885407a1196364f07ae6fd5a840d8ec230f254df56fea94106d4c8a38"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "overlap",
+                        "sha256":  "760ad920cfa92f8a756b49731321e5c481174f0135418d7c6869a257d7c28abf"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "u32",
+                        "sha256":  "4733eec49ec06bbd79b27cc970b6a93addb57242684ab0df6b814e26dcf0981f"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "u64",
+                        "sha256":  "9c4ebde675fc6e0c4db71f95f333d650a5b716f270e7636589f831fb45c696bb"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "entropy",
+                        "sha256":  "6ce93f748fa5891779bdf71ee2671b522473cc31aea8352488f019ed8e6bb8c4"
+                    },
+                    {
+                        "run":  "small",
+                        "dataset":  "huge-sparse",
+                        "sha256":  "cd2f5041a46f40d39b428946bb26f6a988c4e7916c038069631c854df6196fca"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "empty",
+                        "sha256":  "650b267f78d0b9a2f7b3abe6fbd18c1eb66d7a35345752b6b529dce10e0ec1d4"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "uniform",
+                        "sha256":  "e331dd6fb9d6dcb0604f01d387913fb060f2c170147a43ab47105e5c357b085b"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "dense",
+                        "sha256":  "91cde041160d0cab423e32eaf2f0d5ec48f945b2c5fd143f8c1b5e462df22e77"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "sparse",
+                        "sha256":  "5091299ceb8d4c2a32e201562a58faabd8cf5302168192a2cc74369cfdae26e5"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "horizontal",
+                        "sha256":  "b3aff960b39533bbf170dccba9fd229289be1482cc480b28d168903624e86b71"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "vertical",
+                        "sha256":  "eba94128c75e462891b974727d91758633d8d6a1c9ad021edc66c3c1b67be329"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "clustered",
+                        "sha256":  "559ef5a4619b8bdf2e5811c6d3707497bb1458ac432aa3389266f94ff6a70b99"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "overlap",
+                        "sha256":  "ace8f45a503ee996e0a342260886eddcdb66d0e112113f0a528d83efb1491521"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "u32",
+                        "sha256":  "33ecad2965f2c3b691990716eba603d42b5dd5d2093f8615906da6a06ddc48f4"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "u64",
+                        "sha256":  "86ef66db1d523678d25057507808e2342e330dfe70e28373314b8d68fc2035bf"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "entropy",
+                        "sha256":  "396899aed56e871719e308db72d3736acfaa6655c1d7c64751d9c0a137c5db9b"
+                    },
+                    {
+                        "run":  "3m-all-t256",
+                        "dataset":  "huge-sparse",
+                        "sha256":  "80c1b677badfe32cbd49a305d7445f4e97e7fa81a6173b14c876e8549c7d94a2"
+                    },
+                    {
+                        "run":  "12m-entropy-t256",
+                        "dataset":  "entropy",
+                        "sha256":  "b6626b543977930168281de2cf16935f85e5bddfbfa65f5ffdd8e85b53aaaa5f"
+                    },
+                    {
+                        "run":  "12m-sparse-t256",
+                        "dataset":  "sparse",
+                        "sha256":  "b5971f2b48ca28fe502ba0ffa038f42aa09702e0d4dfbbd2719eabed4424da8d"
+                    },
+                    {
+                        "run":  "12m-uniform-t256",
+                        "dataset":  "uniform",
+                        "sha256":  "8c97c07e1f58af1d90446774c125036ebe523488b2fb73c63fbdd730c7a389dc"
+                    },
+                    {
+                        "run":  "12m-entropy-t512",
+                        "dataset":  "entropy",
+                        "sha256":  "0a8849d65ba0ef76193f1da224e11088ca90f0c1780aa1b2c5a2ba7381dfee5d"
+                    },
+                    {
+                        "run":  "12m-sparse-t512",
+                        "dataset":  "sparse",
+                        "sha256":  "278aba29e83d9ac350a352b5537554796f00f93f54d42305a2485050e8b1f166"
+                    },
+                    {
+                        "run":  "12m-uniform-t512",
+                        "dataset":  "uniform",
+                        "sha256":  "591c6f250aa78f0d8b37ed6688c0f8530337cae651b6cbd1b53d52918669539e"
+                    },
+                    {
+                        "run":  "12m-entropy-t1024",
+                        "dataset":  "entropy",
+                        "sha256":  "b4273f7c44371134aca5326344c3f6079ad4c9e1a0fc885a04ed3838d9bd340d"
+                    },
+                    {
+                        "run":  "12m-sparse-t1024",
+                        "dataset":  "sparse",
+                        "sha256":  "ffdf33ed22e733394aab9a5d369a04141d440530d7f34f4b5a21ff8edd99ce08"
+                    },
+                    {
+                        "run":  "12m-uniform-t1024",
+                        "dataset":  "uniform",
+                        "sha256":  "7979286153dd8e93a2f92f96c2dd6d3272c856efcec52c38929ea0d1fa0d14aa"
+                    },
+                    {
+                        "run":  "48m-sparse-t512",
+                        "dataset":  "sparse",
+                        "sha256":  "ec69088d76a42bb17f074b1f0910bfff862632a329184921f2632585f5a4246d"
+                    }
+                ],
+    "files":  [
+                  {
+                      "file":  "raw/small.json",
+                      "bytes":  "1468231",
+                      "sha256":  "c00b96b64b94005f2603d6cf724c09ac7433387bb16b98a2b6ab8d8334f51d6b"
+                  },
+                  {
+                      "file":  "raw/small.csv",
+                      "bytes":  "365772",
+                      "sha256":  "6897374e7c849ffa1f4aaba715431f7f45512424b8235b246f3e6ea1ef1ddc51"
+                  },
+                  {
+                      "file":  "raw/3m-all-t256.json",
+                      "bytes":  "3611831",
+                      "sha256":  "f6483d82d7b0679bfd93a26671ee1c4672ac7fe7aacda1ac655e22b8db4caf29"
+                  },
+                  {
+                      "file":  "raw/3m-all-t256.csv",
+                      "bytes":  "928303",
+                      "sha256":  "43e41ba9322656de1eb8e36fd75ddba147f24d9ad893bfa868894f9e3e413297"
+                  },
+                  {
+                      "file":  "raw/12m-entropy-t256.json",
+                      "bytes":  "317530",
+                      "sha256":  "8ab690c394df56ab02b79a8140e85f151a35ad8c7cf78f6e87f96635cb845b9e"
+                  },
+                  {
+                      "file":  "raw/12m-entropy-t256.csv",
+                      "bytes":  "82408",
+                      "sha256":  "d72055b6244331e51c3bd1c420104a81e0f01cbc1e7b7899c24bb02c5167eb0e"
+                  },
+                  {
+                      "file":  "raw/12m-sparse-t256.json",
+                      "bytes":  "316018",
+                      "sha256":  "585abc6ab98a4b27525cb63db49310b2cfe179291c8946ea7e1763e027d3d023"
+                  },
+                  {
+                      "file":  "raw/12m-sparse-t256.csv",
+                      "bytes":  "80974",
+                      "sha256":  "0cbb1d4a1aef86d2aa1f93af39d5b2f4cbbf8d4ca60d09c12c322bbd85b7704d"
+                  },
+                  {
+                      "file":  "raw/12m-uniform-t256.json",
+                      "bytes":  "315963",
+                      "sha256":  "5a5109e3cebb3144926f03b64b1461e148c6f7138c7befb46f29908a2ff413a0"
+                  },
+                  {
+                      "file":  "raw/12m-uniform-t256.csv",
+                      "bytes":  "80936",
+                      "sha256":  "82529c76989f628f6eb47ee2aa2731c5786979e09a4a8bb7608af450841aded7"
+                  },
+                  {
+                      "file":  "raw/12m-entropy-t512.json",
+                      "bytes":  "316713",
+                      "sha256":  "f78a3d99cca4494f30c2420cda8c728bacd218030a8e580ce91ebd6fcbafdc5d"
+                  },
+                  {
+                      "file":  "raw/12m-entropy-t512.csv",
+                      "bytes":  "81502",
+                      "sha256":  "0f491004b313eb22b3c0471ab452aefa99ddb95a8903ef473c4dc1c18854a17a"
+                  },
+                  {
+                      "file":  "raw/12m-sparse-t512.json",
+                      "bytes":  "315313",
+                      "sha256":  "3b143d1c34735f8e867941949bbe9d952d217b5200262e15826835197c1e91ad"
+                  },
+                  {
+                      "file":  "raw/12m-sparse-t512.csv",
+                      "bytes":  "79988",
+                      "sha256":  "50d5006c855e624ac2e6a8c0bd999c4754190b963c0443ca6c318e8343c46dee"
+                  },
+                  {
+                      "file":  "raw/12m-uniform-t512.json",
+                      "bytes":  "315131",
+                      "sha256":  "970fb5fd5446150d560dea89c982bf2a05b2fb156505801151282e56b5ace57a"
+                  },
+                  {
+                      "file":  "raw/12m-uniform-t512.csv",
+                      "bytes":  "79942",
+                      "sha256":  "46a4d02bbb107801bff0aceab466f225bce57097c9408d97725014223f95924a"
+                  },
+                  {
+                      "file":  "raw/12m-entropy-t1024.json",
+                      "bytes":  "316871",
+                      "sha256":  "f441b6c95da9f573d619a4ee8d4c6fd84e942d9068c2300349d9a688b1c90f49"
+                  },
+                  {
+                      "file":  "raw/12m-entropy-t1024.csv",
+                      "bytes":  "81477",
+                      "sha256":  "da959ce3486067a82b83b378306ea14cd658cabb0f4328010d01919178ac00e0"
+                  },
+                  {
+                      "file":  "raw/12m-sparse-t1024.json",
+                      "bytes":  "315359",
+                      "sha256":  "3e0909ebd0431a8e343b6aa464bfecab662887914121f69ac543739d3c27a7a6"
+                  },
+                  {
+                      "file":  "raw/12m-sparse-t1024.csv",
+                      "bytes":  "80031",
+                      "sha256":  "34f43c5fbbf65167cef7ad175ccc05a0b959078d5094cf4419d802c42287d32d"
+                  },
+                  {
+                      "file":  "raw/12m-uniform-t1024.json",
+                      "bytes":  "315264",
+                      "sha256":  "d6033d9a32f23b0ddabd98c1dda74c4efb8452effedaa5aa42954f4191e03fbb"
+                  },
+                  {
+                      "file":  "raw/12m-uniform-t1024.csv",
+                      "bytes":  "80120",
+                      "sha256":  "b53d710be6ac23543a061f713434a354c6064a767bfae6582da0763bda10c8ae"
+                  },
+                  {
+                      "file":  "raw/48m-sparse-t512.json",
+                      "bytes":  "316530",
+                      "sha256":  "88036920f591176c6d0678856c4b98f48ff84c27afd9cf862dc71f3f074e4870"
+                  },
+                  {
+                      "file":  "raw/48m-sparse-t512.csv",
+                      "bytes":  "81263",
+                      "sha256":  "aac2b243d62f8d18db275b16679f27cffc057c51666e10117cdb2bf81723b71b"
+                  }
+              ]
+}

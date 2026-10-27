@@ -188,6 +188,11 @@ targets `density_benchmark density_benchmark_tests` и CTest label `density_expe
 в Debug/Release. [Configure/build/test, smoke run и методика](tools/density_benchmark/README.md)
 не запускают production Density Map и не требуют новых зависимостей.
 
+Для 06.0B форматы D/E собираются отдельным CMake project с изолированными zlib/
+libtiff dependencies. Проверены Debug/Release builds и 13 tests в каждой
+конфигурации; общий стенд после расширения side проходит 22 tests.
+[Установка зависимостей, configure/build/test и матрица](tools/density_benchmark/formats/README.md).
+
 Из корня репозитория в указанной CMD-среде:
 
 ```bat
@@ -494,14 +499,23 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.0B — сравнение count-tile/zlib и TIFF/BigTIFF: READY WITH LIMITATIONS** (2026-10-27).
+Изолированы оба адаптера; Debug/Release — **22/22 общих + 13/13 format tests PASS**.
+На synthetic maps 3/12/48 млн cells и huge-sparse выполнены 12 Release серий:
+**2363 ok measurements**, семь ожидаемых TIFF capability refusals. Рекомендован D
+по sparse/integrity/dependency cost при близкой обычной производительности;
+это рекомендация к рассмотрению, а не утверждение production формата.
+[Отчёт, raw JSON/CSV, ограничения и команды](docs/reports/task-06/density-formats.md).
+06.0C и production Density Map/PNG/Canvas остаются будущей работой.
+
 **06.0A — экспериментальный стенд Density Map: READY WITH LIMITATIONS** (2026-10-27).
 Изолированный [density_benchmark](tools/density_benchmark/README.md): точные count inputs,
 независимый малый oracle, production CacheReader inputs, resource preflight,
 process memory/logical I/O и JSON/CSV. Debug/Release experimental builds и **20/20 tests**
 в каждой конфигурации — PASS; отдельный Release smoke — **230 rows ok**.
 [Baseline, методика, команды, результаты и ограничения](docs/reports/task-06/density-harness.md).
-Форматы/алгоритмы 06.0B/C ещё не реализованы; production Density Map/PNG/Canvas
-и задача 06 целиком остаются будущей работой.
+Исторический статус 06.0A сохранён; результаты 06.0B приведены выше.
+Задача 06 целиком остаётся будущей работой.
 
 **Задачи 01–04 и этапы 05.1–05.4: ACCEPTED. Synthetic Point Cloud Generator сохраняет ранее проверенную готовность.**
 

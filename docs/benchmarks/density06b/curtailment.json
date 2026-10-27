@@ -1,0 +1,9 @@
+﻿{
+    "utc":  "2026-10-27T09:17:33.1696135+00:00",
+    "stoppedLauncher":  65836,
+    "stoppedWorkers":  [
+                           20372,
+                           81856
+                       ],
+    "reason":  "Skip optional 48m entropy and 300m uniform after expensive source-generation measurements; preserve all completed evidence"
+}

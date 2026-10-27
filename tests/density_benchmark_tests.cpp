@@ -136,6 +136,15 @@ TEST(DensityData, InvalidSpecificationsAndOverflow) {
     EXPECT_THROW(integer({{"n",double(2)}},"n"),Failure);
     EXPECT_THROW(specFromJson(QJsonObject{}),Failure);
 }
+TEST(DensityData, ExtendedTileSizesKeepInterchangeAndRejectBeyondLimit) {
+    for (auto side : {256U,512U,1024U}) {
+        auto s = makeSpec("u32",side,2,6001);
+        EXPECT_EQ(toJson(specFromJson(toJson(s))),toJson(s));
+        const auto tile = generate(s,{1,1}); EXPECT_EQ(decode(encode(tile)),tile);
+    }
+    EXPECT_THROW(makeSpec("empty",1025,2,1),Failure);
+    EXPECT_THROW(makeSpec("empty",1024,std::numeric_limits<U64>::max(),1),Failure);
+}
 TEST(DensityOracle, ManualPerRecordCellsAndSums) {
     for (const auto &c : rasterCases()) {
         ASSERT_EQ(c.points.size(),c.expectedCells.size());
@@ -176,6 +185,15 @@ TEST(DensityResults, StatisticsExcludeFirstAndFailures) {
     auto s = summary(a)["d/r"].toObject(); EXPECT_EQ(s["n"],2); EXPECT_EQ(s["medianMs"],2.);
     EXPECT_EQ(s["meanMs"],2.); EXPECT_EQ(s["minMs"],1.); EXPECT_EQ(s["maxMs"],3.);
     EXPECT_NEAR(s["sampleStddevMs"].toDouble(),std::sqrt(2.),1e-12);
+}
+TEST(DensityResults, CandidateGroupsAndNearestRankP95AreIndependent) {
+    QJsonArray rows;
+    for (auto candidate : {"D","E"}) for (int i = 1; i <= 20; ++i)
+        rows.append(QJsonObject{{"dataset","x"},{"phase","read"},{"candidate",candidate},{"status","ok"},
+            {"runClass","subsequent"},{"elapsedMs",i*(QString(candidate) == "D" ? 1. : 10.)}});
+    const auto s = summary(rows);
+    EXPECT_EQ(s.size(),2); EXPECT_EQ(s["x/D/read"].toObject()["p95Ms"],19.);
+    EXPECT_EQ(s["x/E/read"].toObject()["p95Ms"],190.);
 }
 TEST(DensityMeasurement, UnitsIoAndVerificationOutsideTimedPhase) {
     QTemporaryDir root;
