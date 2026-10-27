@@ -141,9 +141,9 @@ Floating-point equality не должна использоваться для г
 
 ### 4.2. Density-map coordinates
 
-Целочисленные координаты PNG.
+Целочисленные координаты ячеек канонической Density Map; отображение и PNG-export имеют отдельную ориентацию строк.
 
-Один пиксель соответствует:
+Одна ячейка соответствует:
 
 ```text
 cell × cell мм
@@ -166,7 +166,7 @@ model.y = my + (vy - view.y) / s
 
 Проверяются конечность точек и anchors, положительность масштаба, конечность промежуточных разностей, произведений/частных и результата. Arithmetic overflow возвращает ошибку без координаты результата. Все величины представлены `double`; anchor уменьшает абсолютные значения при отображении, но не восстанавливает точность, уже потерянную в исходных координатах, и не исключает rounding/underflow при предельных масштабах. Round-trip tests используют погрешность, соответствующую масштабу model/view и последовательности операций, без общего геометрического epsilon.
 
-Преобразование не определяет raster origin, ориентацию строк PNG или boundary/rounding rules: они остаются Open decision по §6 до реализации задачи 06.
+Преобразование model/view не определяет физический raster mapping или ориентацию строк display/PNG-export. Базовая raster convention и условия production-проверки 06.1 определены в §6.
 
 ---
 
@@ -275,125 +275,119 @@ round-to-nearest/ties-to-even, включая midpoint и normal/subnormal bound
 
 ## 6. Построение Density Map
 
-### Purpose
+### Purpose и Input
 
-Преобразовать point cloud в фиксированную raster density map с заданным физическим размером `cell`.
-
-### Input
-
-- persistent point cache;
-- bounding box;
-- `cell > 0`;
-- параметры encoding.
-
-До построения проверяются конечность параметров, `cell > 0`, представимость raster dimensions и требуемых объёмов хранения, arithmetic overflow и возможность использования ресурсов. Невозможность построения означает безопасный failure без публикации частичного результата.
+Преобразовать immutable Point Cache в фиксированную Density Map с физическим
+размером `cell`: конечные binary64 model coordinates в миллиметрах, bounding box,
+положительный конечный `cell` и ресурсный бюджет. Выбранный `cell` будущего Build
+отделён от metadata уже построенных версий.
 
 ### Output
 
-- PNG;
-- `cell`;
-- origin;
-- width;
-- height;
-- параметры построения.
+Новая версия с постоянной identity, immutable count-tile dataset D, `cell`,
+origin/mapping, width/height и source/build metadata. Rough-состояние принадлежит
+версии; его хранение и выбор — [requirements.md, §8](requirements.md#8-фиксированный-размер-cell).
+PNG-export необязателен и не является каноническим выходом построения.
 
 ### Required
 
-Каждой точке соответствует ровно одна raster cell.
+- Каждое исходное измерение учитывается ровно один раз; совпадающие повторные
+  измерения сохраняются. Все counts точные целочисленные, без обязательного Gray16
+  saturation или потери значений. uint32/uint64 выбирается по представимости;
+  накопление и агрегаты проверяются на overflow.
+- Одна ячейка соответствует области `cell × cell` мм. `cell`, origin и mapping
+  неизменны для версии. Model↔raster одинаков для построения, ROI, rough geometry
+  и отображения соответствия raster/model; произвольный глобальный epsilon для
+  назначения точек ячейкам запрещён.
+- Проверяются конечность, представимость dimensions/index/offsets и размеров
+  буферов, arithmetic overflow и коллапс границ при binary64 rounding.
+- Нет полного point-cloud или плотного full-raster allocation. Ресурсная политика
+  ограничивает buffers, metadata, scratch, файлы/handles и output; failure/cancel
+  или превышение бюджета не публикуют частичный dataset.
+- Выбор существующей версии не требует rasterization. Zoom, палитра, экранные
+  строки и display LOD не меняют counts или аналитическое разрешение Rough.
 
-```text
-1 pixel = cell × cell мм
-```
+### Current approach: D + C1
 
-Zoom не участвует в вычислении.
+По закрытию 06.0 пользователь согласовал **D + C1** как архитектурное направление
+production-задачи 06. Исследование завершено с ограничениями; это не готовая
+production-реализация и не подтверждение Rough detection на real scans.
 
-Получение карты с другим `cell` требует явного полного построения; изменение параметра не запускает алгоритм. Выбор ранее построенной версии не требует rasterization. Хранение версий и связанного Rough-состояния — [requirements.md, §8](requirements.md#8-фиксированный-размер-cell), идентичность и совместимость — [architecture.md, §§15, 23](architecture.md#15-density-map).
+**D — immutable count-tile dataset, zlib.** Тайлы независимо сжимаются и читаются
+выборочно. Полностью нулевые тайлы могут отсутствовать: отсутствие записи в проверенном
+индексе завершённого dataset означает ноль; повреждение индекса/payload означает
+ошибку. Нужны bounded buffers, проверяемый индекс, integrity validation и безопасная
+публикация завершённого файла. Экспериментальный byte layout не утверждается как
+окончательный persistent format: production validation и versioning относятся к 06.2.
 
-### Rasterization
+**C1 — один `CacheReader::scanAll()` с ограниченной временной группировкой событий.**
+Точки распределяются по raster groups, затем обрабатываются только фактически
+занятые группы, без обязательного обхода всех пустых. Counts накапливаются с overflow
+checks и передаются в D. Первоначальные инженерные кандидаты: storage tile 256×256,
+construction group 512×512; это не неизменяемые оптимальные размеры.
+C2 (Grouped Spatial Queries) и TIFF/BigTIFF остаются исследованными альтернативами;
+два production-алгоритма и автоматический выбор без новых доказательств не нужны.
 
-Для точки `(x, y)` должен существовать однозначный mapping:
+Event scratch зависит от числа измерений; число spool-файлов — от занятых групп.
+Preflight учитывает подтверждённые обязательные расходы и консервативные верхние
+границы, но неизвестная разреженность сама по себе не оправдывает отказ на заведомо
+выполнимом dataset. Runtime контролирует бюджеты и безопасно отказывает при достижении
+лимита, с bounded cancellation, cleanup и диагностикой. Огромные maps и чрезмерное
+число файлов могут быть отклонены. Экспериментальный `maxOccupiedGroups=1 000 000`
+не является подтверждённым production-лимитом; измерены только меньшие нагрузки.
 
-```text
-model coordinates → integer cell coordinates
-```
+### Rasterization: базовая convention и условия 06.1
 
-Mapping обязан одинаково использоваться:
+Экспериментальная база — origin в минимуме bounding box, логическая Y вверх;
+внутренние интервалы полуоткрытые, точный максимум относится к последней ячейке.
+Для вырожденной оси эксперимент использует одну ячейку; для остальных —
+`max(1, ceil(span/cell))`. Это исходная convention для 06.1, а не автоматическое
+принятие экспериментальной реализации model↔raster.
 
-- при построении PNG;
-- при преобразовании rough geometry;
-- при отображении соответствия raster/model data.
+06.0A/C и P1 проверили отрицательные координаты, signed zero, degenerate axes,
+partial edges и точки до/на/после boundaries через `nextafter`, включая десятичные
+cell и большие абсолютные координаты. Простое `floor((x-origin)/cell)` может
+округлить точку перед boundary в соседнюю ячейку; эксперимент сравнивает её
+с binary64 boundaries. Проверка их строгого возрастания требует `O(width+height)`
+времени и `O(1)` RAM; индексы >2^53 и collapsed intervals отклоняются. P1 work guard
+на число проверяемых boundaries — ограничение эксперимента, не предел production осей.
 
-#### Open decision: orientation and boundary convention
+До завершения 06.1 нужны явная production-формула и обратное соответствие физическим
+границам ячейки, representability checks (включая span/ceil и промежуточные операции),
+правила точного максимума/вырождения и независимые boundary/nextafter tests.
+Следует определить проверку очень больших осей с ограниченным временем и cancellation,
+либо диагностируемый профиль отказа. Эксперимент не доказывает корректность для всех
+binary64 bounds/cell и не задаёт поддержку произвольной длины оси. Ориентация экранных
+строк, PNG-export и QML не определяет физическую convention.
 
-Необходимо окончательно определить:
+### Counts → intensity/mask → display
 
-- origin density map;
-- направление raster Y;
-- обработку точки на правой/верхней границе bounding box;
-- точные правила `floor/ceil`.
+Канонические counts, производные intensity/mask для анализа, Canvas с display LOD
+и необязательный PNG-export — разные представления. Анализ использует активную
+версию в исходном фиксированном разрешении, независимо от zoom и палитры.
+Отображаемая интенсивность монотонна по count: `countA < countB` не даёт меньшую
+интенсивность B. Квантование/saturation допустимы только в производном представлении.
 
-Это должно быть единым правилом всего проекта.
+**Open decision:** threshold, линейный/нелинейный intensity mapping, нормализация,
+использование глобального maximum, morphology/filtering и параметры detection
+выбираются в задачах 07–10 по качеству на real density maps. PNG bit depth является
+вопросом необязательного экспорта, а не требованием к хранению точных counts.
 
-### Накопление плотности
+### Evidence и пределы вывода
 
-Для каждой cell вычисляется:
+- [06.0A: стенд и oracle](reports/task-06/density-harness.md).
+- [06.0B: D/E](reports/task-06/density-formats.md), [evidence](benchmarks/density06b/README.md):
+  D выбран по sparse/integrity/dependency cost при близкой обычной производительности.
+- [06.0C: C1/C2](reports/task-06/density-construction.md), [evidence](benchmarks/density06c/README.md):
+  исходная рекомендация C2 пересмотрена после независимого 06.0D (`INCONCLUSIVE`, P1).
+- [06.0D/P1](reports/task-06/density-construction-p1.md), [evidence](benchmarks/density-p1/README.md):
+  `P1 CLOSED WITH LIMITATIONS`; occupied-only C1 устраняет обход пустых групп.
+  Проверены synthetic profiles до 4096 занятых spool groups и 42M measurements
+  на регулярной узкой полосе. Исторический вердикт 06.0D сохраняется отдельно.
 
-```text
-count = количество точек в cell
-```
-
-Представимость счётчиков и арифметики накопления проверяется; overflow не должен искажать density map.
-
-Алгоритм не должен требовать хранения исходного point cloud целиком.
-
-### Point count → intensity
-
-#### Required
-
-Если:
-
-```text
-countA < countB
-```
-
-то отображаемая интенсивность B не должна быть меньше интенсивности A.
-
-#### Open decision
-
-Не определены окончательно:
-
-- PNG bit depth;
-- линейное или нелинейное отображение;
-- saturation;
-- нормализация;
-- использование глобального максимума;
-- сохранение дополнительной информации о mapping.
-
-Это необходимо определить до окончательной реализации raster detection, поскольку rough algorithms анализируют именно PNG.
-
-### Эксперимент хранения counts 06.0B
-
-В изолированном сравнении собственного immutable count-tile/zlib и tiled
-TIFF/BigTIFF 4.7.2 предварительно рекомендован **count-tile (D)**: точные uint32/
-uint64, sparse omission, checksummed index и меньшая dependency/profile cost при
-близкой производительности обычных maps. Сопоставлены synthetic 3/12/48 млн cells,
-tile side 256/512/1024 и huge-sparse; исходный side для дальнейшей экспериментальной
-проверки — 256, не production default. [Числа, API limitations и методика](reports/task-06/density-formats.md).
-Это **рекомендация, требующая согласования**: production storage, PNG encoding,
-mapping и ресурсный workflow остаются Open decisions; rough/precise methods на
-representative real scans этим не подтверждены.
-
-Последующая 06.0C предварительно рекомендовала C2, но адресная проверка
-06.0D/P1 выявила обязательный обход пустых spatial groups. Экспериментальный
-C1 теперь перечисляет только occupied groups после одного scanAll, с bounded
-events, отдельными occupied/file guards и safe refusal. На sparse growth,
-many-occupied и 42M synthetic cache рекомендован **C1 как единственный основной
-алгоритм**, статус **P1 CLOSED WITH LIMITATIONS**. Сохраняются axis validation
-`O(width+height)` и экспериментальный tunable resource plan; million-file,
-cold physical HDD/network и representative real scans не подтверждены.
-[Методика, exact oracle, ресурсы и границы рекомендации](reports/task-06/density-construction-p1.md).
-Это рекомендация для архитектурного согласования, не утверждение D/C1,
-production coordinate policy или переход к 06.1.
+Полный pipeline Point Cache → C1 → D, CPU cost сжатия, physical cold-HDD/network I/O
+и representative real scans ещё не проверены. Их оценка — реализация и приёмка 06.3/06.8,
+без повторения всего исследования 06.0 и без произвольных нормативов CPU/time/map size.
 
 ---
 
@@ -404,7 +398,7 @@ production coordinate policy или переход к 06.1.
 Rough algorithms используют:
 
 ```text
-Density PNG
+Аналитические данные активной Density Map (исходное разрешение)
 ```
 
 а не исходные реальные точки.
@@ -434,13 +428,13 @@ background / empty area
 
 ### Input
 
-- density PNG;
+- аналитические данные активной Density Map;
 - выбранная пользователем ROI;
 - raster-analysis parameters.
 
 ### Output
 
-Рабочая mask или эквивалентное внутреннее представление. Rectangular/lasso ROI ограничивает анализ, не изменяя исходную density PNG; raster boundary ROI и model mapping реализуются согласованно.
+Рабочая mask или эквивалентное внутреннее представление. Rectangular/lasso ROI ограничивает анализ, не изменяя исходный dataset counts; raster boundary ROI и model mapping реализуются согласованно.
 
 ### Required
 
@@ -475,7 +469,7 @@ background / empty area
 
 ### Input
 
-- density PNG или рабочая mask;
+- аналитические данные активной Density Map или рабочая mask;
 - выбранная ROI;
 - `cell`;
 - rough parameters.
@@ -497,7 +491,7 @@ background / empty area
 Общая последовательность:
 
 ```text
-density PNG
+аналитические данные активной Density Map
     ↓
 foreground classification
     ↓
@@ -547,7 +541,7 @@ Rough contour должен быть достаточно подробным дл
 
 ### Input
 
-- density PNG / рабочая mask;
+- аналитические данные активной Density Map / рабочая mask;
 - текущий rough outer contour;
 - `cell`;
 - minimum hole diameter;
@@ -666,7 +660,7 @@ HoleGroup
 
 ### Input
 
-- density PNG / mask;
+- аналитические данные активной Density Map / mask;
 - текущий rough outer contour;
 - текущие rough holes и сведения об исключённых rough-областях;
 - `cell`;
@@ -1693,7 +1687,7 @@ I/O volume, если существенно
 
 Это краткий указатель основных локальных Open decision, а не исчерпывающий список всех деталей реализации.
 
-- [Density encoding и raster mapping (§6)](#6-построение-density-map).
+- [Production raster mapping и производное intensity/mask (§6)](#6-построение-density-map).
 - [Raster foreground classification и filtering (§8)](#8-получение-рабочей-raster-mask).
 - [Rough contour simplification (§9)](#9-поиск-rough-outer-contour).
 - [Hole circularity и rough circle estimate (§11)](#11-поиск-rough-holes).
@@ -1719,8 +1713,8 @@ Project persistence и DXF compatibility остаются инженерными
 
 Локальная реализация алгоритма не должна:
 
-- использовать исходный point cloud вместо PNG на rough stage;
-- использовать PNG вместо real points на precise stage;
+- использовать исходный point cloud вместо аналитических данных активной Density Map на rough stage;
+- использовать raster/PNG вместо real points на precise stage;
 - автоматически изменять Fixed Geometry;
 - нарушать one-sided tolerance ради лучшего symmetric fit;
 - сглаживать Corner;
@@ -1756,7 +1750,7 @@ Project persistence и DXF compatibility остаются инженерными
 
 ## 48. Основные алгоритмические принципы
 
-1. Rough stage работает по фиксированной density PNG.
+1. Rough stage использует аналитические данные активной Density Map в исходном фиксированном разрешении.
 2. Precise stage работает по реальным точкам reduced cloud.
 3. Rough geometry является приближением, а не точной CAD geometry.
 4. Реальные точки отбираются около текущей активной rough geometry по явному Build Reduced Point Cloud; отдельного Confirmed state нет.

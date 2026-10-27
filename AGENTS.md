@@ -167,7 +167,19 @@ implementation
 
 Соблюдай [requirements.md, §§9, 21–22](docs/requirements.md#21-переходы-между-этапами) и [architecture.md, §6](docs/architecture.md#6-два-этапа-обработки).
 
-Rough работает по фиксированной density PNG, precise — по реальным точкам Reduced Point Cloud. Не подменяй precise processing raster approximation.
+Rough использует аналитические данные активной версии Density Map в исходном
+фиксированном разрешении; precise — реальные точки Reduced Point Cloud. Не подменяй
+анализ экранным LOD/палитрой или precise processing raster approximation. Выбранное
+направление задачи 06 — immutable exact count tiles D/zlib + один scanAll C1
+с обработкой только occupied groups; контракты и ограничения —
+[architecture.md, §15](docs/architecture.md#15-density-map). PNG-export необязателен;
+экспериментальные layout/размеры/budgets не являются утверждёнными production limits.
+
+Каждый успешный Build создаёт новую постоянную версию, без автоматической замены
+и удаления. Один выбор версии делает её рабочей через C++ guard; при необходимом
+Precise reset подтверждение предшествует смене данных/выбора. Late Build не должен
+перехватывать выбор. Будущее расширение persistence 06 не подменяет спецификацию v1
+и принятые контракты задачи 05.
 
 Изменение rough-входов после начала precise-stage требует предупреждения и подтверждённого полного reset без Undo. Не заменяй его сохранением старого precise-result как Outdated. Обычный Undo внутри этапов сохраняется.
 

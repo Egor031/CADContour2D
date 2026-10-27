@@ -21,6 +21,16 @@ UX/UI Design действует в пределах их контрактов; �
 реализацию функций и не меняет статусы задач.
 Обзор проекта и проверенные команды сборки — в [корневом README](../README.md).
 
+06.0 закрыта с ограничениями; пользователь согласовал **D + C1**: immutable exact
+count tiles / zlib и один scanAll с bounded event grouping только occupied groups.
+PNG-export необязателен; аналитические данные исходного разрешения отделены от
+Canvas/display LOD. Production Density Map/Canvas/ROI не реализованы, 06.1–06.8
+ещё не начаты. [Архитектура](architecture.md#15-density-map),
+[численные условия и ограничения](algorithms.md#6-построение-density-map),
+[план 06.1–06.8](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
+Исторический 06.0D `INCONCLUSIVE` и последующее `P1 CLOSED WITH LIMITATIONS`
+сохраняются раздельно. Manifest v1 и принятая задача 05 не изменяются.
+
 ## Инструменты разработки
 
 - [Synthetic Point Cloud Generator: спецификация](tools/synthetic-cloud-generator.md) — Geometry JSON + Scan Scenario JSON → XYZ/ASC + manifest.
@@ -73,12 +83,25 @@ GUI Recovery/startup decision и сквозные проверки реализ�
 Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFICATION;
 системный DPI 200% — OUT OF SCOPE; перенос между мониторами — N/A.
 Наблюдение Recovery `Applied`/`NoChange` не объявляется исправленным.
-Задача 06 не начата; [полные границы принятия](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
+На момент принятия 05 задача 06 не начата; [полные границы принятия](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
+
+### Task 06
+
+- [06.0A: стенд и oracle](reports/task-06/density-harness.md).
+- [06.0B: D/E storage](reports/task-06/density-formats.md).
+- [06.0C: C1/C2 construction](reports/task-06/density-construction.md) — исходная рекомендация пересмотрена.
+- [06.0D/P1: sparse scaling C1](reports/task-06/density-construction-p1.md) — P1 закрыт с ограничениями.
+
+Это исторические отчёты; согласованное направление Close задано нормативными
+документами выше, а не ретроспективной правкой результатов экспериментов.
 
 ## Benchmark evidence
 
 - [cache05/](benchmarks/cache05/) — структурированные результаты задачи 03: большой round-trip, ресурсы и HDD/source-order comparison. Методика и ограничения — в [отчёте 5/5](reports/task-03/cache-performance-report.md).
 - [ascxyz044b/](benchmarks/ascxyz044b/) — исходные параметры, manifests, JSON/CSV измерений и проверки импорта 04.4B. Методика и интерпретация — в [отчёте 04.4B](reports/task-04/asc-xyz-e2e-performance-check.md).
+- [Density 06.0B](benchmarks/density06b/README.md) — D/E, raw JSON/CSV и audit.
+- [Density 06.0C](benchmarks/density06c/README.md) — C1/C2, exact streams и audit.
+- [Density 06.0D/P1](benchmarks/density-p1/README.md) — occupied traversal, refusals и independent oracle.
 
 ## Размещение будущих документов
 

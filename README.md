@@ -83,7 +83,9 @@ Streaming Import
     ↓
 Persistent Point Cache
     ↓
-Density Map
+C1: single scanAll / bounded occupied-group accumulation
+    ↓
+Density Map D: immutable exact count tiles / zlib
     ↓
 Rough Stage
     ↓
@@ -100,7 +102,7 @@ DXF
 
 ### Rough Stage
 
-Работает по фиксированной density PNG с физическим размером ячейки `cell`. Пользователь выбирает неразрушающую rectangular/lasso ROI, получает и редактирует rough-внешний контур, отверстия, HoleGroup и вырезы.
+Работает по аналитическим данным активной Density Map в исходном фиксированном разрешении с физическим размером ячейки `cell`. Counts, производные intensity/mask, display LOD и необязательный PNG-export разделены; палитра и zoom не являются входами анализа. Пользователь выбирает неразрушающую rectangular/lasso ROI, получает и редактирует rough-внешний контур, отверстия, HoleGroup и вырезы.
 
 Rough geometry является приближением для последующей выборки реальных точек, а не финальной CAD-геометрией.
 
@@ -114,8 +116,9 @@ Refinement строит компактные CAD-примитивы с continuit
 
 - Основные геометрические единицы — миллиметры; исходное большое облако не загружается целиком в RAM.
 - Immutable persistent point cache заменяет повторный разбор ASC/XYZ и позволяет работать без исходного файла.
-- Пиксель density map соответствует `cell × cell` мм; zoom/pan не меняют разрешение. Новая карта строится явно; требования предусматривают сохранение всех версий с собственным Rough-состоянием и переключение без пересчёта — [requirements.md, §8](docs/requirements.md#8-фиксированный-размер-cell).
-- Rough использует PNG, precise — реальные точки. Тяжёлые операции запускаются явно.
+- Ячейка density map соответствует области `cell × cell` мм; zoom/pan не меняют разрешение. Новая карта строится явно; требования предусматривают сохранение всех версий с собственным Rough-состоянием и переключение без пересчёта — [requirements.md, §8](docs/requirements.md#8-фиксированный-размер-cell).
+- Rough использует counts/аналитическую mask исходного разрешения, precise — реальные точки. Тяжёлые операции запускаются явно.
+- Каждый успешный Build создаёт новую постоянную версию; выбор версии одним действием делает её рабочей, с подтверждением необходимого Precise reset до смены выбора. Late Build не перехватывает выбор; автоматической замены/удаления версий нет.
 - ROI не разрушает исходную карту; неоднозначный выбор детали не заменяется выбором самого большого объекта.
 - Повторный rough-search заменяет результат без сопоставления со старым и предупреждает о потере ручных правок. Полный повторный поиск holes может найти удалённое отверстие заново.
 - Обычные последующие операции не возвращают удалённые/отфильтрованные holes как cutouts или precise holes и не используют их области для reduced-cloud extraction.
@@ -499,14 +502,34 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.0 Close — исследование завершено с ограничениями; D + C1 согласованы пользователем**
+(2026-10-27). Проверенная экспериментальная база — `1be09454c57da7bcb00cde0baa1c1e37b60648d1`.
+D — immutable count-tile dataset / zlib с точными uint32/uint64 counts; C1 — один
+scanAll с bounded events и обработкой только occupied groups. Исторический вердикт
+независимого 06.0D — **INCONCLUSIVE**, выявлен P1; последующее закрытие P1 учитывается
+отдельно. Отчёты/evidence сохраняют исходные рекомендации и ограничения.
+
+**Задача 06: NOT IMPLEMENTED / IN PROGRESS** только в смысле выполненных исследований.
+Production Density Map, Canvas и ROI не реализованы; **06.1–06.8 не начаты**.
+[Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
+[архитектура D + C1](docs/architecture.md#15-density-map),
+[численные контракты и evidence](docs/algorithms.md#6-построение-density-map).
+Tile 256×256 и group 512×512 — инженерные кандидаты; экспериментальный D layout
+и occupied guard 1M не являются production format/лимитами. Полный Point Cache →
+C1 → D, CPU сжатия, physical cold-HDD I/O и representative real scans ещё не проверены;
+их оценка входит в 06.3/06.8. Boundary/nextafter evidence не заменяет production
+mapping/representability и bounded axis validation 06.1.
+
+Ниже — исторические итоги экспериментов и принятых задач, а не новые проверки Close.
+
 **06.0D/P1 — масштабирование C1: P1 CLOSED WITH LIMITATIONS** (2026-10-27).
 Экспериментальный C1 обходит только occupied groups; logical и occupied guards
 разделены. Debug/Release: **36/36 общих/construction + 13/13 format tests PASS**.
 84 Release trials проверены независимым oracle: sparse до 4 194 304 logical
 groups при четырёх occupied, до 4096 spool files и cache 42 млн measurements.
 Рекомендован C1 как единственный основной алгоритм; million-file, cold-HDD и
-representative real scans не подтверждены. Production и 06.1 не начаты;
-окончательное архитектурное утверждение D/C1 остаётся за пользователем.
+representative real scans не подтверждены. На момент отчёта production и 06.1 не начаты;
+последующее согласование D + C1 зафиксировано в Close выше.
 [Отчёт, raw evidence, guards и границы вывода](docs/reports/task-06/density-construction-p1.md).
 
 **06.0C — сравнение построения counts C1/C2: READY WITH LIMITATIONS** (2026-10-27).
@@ -517,16 +540,16 @@ representative real scans не подтверждены. Production и 06.1 не
 с группами 512×512 cells; cold-HDD и representative real scans не подтверждены.
 [Отчёт, evidence и границы рекомендации](docs/reports/task-06/density-construction.md).
 Это историческая рекомендация; последующая адресная проверка P1 приведена выше.
-Production Density Map не реализована; архитектура требует согласования.
+Production Density Map не реализована; архитектурное согласование завершено в 06.0 Close выше.
 
 **06.0B — сравнение count-tile/zlib и TIFF/BigTIFF: READY WITH LIMITATIONS** (2026-10-27).
 Изолированы оба адаптера; Debug/Release — **22/22 общих + 13/13 format tests PASS**.
 На synthetic maps 3/12/48 млн cells и huge-sparse выполнены 12 Release серий:
 **2363 ok measurements**, семь ожидаемых TIFF capability refusals. Рекомендован D
 по sparse/integrity/dependency cost при близкой обычной производительности;
-это рекомендация к рассмотрению, а не утверждение production формата.
+на тот момент это рекомендация к рассмотрению. Close утвердил направление D, сохранив production layout открытым.
 [Отчёт, raw JSON/CSV, ограничения и команды](docs/reports/task-06/density-formats.md).
-Результаты 06.0C приведены выше; production Density Map/PNG/Canvas остаётся будущей работой.
+Результаты 06.0C приведены выше; production Density Map/Canvas/ROI остаются будущей работой.
 
 **06.0A — экспериментальный стенд Density Map: READY WITH LIMITATIONS** (2026-10-27).
 Изолированный [density_benchmark](tools/density_benchmark/README.md): точные count inputs,
@@ -580,8 +603,9 @@ Windows-профиле — **NOT VERIFIED**; keyboard/visible focus — **PARTIA
 перенос между мониторами — **N/A**. Наблюдение Recovery `Applied`/`NoChange`
 не объявляется исправленным.
 [Итог, происхождение доказательств и границы принятия](docs/reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
-Препятствий к развитию persistence в 06 не выявлено; задача 06 не начата,
-сохранение будущих Density Map/PNG и их metadata/state ещё предстоит расширить.
+На момент принятия 05 препятствий к развитию persistence в 06 не выявлено;
+production-задача 06 не начата,
+сохранение будущих count datasets Density Map и их metadata/state ещё предстоит расширить в 06.5 через versioned manifest; схема v1 и принятый контракт 05 не изменены.
 
 Задача 02 принята пользователем после реализации, проверок Debug/Release, визуальной приёмки и независимого ревью. Обнаруженный при ревью R1/P1 исправлен; заключительное независимое ревью — **PASS, новых замечаний P0–P3 нет**.
 
@@ -603,7 +627,7 @@ Windows-профиле — **NOT VERIFIED**; keyboard/visible focus — **PARTIA
 - созданы CMake presets для Debug и Release, vcpkg manifest и минимальное Qt Quick/QML приложение;
 - для исходного каркаса ранее проверены configure и clean build; в задаче 01 повторно выполнены configure/build, production tests, regression, dependency smoke, QML lint и запуск обеих конфигураций.
 
-Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/PNG/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
+Устойчивые контракты — [architecture.md, §§24–26](docs/architecture.md#24-длительные-операции), состояние задачи — [план реализации](docs/implementation-plan.md#02-безопасное-выполнение-фоновых-операций). При интеграции будущих операций предстоит проверить cancellation checkpoints реальных длительных I/O, атомарность cache/Density dataset/history publication adapters, version/Rough applicability, lifetime больших datasets и транзакционность сохранения реальных результатов. Это ответственность следующих этапов, а не блокирующие дефекты принятой задачи 02.
 
 Для задачи 03 (5/5) реализован самостоятельный headless `cadcontour_cache`: binary64 codec, зафиксированный v1, checksums/checked layout/file I/O, bounded Morton128 external sort, CacheWriter, packed BBox hierarchy и CacheReader со spatial queries и строгой полной validation. Sealing/readback, no-overwrite rename и PendingCache сохраняют cleanup owner до явного Accept; Reader владеет только read-only handle. Большой round-trip, ресурсы, HDD/source-order comparison и crash lifecycle проверены — [отчёт](docs/reports/task-03/cache-performance-report.md). Интеграция с application state реализована в 04.2. **Статус задачи 03: ACCEPTED**, все пять частей реализации завершены.
 
