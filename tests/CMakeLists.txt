@@ -10,6 +10,13 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(raster_mapping_tests raster_mapping_tests.cpp)
+set_target_properties(raster_mapping_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(raster_mapping_tests PRIVATE cadcontour_core GTest::gtest_main)
+target_compile_options(raster_mapping_tests PRIVATE /W4 /permissive- /fp:strict /utf-8)
+gtest_discover_tests(raster_mapping_tests DISCOVERY_MODE PRE_TEST
+    PROPERTIES LABELS production TIMEOUT 30)
+
 add_executable(recovery_tests operation_test_main.cpp recovery_tests.cpp)
 set_target_properties(recovery_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(recovery_tests PRIVATE cadcontour_application GTest::gtest)

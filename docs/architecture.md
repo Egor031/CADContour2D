@@ -487,6 +487,12 @@ SelectedRegion внутри Rough-состояния версии хранитс
 - origin и mapping конкретной версии;
 - физической ориентации raster осей (§11).
 
+Production foundation 06.1 использует целочисленные индексы uint64 с точно
+представимыми binary64 boundary indices до `2^53` включительно. Dimensions
+сами по себе не требуют представимости полного произведения width×height.
+`cell` — номинальный шаг; binary64 rounding и частичная последняя ячейка
+учитываются общим mapping, без самостоятельных формул в потребителях.
+
 ### 10.3. View coordinates
 
 Экранная система координат Qt Quick.
@@ -515,18 +521,38 @@ raster cell ↔ view
 
 Разные подсистемы не должны независимо реализовывать собственные варианты этих преобразований.
 
-Model coordinates — миллиметры, binary64; `cell` — положительный конечный физический
-размер, неизменный у построенной версии. Origin и mapping принадлежат версии.
-Экспериментальная база: min bounding-box origin, логическая Y вверх, полуоткрытые
-внутренние интервалы, точный максимум в последней ячейке. Она не зависит от QML,
-экранных строк или PNG-export. Универсальный epsilon для назначения cell запрещён.
+Model coordinates — миллиметры, binary64; `cell` — положительный конечный
+номинальный физический шаг, неизменный у построенной версии. Origin и mapping
+принадлежат версии. Min bounding-box origin, логическая Y вверх, полуоткрытые
+внутренние интервалы и точный исходный maximum в последней ячейке не зависят от
+QML, экранных строк или PNG-export. Универсальный epsilon для назначения cell запрещён.
 
-Проверяются overflow, representability dimensions и промежуточных операций,
-строгое возрастание границ и их коллапс при binary64 rounding. Boundary/nextafter
-проверки эксперимента не являются доказательством для произвольных очень больших
-осей: полный обход boundaries имеет O(width+height) time. Окончательная production
-формула, inverse cell bounds и bounded validation/refusal — условия 06.1 по
-[algorithms.md, §6](algorithms.md#6-построение-density-map).
+В 06.1 реализован immutable value `raster::Mapping` (`core/raster_mapping.h/.cpp`,
+`cadcontour_core`), без GUI/Qt/OpenCV и зависимости core от cache. Используется
+существующий `ModelPoint`: входы minimum/maximum совпадают с domain metadata
+`ImportedDataset`, отдельная несовместимая система координат не вводится.
+Factory выдаёт только полностью проверенное значение либо structured error;
+публичного default/частично валидного состояния и изменяющих методов нет.
+
+API: `create` с явной `ValidationPolicy` и cooperative cancellation,
+metadata/accessors, `locate(ModelPoint)` и `cellBounds(CellIndex)`. Последний
+различает nominal boundaries и actual coverage исходных bounds, включая
+закрытый singleton вырожденной оси, с признаками включённости обоих концов.
+Canvas, ROI и последующие алгоритмы должны использовать этот общий контракт.
+
+Границы определяются `B(0)=origin`,
+`B(i)=RN(origin + RN(double(i)*cell))`, без contraction. Размер — минимальный
+индекс конечной границы, покрывающей maximum, с полной проверкой строгого
+возрастания. Поиск ограничен, линейная проверка имеет O(width+height) time,
+O(1) RAM и явный work budget; превышение возвращает `ResourceRefused` до обхода.
+Численные ошибки, invalid input, resource refusal и cancellation различаются;
+неподдерживаемое FP environment отклоняется. Начальная политика — 10 млн проверок,
+без скрытого unlimited/default и гарантии wall-clock deadline.
+
+Полный численный контракт, MSVC/environment requirements и правила представимости —
+[algorithms.md, §6](algorithms.md#raster-foundation-061-численный-контракт).
+Foundation не интегрирован с Density Build/Project State/persistence; эти этапы
+остаются 06.2–06.8. Проверки и ограничения — [отчёт 06.1](reports/task-06/raster-foundation.md).
 
 ---
 
@@ -1953,7 +1979,7 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** D + C1 выбраны (§15); production raster formula/representability и bounded axis validation — 06.1; D byte layout/integrity/versioning — 06.2; resource policy и end-to-end — 06.3/06.8. Размеры tile 256 и group 512 — инженерные кандидаты.
+- **Density production details:** D + C1 выбраны (§15); Raster Foundation 06.1 реализован, ожидает независимого ревью (§11); D byte layout/integrity/versioning — 06.2; resource policy и end-to-end — 06.3/06.8. Размеры tile 256 и group 512 — инженерные кандидаты.
 - **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.

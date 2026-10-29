@@ -373,8 +373,9 @@ metadata/state потребуется расширить версиониров�
 
 ### 06. Density Map, Engineering Canvas и ROI
 
-**Общий статус: NOT IMPLEMENTED / IN PROGRESS** — начаты и завершены исследовательские
-работы 06.0 с ограничениями; production Density Map, Canvas и ROI не реализованы.
+**Общий статус: IN PROGRESS** — завершены исследовательские
+работы 06.0 с ограничениями; Raster Foundation 06.1 реализован для независимого
+ревью. Production Density Map, Canvas и ROI не реализованы.
 Пользователь согласовал **D + C1** как архитектурную основу дальнейшей разработки.
 Это закрывает исследование 06.0, сохраняя раздельно исторический вердикт независимого
 06.0D `INCONCLUSIVE` и последующее `P1 CLOSED WITH LIMITATIONS`.
@@ -386,7 +387,7 @@ metadata/state потребуется расширить версиониров�
 | 06.0C | Сравнение C1/C2 | Завершён; исходная рекомендация пересмотрена |
 | 06.0D | Независимое ревью | `INCONCLUSIVE`, выявлен P1 |
 | 06.0D/P1 | Исправление sparse scaling C1 | `P1 CLOSED WITH LIMITATIONS` |
-| 06.1 | Raster Foundation и численные контракты | Не начат |
+| 06.1 | Raster Foundation и численные контракты | `READY WITH LIMITATIONS`, для независимого ревью; не принят |
 | 06.2 | Каноническое тайловое хранилище D | Не начат |
 | 06.3 | Построение через C1 и безопасная публикация | Не начат |
 | 06.4 | Версии и Project State | Не начат |
@@ -426,8 +427,19 @@ LOD и необязательный PNG-export разделены по
   axes; independent boundary/nextafter tests (отрицательные/большие coordinates,
   decimal cell, signed zero, partial edge); overflow/representability/collapsed
   boundaries дают диагностируемый отказ без epsilon. Проверка очень больших осей
-  имеет bounded work/cancellation либо явный профиль refusal; экспериментальный
-  O(width+height) обход не принят автоматически.
+  имеет bounded work/cancellation либо явный профиль refusal.
+- **Фактический результат 2026-10-29:** `raster::Mapping` в `cadcontour_core`,
+  `B(i)=RN(origin+RN(double(i)*cell))`, минимальный N через bounded binary search,
+  полная проверка всех соседних пар с явным work budget (начальная политика
+  10 млн), O(1) RAM и cooperative cancellation. `locate` и обратные nominal/coverage
+  intervals, structured input/numerical/resource/cancellation errors. Point Cache,
+  parser, Project State и experimental harness не изменены.
+- **Проверка/статус:** независимые rational/integer golden bits, terminal-cell
+  regression, Debug/Release tests и адресные измерения —
+  [отчёт 06.1](reports/task-06/raster-foundation.md).
+  `READY WITH LIMITATIONS`: известные нестабильности Recovery в связанных
+  regressions отражены в отчёте; numerical tests PASS. Окончательного принятия нет.
+  06.2–06.8 не начаты.
 
 #### 06.2. Каноническое тайловое хранилище D
 
@@ -739,7 +751,7 @@ LOD и необязательный PNG-export разделены по
 ### Какие решения действительно блокируют этапы
 
 - Cache layout и index construction — решены в принятой задаче 03; v1 описан в [point-cache-format.md](point-cache-format.md).
-- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Production raster mapping/representability и bounded validation — условие 06.1; D layout/versioning — 06.2; ресурсы и полный C1→D — 06.3/06.8.
+- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1 реализован для независимого ревью; D layout/versioning — 06.2; ресурсы и полный C1→D — 06.3/06.8.
 - Intensity/mask/threshold/morphology — решения 07–10 до принятия rough detection; необязательный PNG-export не блокирует построение 06.
 - Reference boundary и one-sided validator — блокируют принятие automatic precise geometry.
 - Representative real scans — блокируют подтверждение алгоритмов, **но не** разработку storage/UI и экспериментальных prototypes.
@@ -801,5 +813,5 @@ Performance-нормативы пока отсутствуют. Для их оп
 
 При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статусы последующей реализации задач 01–04 указаны выше.
 
-Текущий следующий этап после документационного закрытия 06.0 — 06.1 Raster Foundation.
-Его реализация не входит в закрытие исследования; 06.1–06.8 ещё не начаты.
+Raster Foundation 06.1 реализован, ожидает независимого ревью и согласования
+пользователя. 06.2–06.8 ещё не начаты; следующий implementation scope — 06.2.

@@ -186,6 +186,21 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ### Configure / Build / Tests
 
+Raster Foundation 06.1: в указанном MSVC-окружении выполнены Debug/Release builds
+и отдельные CTest-проверки production mapping:
+
+```bat
+cmake --build --preset windows-debug --target raster_mapping_tests --parallel 4
+cmake --build --preset windows-release --target raster_mapping_tests raster_validation_benchmark --parallel 4
+ctest --preset windows-debug -R RasterMapping --output-on-failure
+ctest --preset windows-release -R RasterMapping --output-on-failure
+```
+
+Новые тесты — **14/14 PASS** в каждой конфигурации; дополнительно проверены
+`/O2 /arch:AVX2` и раздельные FP instructions. Benchmark target доступен при
+`CADCONTOUR2D_BUILD_TOOLS=ON`. Связанные headless regressions и известные
+нестабильности Recovery отдельно отражены в [отчёте 06.1](docs/reports/task-06/raster-foundation.md).
+
 Эксперимент 06.0A при `CADCONTOUR2D_BUILD_TOOLS=ON` имеет отдельные проверенные
 targets `density_benchmark density_benchmark_tests` и CTest label `density_experiment`
 в Debug/Release. [Configure/build/test, smoke run и методика](tools/density_benchmark/README.md)
@@ -502,6 +517,18 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.1 Raster Foundation — READY WITH LIMITATIONS, для независимого ревью**
+(2026-10-29). В `cadcontour_core` добавлен immutable `raster::Mapping` без Qt/GUI:
+единые model→indices и indices→nominal/coverage bounds, минимальные dimensions по
+binary64-границам с раздельным RN-even, представимость, work refusal и cancellation.
+Point Cache, parser и experimental harness не изменены. Начальная явная политика —
+10 млн проверок границ, O(1) памяти. Debug/Release и AVX2 numerical tests — 14/14 PASS;
+связанные headless regressions в каждой конфигурации — 578 PASS / 1 FAIL / 1 SKIP
+из 580. Оба FAIL — известный тип нестабильности Autosave `NoChange`/`Applied`;
+по 10 отдельных повторов PASS, исправление не заявлено. SKIP — Windows symlink
+privilege 1314. [API, numerical matrix, команды, измерения и ограничения](docs/reports/task-06/raster-foundation.md).
+Окончательное принятие 06.1 требует независимого ревью и согласования пользователя.
+
 **06.0 Close — исследование завершено с ограничениями; D + C1 согласованы пользователем**
 (2026-10-27). Проверенная экспериментальная база — `1be09454c57da7bcb00cde0baa1c1e37b60648d1`.
 D — immutable count-tile dataset / zlib с точными uint32/uint64 counts; C1 — один
@@ -509,16 +536,16 @@ scanAll с bounded events и обработкой только occupied groups. 
 независимого 06.0D — **INCONCLUSIVE**, выявлен P1; последующее закрытие P1 учитывается
 отдельно. Отчёты/evidence сохраняют исходные рекомендации и ограничения.
 
-**Задача 06: NOT IMPLEMENTED / IN PROGRESS** только в смысле выполненных исследований.
-Production Density Map, Canvas и ROI не реализованы; **06.1–06.8 не начаты**.
+**Задача 06: IN PROGRESS** — выполнены исследования и Raster Foundation 06.1.
+Production Density Map, Canvas и ROI не реализованы; **06.2–06.8 не начаты**.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).
 Tile 256×256 и group 512×512 — инженерные кандидаты; экспериментальный D layout
 и occupied guard 1M не являются production format/лимитами. Полный Point Cache →
 C1 → D, CPU сжатия, physical cold-HDD I/O и representative real scans ещё не проверены;
-их оценка входит в 06.3/06.8. Boundary/nextafter evidence не заменяет production
-mapping/representability и bounded axis validation 06.1.
+их оценка входит в 06.3/06.8. Исторический boundary/nextafter evidence 06.0
+дополнен отдельными production-проверками 06.1 выше.
 
 Ниже — исторические итоги экспериментов и принятых задач, а не новые проверки Close.
 

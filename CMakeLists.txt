@@ -18,10 +18,17 @@ add_library(cadcontour_core STATIC
     src/core/project_state.h src/core/project_state.cpp
     src/core/imported_dataset.h src/core/cache_id.h src/core/project_id.h
     src/core/command_result.h src/core/coordinates.h src/core/coordinates.cpp
+    src/core/raster_mapping.h src/core/raster_mapping.cpp
 )
 set_target_properties(cadcontour_core PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_include_directories(cadcontour_core PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_compile_options(cadcontour_core PRIVATE /W4 /permissive- /fp:precise)
+target_compile_options(cadcontour_core PRIVATE /W4 /permissive-)
+set_source_files_properties(src/core/project_state.cpp src/core/coordinates.cpp PROPERTIES
+    COMPILE_OPTIONS "/fp:precise"
+)
+set_source_files_properties(src/core/raster_mapping.cpp PROPERTIES
+    COMPILE_OPTIONS "/fp:strict"
+)
 
 add_library(cadcontour_cache STATIC
     src/cache/cache_types.h src/cache/cache_types.cpp
@@ -90,6 +97,10 @@ target_link_libraries(CADContour2D PRIVATE cadcontour_ui cadcontour_uiplugin Qt6
 include(CTest)
 option(CADCONTOUR2D_BUILD_TOOLS "Build development/test tools" OFF)
 if(CADCONTOUR2D_BUILD_TOOLS)
+    add_executable(raster_validation_benchmark tools/raster_validation_benchmark.cpp)
+    set_target_properties(raster_validation_benchmark PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+    target_link_libraries(raster_validation_benchmark PRIVATE cadcontour_core Psapi)
+    target_compile_options(raster_validation_benchmark PRIVATE /W4 /permissive- /fp:strict /utf-8)
     add_subdirectory(tools/synthetic_cloud_generator)
     add_subdirectory(tools/cache_benchmark)
     add_subdirectory(tools/import_acceptance)
