@@ -168,6 +168,18 @@ Status StagedFile::flush()
     if (auto s = writableState(); !s) return s;
     return remember(flush_(*file_));
 }
+Status StagedFile::discard()
+{
+    terminal_ = true;
+    if (!file_) return success();
+    if (!file_->remove()) {
+        auto e = ioError(*file_, ErrorCode::CleanupFailed, Operation::Remove);
+        e.phase = Phase::Cleanup;
+        return e;
+    }
+    file_.reset();
+    return success();
+}
 Result<PublishedFile> StagedFile::publish(std::uint64_t expected, Validator validator)
 {
     auto call = [](QIODevice &device, std::uint64_t size, void *context) -> Status {

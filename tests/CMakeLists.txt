@@ -10,6 +10,13 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(density_storage_tests density_storage_tests.cpp)
+set_target_properties(density_storage_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(density_storage_tests PRIVATE cadcontour_density ZLIB::ZLIB GTest::gtest_main)
+target_compile_options(density_storage_tests PRIVATE /W4 /permissive- /fp:strict /utf-8)
+gtest_discover_tests(density_storage_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX DensityStorage.
+    PROPERTIES LABELS production TIMEOUT 45)
+
 add_executable(raster_mapping_tests raster_mapping_tests.cpp)
 set_target_properties(raster_mapping_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(raster_mapping_tests PRIVATE cadcontour_core GTest::gtest_main)

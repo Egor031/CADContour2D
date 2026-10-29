@@ -55,6 +55,8 @@ public:
     Status seek(std::uint64_t offset);
     Result<std::uint64_t> size();
     Status flush();
+    // Explicit terminal cleanup with diagnostics; destructor remains a fallback.
+    Status discard();
     // Terminal attempt (also on validation failure). Validator must only read the staged device,
     // returns structured failure and must check the caller's required structure.
     Result<PublishedFile> publish(std::uint64_t expectedSize, Validator validator);

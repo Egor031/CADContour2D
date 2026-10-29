@@ -551,8 +551,9 @@ O(1) RAM и явный work budget; превышение возвращает `R
 
 Полный численный контракт, MSVC/environment requirements и правила представимости —
 [algorithms.md, §6](algorithms.md#raster-foundation-061-численный-контракт).
-Foundation не интегрирован с Density Build/Project State/persistence; эти этапы
-остаются 06.2–06.8. Проверки и ограничения — [отчёт 06.1](reports/task-06/raster-foundation.md).
+Foundation используется headless D reader/writer (06.2); Density Build/Project State/
+persistence остаются 06.3–06.8. Проверки и ограничения Foundation —
+[отчёт 06.1](reports/task-06/raster-foundation.md).
 
 ---
 
@@ -754,7 +755,8 @@ source-order pages и тем же BBox index, в том числе на HDD, п�
 ## 15. Density Map
 
 Выбранное пользователем архитектурное направление задачи 06 — **D + C1**.
-06.0 завершена с ограничениями; production Density Map ещё не реализована.
+06.0 завершена с ограничениями. В 06.2 реализовано headless хранилище D v1;
+полный builder и интеграция Density Map остаются 06.3–06.8.
 Исторические отчёты не меняются; основания и пределы —
 [algorithms.md, §6](algorithms.md#6-построение-density-map), этапы —
 [implementation-plan.md, задача 06](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -785,10 +787,30 @@ dataset означает ноль; повреждённые данные — str
 LOD не меняют аналитические входы. Threshold, intensity mapping, morphology
 и detection выбираются в последующих алгоритмических задачах.
 
-Byte layout эксперимента D не утверждён как production format: необходимы validation
-и собственное versioning в 06.2. Storage tile 256×256 — первоначальный инженерный
-кандидат, а не неизменяемый оптимальный размер. TIFF/BigTIFF — исследованная
-альтернатива, без обязательного второго production backend.
+Production byte layout D v1 определён только в [density-map-format.md](density-map-format.md).
+`cadcontour_density` (C++20, Qt Core, прямая zlib dependency) предоставляет single-use
+Writer, move-only PendingDataset и independent-handle Reader. Модуль не владеет ProjectState.
+Dataset UUID и source CacheId не заменяют будущую identity версии. Metadata binary64
+сохраняются побитово; mapping восстанавливается factory 06.1 с явной ValidationPolicy.
+Начальный side 256, поддержан 512, без автоматического подбора.
+
+Sparse disk index содержит только nonzero tiles, key — два uint64, порядок Y/X.
+Open потоково проверяет весь structural index без payload и без RAM-массива descriptors;
+selective read проверяет один строгий zlib stream, full validation — все physical tiles.
+Нулевой отсутствующий key допустим только после успешного open. Адресация не требует
+произведений logical dimensions. RAM не зависит от пустой logical area.
+
+Writer принимает произвольный порядок submissions (включая zero), spool и две
+descriptor tapes; bounded initial runs/two-way merge дают canonical порядок и отказ
+при duplicates в finish. ResourcePolicy отдельно ограничивает buffers, codec allocator,
+sort array, scratch/output/combined disk bytes, handles, index/work и mapping checks.
+Ноль не означает unlimited. Файловый byte accounting логический, без обещания OS cap.
+Flush и полный readback предшествуют non-overwriting publication; PendingDataset
+удаляет непринятый результат либо передаёт ответственность caller. Cancel/failure
+терминальны, cleanup diagnostics отделены от первопричины. Power-loss durability
+не заявляется. Reader non-reentrant; независимые readers не делят seek-position.
+API, проверки и ограничения — [отчёт 06.2](reports/task-06/density-storage.md).
+TIFF/BigTIFF остаётся исследованной альтернативой без второго production backend.
 
 ### 15.2. Построение C1 и ресурсы
 
@@ -1979,7 +2001,7 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** D + C1 выбраны (§15); Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS по решению пользователя от 2026-10-29 (§11), зависимость 06.2 выполнена; D byte layout/integrity/versioning — 06.2; resource policy и end-to-end — 06.3/06.8. Размеры tile 256 и group 512 — инженерные кандидаты.
+- **Density production details:** Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS (§11); headless D v1 реализован в 06.2 (§15, [format](density-map-format.md)), независимое ревью ещё требуется. Полный C1→D, event/group resources и end-to-end — 06.3/06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным кандидатом.
 - **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.

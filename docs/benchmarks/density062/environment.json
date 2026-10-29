@@ -1,0 +1,19 @@
+{
+  "baseline": "1f5ce9028d46ed781ce616a21fa4fbc3d3509998",
+  "branch": "main",
+  "utc": "2026-10-29T08:22:45.2088281Z",
+  "cpu": "Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz",
+  "ramBytes": "17135476736",
+  "disk": {
+    "FriendlyName": "Hitachi HDS721050CLA362",
+    "BusType": "SATA",
+    "Size": 500107862016
+  },
+  "executableSha256": "9757513BB27A3E825072DD948637192EEC1357D2368214B2432D9F2573D00E34",
+  "os": "Microsoft Windows NT 10.0.19045.0",
+  "logicalIoOnly": true,
+  "coldCache": false,
+  "fileSystem": "NTFS",
+  "cmake": "3.30.5",
+  "ninja": "1.12.1"
+}

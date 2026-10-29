@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-29",
+  "baseline": "1f5ce9028d46ed781ce616a21fa4fbc3d3509998",
+  "results": [
+    {
+      "configuration": "debug",
+      "kind": "final-ctest",
+      "total": 115,
+      "passed": 115,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": "12",
+      "xml": "build/density062-debug-final-ctest.xml",
+      "xmlSha256": "AE432495B73FD432E45E0A8DAA8BC4C08923873F2BA26846B41DC47135671A60",
+      "log": "build/density062-debug-final-ctest.log",
+      "logSha256": "AEEF511DEC9C7A945152D5D9828CE7BF4EEED3B3C2282ECD0262FA009EBA451D"
+    },
+    {
+      "configuration": "debug",
+      "kind": "regression",
+      "total": 692,
+      "passed": 691,
+      "failed": 0,
+      "skipped": 1,
+      "seconds": "132",
+      "xml": "build/density062-debug-regression.xml",
+      "xmlSha256": "667BF8D3F9B8477DA5FEA72E608F9CCA9E7684A0CA63401927345ACF909CE013",
+      "log": "build/density062-debug-regression.log",
+      "logSha256": "9AD8F0148E42200D5734EAA1CCC4FB2AA811D17D43C3B6D8574239307CC66D31"
+    },
+    {
+      "configuration": "release",
+      "kind": "final-ctest",
+      "total": 115,
+      "passed": 115,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": "7",
+      "xml": "build/density062-release-final-ctest.xml",
+      "xmlSha256": "67FD619139F5345D5DBD5DA2BFDE736948B095B74CC2BA3857175189C76FCC17",
+      "log": "build/density062-release-final-ctest.log",
+      "logSha256": "EBA15313B428794836C2F3981A11BA44618895DE45A97F116C368C697400658E"
+    },
+    {
+      "configuration": "release",
+      "kind": "regression",
+      "total": 692,
+      "passed": 691,
+      "failed": 0,
+      "skipped": 1,
+      "seconds": "90",
+      "xml": "build/density062-release-regression.xml",
+      "xmlSha256": "C273B2B7DC6A3B6729507B69C520CC2DFD57FEC64A132F032B46EFF9EE9D3734",
+      "log": "build/density062-release-regression.log",
+      "logSha256": "D855DA2442DC7E97B9228CA86D2A0C6B4BF2884592B5ECE175EBC818C53FA5EA"
+    }
+  ],
+  "buildLogSha256": {
+    "build/density062-debug-oracle-build.log": "8BFDDBB730EE6D65C23B4E4A9C409EC78496BBC4F8FE731902AEAB04E4F8F08A",
+    "build/density062-release-regression-build.log": "24558CB0A9561C75D07B00CC2001ED06C18BD9CE3FC8BFB8B0C3AADA8F2E26A8",
+    "build/density062-debug-regression-build.log": "DFF1270FB8C4F3E97DA2BC5AE3ADB456884D7E04732191BC89D52F6903A49E37",
+    "build/density062-release-verified-build.log": "0AB081446D9C166D1DB7EC59A7D7B81CF69467F881CAB5F1C5A82C5A5A35E43F",
+    "build/density062-release-oracle-build.log": "8BFDDBB730EE6D65C23B4E4A9C409EC78496BBC4F8FE731902AEAB04E4F8F08A",
+    "build/density062-debug-verified-build.log": "0AB081446D9C166D1DB7EC59A7D7B81CF69467F881CAB5F1C5A82C5A5A35E43F"
+  },
+  "notes": [
+    "Broad runs contain 112 D cases and 580 baseline cases. Final narrow runs contain 115 D cases after shape-valid duplicate/order and mid-operation cancellation checks.",
+    "Baseline Recovery Release failure is not declared fixed. This run passed it.",
+    "SKIP: Windows symlink privilege 1314.",
+    "No GUI/lint, physical device fault, power-loss, cold-HDD, UNC or real-scan validation claimed."
+  ],
+  "rasterMapping": {
+    "releaseLogSha256": "6ADDF2A10717B82E213E67F7AE7043BD41BA1E8CC5E928FA9A7B3D2FF4E8E4D6",
+    "debugLogSha256": "BBD84A263B2B29F1148C93B025545E8E0C52EA33100E6FD86A886E502ED29D1D",
+    "debugPassed": 14,
+    "releasePassed": 14
+  },
+  "benchmark": {
+    "resultSha256": "E652297C2D03E25DE50D9C277A4A3EE09A911CB721F4BEA67ADF574EA4910444",
+    "runtimeDependenciesLogSha256": "A150106C5BC9E03BC546CEE512FCEB2EA77D695C2B32DDD4FB361BF7C9200AD2",
+    "trials": 6,
+    "summaryInvariants": "PASS"
+  }
+}

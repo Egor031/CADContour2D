@@ -12,6 +12,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
 find_package(spdlog CONFIG REQUIRED)
+find_package(ZLIB REQUIRED)
 qt_standard_project_setup(REQUIRES 6.12)
 
 add_library(cadcontour_core STATIC
@@ -42,6 +43,11 @@ add_library(cadcontour_cache STATIC
 set_target_properties(cadcontour_cache PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_cache PUBLIC cadcontour_core Qt6::Core)
 target_compile_options(cadcontour_cache PRIVATE /W4 /permissive- /fp:precise /utf-8)
+
+add_library(cadcontour_density STATIC src/density/density_storage.h src/density/density_storage.cpp)
+set_target_properties(cadcontour_density PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(cadcontour_density PUBLIC cadcontour_cache PRIVATE ZLIB::ZLIB)
+target_compile_options(cadcontour_density PRIVATE /W4 /permissive- /fp:precise /utf-8)
 
 add_library(cadcontour_persistence STATIC
     src/persistence/project_manifest.h src/persistence/project_manifest.cpp
@@ -97,6 +103,10 @@ target_link_libraries(CADContour2D PRIVATE cadcontour_ui cadcontour_uiplugin Qt6
 include(CTest)
 option(CADCONTOUR2D_BUILD_TOOLS "Build development/test tools" OFF)
 if(CADCONTOUR2D_BUILD_TOOLS)
+    add_executable(density_storage_benchmark tools/density_storage_benchmark.cpp)
+    set_target_properties(density_storage_benchmark PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+    target_link_libraries(density_storage_benchmark PRIVATE cadcontour_density ZLIB::ZLIB Psapi)
+    target_compile_options(density_storage_benchmark PRIVATE /W4 /permissive- /fp:precise /utf-8)
     add_executable(raster_validation_benchmark tools/raster_validation_benchmark.cpp)
     set_target_properties(raster_validation_benchmark PROPERTIES AUTOMOC OFF AUTOUIC OFF)
     target_link_libraries(raster_validation_benchmark PRIVATE cadcontour_core Psapi)

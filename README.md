@@ -182,9 +182,26 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 `vcpkg.json` использует manifest mode и фиксированный `builtin-baseline` из установленного vcpkg registry snapshot. Это закрепляет версии port recipes без отдельных произвольных overrides. `vcpkg-configuration.json` автоматически подключает локальный overlay для `fmt 12.2.0#1`: минимальный patch устраняет MSVC C4702 без изменения версии, ABI и warning flags. [Происхождение port, инвалидация cache и проверка на другом компьютере](vcpkg/README.md). Presets подключают toolchain через `VCPKG_ROOT`, используют triplet `x64-windows` и размещают установленные пакеты внутри соответствующего build directory.
 
-Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. OpenCV/Eigen пока проверяются отдельным headless dependency smoke; production application использует Qt и spdlog для ограниченного rotating operation log. Новые сторонние зависимости не добавлены.
+Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. OpenCV/Eigen пока проверяются отдельным headless dependency smoke; production application использует Qt и spdlog для ограниченного rotating operation log. В 06.2 zlib 1.3.2#1 объявлен прямой production-зависимостью headless D storage (ранее уже присутствовал транзитивно).
 
 ### Configure / Build / Tests
+
+Хранилище D v1 (06.2): в том же MSVC-окружении проверены Debug/Release:
+
+```bat
+cmake --build --preset windows-debug --target density_storage_tests raster_mapping_tests density_storage_benchmark --parallel 4
+cmake --build --preset windows-release --target density_storage_tests raster_mapping_tests density_storage_benchmark --parallel 4
+ctest --preset windows-debug -R DensityStorage --output-on-failure
+ctest --preset windows-release -R DensityStorage --output-on-failure
+```
+
+`density_storage_benchmark` требует `CADCONTOUR2D_BUILD_TOOLS=ON`.
+D Storage — **115/115 PASS**, RasterMapping — **14/14 PASS** в обеих конфигурациях.
+Широкая headless selection — **691 PASS / 0 FAIL / 1 SKIP** из 692 в каждой;
+Recovery в этих прогонах PASS, прежний baseline FAIL не объявлен исправленным.
+Широкий прогон включал 112 D cases; после финальной проверки oracle узкий набор
+и проверок отмены расширен до 115 и повторён в обеих конфигурациях.
+SKIP — Windows symlink privilege 1314. [Отчёт, команды и измерения](docs/reports/task-06/density-storage.md).
 
 Raster Foundation 06.1: в указанном MSVC-окружении выполнены Debug/Release builds
 и отдельные CTest-проверки production mapping:
@@ -517,6 +534,14 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.2 D v1 — READY FOR INDEPENDENT REVIEW.** Реализован отдельный headless
+writer/reader точных counts с sparse disk index, bounded descriptor sort/merge,
+строгим zlib, resource/cancel/error policy и RAII pending-result после полного
+readback. Файл самодостаточен, binary64 metadata побитовы; side 256/512.
+[Нормативный format/API](docs/density-map-format.md),
+[проверки, evidence и ограничения](docs/reports/task-06/density-storage.md).
+Независимое ревью и пользовательская приёмка 06.2 ещё не выполнены.
+
 **06.1 Raster Foundation — ACCEPTED WITH LIMITATIONS** по решению пользователя
 (2026-10-29). В `cadcontour_core` добавлен immutable `raster::Mapping` без Qt/GUI:
 единые model→indices и indices→nominal/coverage bounds, минимальные dimensions по
@@ -540,13 +565,13 @@ scanAll с bounded events и обработкой только occupied groups. 
 независимого 06.0D — **INCONCLUSIVE**, выявлен P1; последующее закрытие P1 учитывается
 отдельно. Отчёты/evidence сохраняют исходные рекомендации и ограничения.
 
-**Задача 06: IN PROGRESS** — выполнены исследования и Raster Foundation 06.1.
-Production Density Map, Canvas и ROI не реализованы; **06.2–06.8 не начаты**.
-Зависимость 06.2 от 06.1 выполнена; следующий этап — проектирование хранилища D.
+**Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1
+и headless D storage 06.2. Полный builder/интеграция Density Map, Canvas и ROI
+не реализованы; **06.3–06.8 не начаты**. Следующий implementation этап — C1 builder.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).
-Tile 256×256 и group 512×512 — инженерные кандидаты; экспериментальный D layout
+Storage side 256/512 поддержаны в D v1; group 512×512 — инженерный кандидат; экспериментальный D layout
 и occupied guard 1M не являются production format/лимитами. Полный Point Cache →
 C1 → D, CPU сжатия, physical cold-HDD I/O и representative real scans ещё не проверены;
 их оценка входит в 06.3/06.8. Исторический boundary/nextafter evidence 06.0

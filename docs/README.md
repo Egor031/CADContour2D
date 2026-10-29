@@ -14,6 +14,7 @@
 | [UX/UI Design](ui-design.md) | Единая подробная целевая UX/UI-спецификация: компоновка, команды, этапы, workflow и открытые UX-вопросы |
 | [Implementation Plan](implementation-plan.md) | Последовательность реализации, границы задач и актуальные статусы |
 | [Persistent Point Cache Format](point-cache-format.md) | Binary layout v1, codec, Writer/Reader, spatial queries и validation |
+| [Density Map D v1](density-map-format.md) | Нормативный immutable count-tile format, integrity, storage API и resource semantics 06.2 |
 | [Project Manifest v1](project-manifest-format.md) | Строгая JSON schema, точные числа, metadata budgets, пути и retention 05.1 |
 
 План реализации не имеет приоритета над требованиями, архитектурой и алгоритмами.
@@ -27,7 +28,8 @@ PNG-export необязателен; аналитические данные и�
 Canvas/display LOD. Raster Foundation 06.1 — `ACCEPTED WITH LIMITATIONS`
 по решению пользователя от 2026-10-29 после независимого ревью:
 [API, проверки, ограничения и принятие](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-Production Density Map/Canvas/ROI не реализованы, 06.2–06.8 ещё не начаты.
+Headless D v1 реализован в 06.2; [проверки и ограничения](reports/task-06/density-storage.md).
+Полный builder/интеграция Density Map, Canvas и ROI не реализованы, 06.3–06.8 не начаты.
 [Архитектура](architecture.md#15-density-map),
 [численные условия и ограничения](algorithms.md#6-построение-density-map),
 [план 06.1–06.8](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -95,6 +97,7 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [06.0C: C1/C2 construction](reports/task-06/density-construction.md) — исходная рекомендация пересмотрена.
 - [06.0D/P1: sparse scaling C1](reports/task-06/density-construction-p1.md) — P1 закрыт с ограничениями.
 - [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; ACCEPTED WITH LIMITATIONS после независимого ревью и решения пользователя.
+- [06.2: Density storage](reports/task-06/density-storage.md) — D v1 writer/reader/pending, независимый byte oracle, resource/lifecycle checks и адресные измерения; ожидает независимого ревью.
 
 Отчёты сохраняют результаты своих этапов; согласованное направление Close задано нормативными
 документами выше, а не ретроспективной правкой результатов экспериментов.

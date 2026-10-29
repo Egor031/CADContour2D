@@ -318,7 +318,14 @@ production-реализация и не подтверждение Rough detecti
 индексе завершённого dataset означает ноль; повреждение индекса/payload означает
 ошибку. Нужны bounded buffers, проверяемый индекс, integrity validation и безопасная
 публикация завершённого файла. Экспериментальный byte layout не утверждается как
-окончательный persistent format: production validation и versioning относятся к 06.2.
+окончательный persistent format. В 06.2 реализован отдельный
+[production D v1](density-map-format.md): точные LE uint32/uint64 по максимуму тайла,
+независимые zlib streams level 6, sparse disk index по (tileY,tileX), checked totals.
+Side 256/512, partial edges без padding; UINT64_MAX допустим в отдельной ячейке.
+Произвольные submissions сортируются bounded runs/merge, включая проверку duplicate
+zero keys. Open/index, selective payload integrity и full physical validation разделены.
+Factory mapping 06.1 и её численный/work контракт сохранены; byte layout не дублируется
+здесь. [Реализация, независимый oracle и измерения 06.2](reports/task-06/density-storage.md).
 
 **C1 — один `CacheReader::scanAll()` с ограниченной временной группировкой событий.**
 Точки распределяются по raster groups, затем обрабатываются только фактически
@@ -411,7 +418,7 @@ Canvas/ROI/rough должны получать соответствие чере
 [отчёт 06.1](reports/task-06/raster-foundation.md). 06.1 — **ACCEPTED WITH LIMITATIONS**
 по решению пользователя от 2026-10-29 после независимого ревью;
 [основания и ограничения](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-Зависимость 06.2 выполнена; 06.2–06.8 ещё не реализованы.
+Зависимость 06.2 выполнена; headless D v1 реализован отдельно. 06.3–06.8 ещё не реализованы.
 Исторический experimental ceil mapping 06.0 сохранён в стенде без изменений.
 
 ### Counts → intensity/mask → display
