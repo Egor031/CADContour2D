@@ -1,0 +1,432 @@
+{
+  "date": "2026-10-29",
+  "verdict": "FIXED AND VERIFIED",
+  "scope": "Recovery P3 test fixture synchronization; no production or format changes.",
+  "baseline": {
+    "branch": "main",
+    "head": "8d622e0129ccdfa6de6f0ad75eba0845da9de1e3",
+    "clean": true
+  },
+  "environment": {
+    "os": "Windows x64",
+    "compiler": "MSVC 19.51.36260",
+    "cpp": "C++20",
+    "qt": "6.12.0 msvc2022_64",
+    "cmake": "3.30.5",
+    "ninja": "1.12.1",
+    "python": "3.11.9"
+  },
+  "sourceSha256": {
+    "tests/recovery_tests.cpp": "4dc017042e9f34131708c1c8a6cb1ab7b2f6e472ffa8080ee0647d1efe5ad54a",
+    "tests/recovery_test_access.h": "70dd668e019f9784505bf1e486223e9fcbeb76ca98dbb0d716b76e67a61cae9b"
+  },
+  "reproduce": "python -u docs/reports/task-05/recovery-p3/verify.py --out build/recovery-p3/verification-final",
+  "final": {
+    "directory": "build/recovery-p3/verification-final",
+    "summarySha256": "6e53557e4c2c8d8bf92655e7506d4008211781f9648496da0515d0bde961490f",
+    "configurations": {
+      "debug": {
+        "build": {
+          "exit": 0,
+          "seconds": 59.063,
+          "logSha256": "7527ef185ee2a2004203ac9e6c88ab38e8faed6619bd8c27cae95dcb42473905"
+        },
+        "inventory": {
+          "totalUnique": 1086,
+          "headless": 699,
+          "recovery": 118,
+          "repeat": 20
+        },
+        "recovery": {
+          "exit": 0,
+          "seconds": 195.5,
+          "passed": 118,
+          "failed": 0,
+          "skipped": [],
+          "logSha256": "2bca872b007541edbfd7b521367095c97e6bce1144ab76abee084e6bdeadd64d",
+          "xmlSha256": "0584adba5b223d9d24e8503c4cb3d4ef12d9cacb296989e458f213e87954050e"
+        },
+        "repeats": {
+          "rounds": 20,
+          "casesPerRound": 20,
+          "passedByRound": [
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "failedByRound": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "skippedTotal": 0,
+          "secondsTotal": 441.062
+        },
+        "headless": {
+          "exit": 0,
+          "seconds": 155.797,
+          "passed": 698,
+          "failed": 0,
+          "skipped": [
+            "Persistence.StoragePath.FileSymlinkEscape"
+          ],
+          "logSha256": "e1ce02cb6f35c33e7505a1483362b8f84157be936cffd4aa3f12a3dbc918fd68",
+          "xmlSha256": "161aaeb356229cf80a9266d8e9f10a2b47c2f62e8978497b43e608a75cb6c6aa"
+        }
+      },
+      "release": {
+        "build": {
+          "exit": 0,
+          "seconds": 22.328,
+          "logSha256": "7527ef185ee2a2004203ac9e6c88ab38e8faed6619bd8c27cae95dcb42473905"
+        },
+        "inventory": {
+          "totalUnique": 1086,
+          "headless": 699,
+          "recovery": 118,
+          "repeat": 20
+        },
+        "recovery": {
+          "exit": 0,
+          "seconds": 177.407,
+          "passed": 118,
+          "failed": 0,
+          "skipped": [],
+          "logSha256": "98bf4ae129add2c212ba29ac2291c5ca3176a620b60781747158089bdeba788c",
+          "xmlSha256": "87959a64998bd36e49d0080d845f755da287455df1fec3d8dfac5a4a1e388735"
+        },
+        "repeats": {
+          "rounds": 20,
+          "casesPerRound": 20,
+          "passedByRound": [
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20,
+            20
+          ],
+          "failedByRound": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "skippedTotal": 0,
+          "secondsTotal": 609.093
+        },
+        "headless": {
+          "exit": 0,
+          "seconds": 116.438,
+          "passed": 698,
+          "failed": 0,
+          "skipped": [
+            "Persistence.StoragePath.FileSymlinkEscape"
+          ],
+          "logSha256": "d9094a3d189717967c14cdf48a5ec4cbfe9f6ea02847d0383edbfb5a35993811",
+          "xmlSha256": "2aa83a69a4aa7b138b7a2288040768d498dd5d11ec8f8aec8afd39211b21d4e2"
+        }
+      }
+    }
+  },
+  "preliminary": {
+    "reason": "Before applying the same helper to the preparatory Import in CancelledAcceptance; these results do not replace final-code validation.",
+    "sourceSha256": {
+      "tests/recovery_tests.cpp": "3332df28c1c241f1f809bf53b0e4c4c17dc7b81e9b91b8446efd7626159a28b6",
+      "tests/recovery_test_access.h": "70dd668e019f9784505bf1e486223e9fcbeb76ca98dbb0d716b76e67a61cae9b"
+    },
+    "directory": "build/recovery-p3/verification",
+    "summarySha256": "7f809507f6f595ffd0a070a5ac9609c4f5de6b34bea78962b3c289c1cbfaf080",
+    "configurations": {
+      "debug": {
+        "build": {
+          "exit": 0,
+          "seconds": 50.625,
+          "logSha256": "bdf01a775e219c28ae187c5b5365f82b5d7d17c6a6c267425cfed66373682dd6"
+        },
+        "inventory": {
+          "totalUnique": 1086,
+          "headless": 699,
+          "recovery": 118,
+          "repeat": 19
+        },
+        "recovery": {
+          "exit": 0,
+          "seconds": 150.687,
+          "passed": 118,
+          "failed": 0,
+          "skipped": [],
+          "logSha256": "270e7f72cc23cbd85508a74bab3d39fbcc5766dc7204d377b505f5f71b550d93",
+          "xmlSha256": "6f9abc66a585ed917f4575b83b74cec1eee3e3cd01b47faa4f31217965be0713"
+        },
+        "repeats": {
+          "rounds": 20,
+          "casesPerRound": 19,
+          "passedByRound": [
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19
+          ],
+          "failedByRound": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "skippedTotal": 0,
+          "secondsTotal": 351.045
+        },
+        "headless": {
+          "exit": 0,
+          "seconds": 159.703,
+          "passed": 698,
+          "failed": 0,
+          "skipped": [
+            "Persistence.StoragePath.FileSymlinkEscape"
+          ],
+          "logSha256": "de25af76f60be58b0a144361c00e5d499ed60250c01a9a157df5789c080f5656",
+          "xmlSha256": "b08c159441f651fa53d2f0a7c2eda297b0357f0161278fafa91151037fdd604b"
+        }
+      },
+      "release": {
+        "build": {
+          "exit": 0,
+          "seconds": 57.234,
+          "logSha256": "ff53b5d4170d32ce8e622c66ddbfcca7aa2462598f1ade3c5fcaca61217744ea"
+        },
+        "inventory": {
+          "totalUnique": 1086,
+          "headless": 699,
+          "recovery": 118,
+          "repeat": 19
+        },
+        "recovery": {
+          "exit": 0,
+          "seconds": 139.875,
+          "passed": 118,
+          "failed": 0,
+          "skipped": [],
+          "logSha256": "62b1acd8e6299d568e0fa14af9df25e9cf87c665b37988f4d456deec1bfb4cac",
+          "xmlSha256": "bf480aada3b2f4ceded0e2515874dd1ebf6a0244bbdf6fa6bba88b11d2d6091c"
+        },
+        "repeats": {
+          "rounds": 20,
+          "casesPerRound": 19,
+          "passedByRound": [
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19,
+            19
+          ],
+          "failedByRound": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "skippedTotal": 0,
+          "secondsTotal": 332.685
+        },
+        "headless": {
+          "exit": 0,
+          "seconds": 130.657,
+          "passed": 698,
+          "failed": 0,
+          "skipped": [
+            "Persistence.StoragePath.FileSymlinkEscape"
+          ],
+          "logSha256": "acaa152fb8dfb4b0f02eb2e5851b3e8de9f8a287a7490a2fcfc3e7d25eff1e71",
+          "xmlSha256": "2732c8ed52df84206bd71fc257cd0d3cf1e0b71f74d2373b863e94a152389af7"
+        }
+      }
+    }
+  },
+  "historicalFailures": [
+    {
+      "context": "post-Import (independent 06.2)",
+      "xml": "build/review062-independent/regression-debug-discovery-duplicates.xml",
+      "xmlSha256": "ce7a6f4e823babbe60d5c847dd1e0eaec8ea59ef9c2a6402cb01f109ca0bcba1",
+      "cases": 791,
+      "failures": [
+        "RecoveryApplication.Recovery.ClosePreservesRecoveryAndConfirmedCloseDiscards"
+      ],
+      "cause": "Fixture helper expected Applied after automatic Autosave had already persisted the same snapshot; actual NoChange was correct."
+    },
+    {
+      "context": "post-Save (independent 06.1)",
+      "xml": "build/review061/release-headless.xml",
+      "xmlSha256": "d5ef8e4c3616fbba12a81b66f5fc40785dfc7cfaae7ae7af081395bad95e5923",
+      "cases": 580,
+      "failures": [
+        "RecoveryApplication.FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/6"
+      ],
+      "cause": "Fixture helper expected Applied after automatic Autosave had already persisted the same snapshot; actual NoChange was correct."
+    }
+  ],
+  "developmentResults": [
+    {
+      "log": "build/recovery-p3/build-debug-initial-fail.log",
+      "logSha256": "668f1ea1b3998b6d1b0a0f51bac749f6c40d08c181e0bd8e355b60fb0914b7cc",
+      "result": "COMPILE FAIL C2045",
+      "cause": "Two new ASSERT_NO_FATAL_FAILURE macros on the same line generated the same GoogleTest label; split onto separate lines."
+    },
+    {
+      "log": "build/recovery-p3/narrow-debug-initial-fail.log",
+      "logSha256": "ed82cdc96998c5e802ced6ba6976af13f8c724c6d2cdcefae9376f986b8bcd18",
+      "result": "1 PASS / 11 FAIL / 0 SKIP",
+      "cause": "New assertions incorrectly compared shared_ptr identity after decoding persisted bindings; corrected to storage ID, directory, relative cache path and cache ID equality.",
+      "failedCases": [
+        "ImportAndSaveOrders/RecoveryScheduling.ExactSnapshotNoChangeAndNewEditReallyPublishes/AfterImportBeforeAutomatic",
+        "ImportAndSaveOrders/RecoveryScheduling.ExactSnapshotNoChangeAndNewEditReallyPublishes/AfterImportAutomaticCompleted",
+        "ImportAndSaveOrders/RecoveryScheduling.ExactSnapshotNoChangeAndNewEditReallyPublishes/AfterSaveBeforeAutomatic",
+        "ImportAndSaveOrders/RecoveryScheduling.ExactSnapshotNoChangeAndNewEditReallyPublishes/AfterSaveAutomaticCompleted",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/0",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/1",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/2",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/3",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/4",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/5",
+        "FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/6"
+      ]
+    },
+    {
+      "log": "build/recovery-p3/narrow-debug-final.log",
+      "logSha256": "68a1703f6f6e835580bdc899986761397f2cc1ebaba27d34eb259320ef4d40d5",
+      "result": "12 PASS / 0 FAIL / 0 SKIP"
+    }
+  ],
+  "validation": "All log/XML hashes checked; both inventories and all executed case sets unique; every XML matches its exact test list; all 20 rounds complete in both configurations; final source hashes unchanged.",
+  "notRun": [
+    "Native manual GUI and qmllint: test-only change, no QML edits; 50 offscreen GUI Recovery cases were run in each configuration.",
+    "Physical disk-full/device flush fault and power-loss: phase-level injection only, outside P3 scope."
+  ]
+}

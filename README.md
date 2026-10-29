@@ -961,10 +961,11 @@ Debug/Release build `all` и `all_qmllint` — PASS; итоговый production
 SKIP — существующий `StoragePath.FileSymlinkEscape` без Windows privilege
 (1314). Autosave/discovery проверены с эксклюзивно закрытым cache и удалённым source;
 restore читает 73 728 bytes, ноль point pages. Детали и промежуточные failures — в отчёте.
-Независимый ревьюер сохранил неблокирующее наблюдение: Recovery-тест иногда получает
+Независимый ревьюер сохранил неблокирующее наблюдение: Recovery-тест иногда получал
 допустимый `NoChange` вместо ожидаемого `Applied`, когда Autosave уже сохранил snapshot
-после Save As. Это известная нестабильность тестового сценария, **не исправленный
-дефект**; синхронизация/допустимые исходы теста требуют последующего уточнения.
+после Save As. В Recovery P3 синхронизирована fixture после Import/Save, сохранено
+строгое ожидание реальной записи и отдельно проверены оба порядка Autosave.
+[Проверки P3 и сохранённые исторические failures](docs/reports/task-05/autosave-recovery.md#n-recovery-p3--синхронизация-fixture).
 [Подробности независимой проверки и ограничения](docs/reports/task-05/autosave-recovery.md#m-acceptance).
 **05.4 — ACCEPTED** пользователем 2026-10-22, вердикт ревью — **READY FOR ACCEPTANCE**;
 H1–H3/N1 — FIXED и закрыты. При документальном закрытии сборки и CTest не повторялись.

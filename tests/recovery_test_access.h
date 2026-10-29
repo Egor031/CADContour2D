@@ -2,6 +2,9 @@
 
 #include "application/project_controller.h"
 
+#include <QSignalBlocker>
+#include <utility>
+
 namespace cadcontour::persistence {
 class RecoveryTransactionTestAccess {
 public:
@@ -24,6 +27,8 @@ public:
         c.autosaveSoon_.stop(); c.autosaveTimer_.stop();
         if (interval > 0) c.autosaveTimer_.start(interval);
     }
+    static auto blockAutosave(ProjectController &c)
+    { return std::pair{QSignalBlocker(c.autosaveSoon_), QSignalBlocker(c.autosaveTimer_)}; }
     static void configure(ProjectController &c, std::shared_ptr<persistence::RecoveryTransactionTestAccess::Hooks> hooks)
     {
         c.recoveryPrepare_ = [hooks = std::move(hooks)](auto root, auto record, auto lease, auto limits, auto cancel) {

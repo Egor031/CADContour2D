@@ -4,12 +4,15 @@
 
 #include <QCryptographicHash>
 #include <QDirIterator>
+#include <QMap>
 #include <QProcess>
 #include <QSaveFile>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <bit>
 #include <cmath>
+#include <tuple>
 
 #define NOMINMAX
 #include <Windows.h>
@@ -22,6 +25,14 @@ QByteArray bytes(const QString &path)
 { QFile file(path); if (!file.open(QIODevice::ReadOnly)) return {}; return file.readAll(); }
 void write(const QString &path, const QByteArray &data)
 { QFile file(path); ASSERT_TRUE(file.open(QIODevice::WriteOnly)); ASSERT_EQ(file.write(data), data.size()); }
+void expectSameLocation(const ImportedDataset &a, const ImportedDataset &b)
+{
+    ASSERT_TRUE(a.location); ASSERT_TRUE(b.location);
+    EXPECT_EQ(a.location->storageId, b.location->storageId);
+    EXPECT_EQ(a.location->storageDirectory, b.location->storageDirectory);
+    EXPECT_EQ(a.location->relativeCachePath, b.location->relativeCachePath);
+    EXPECT_EQ(a.cacheId, b.cacheId);
+}
 class Recovery : public testing::Test {
 protected:
     QTemporaryDir area;
@@ -29,6 +40,25 @@ protected:
     QString source, savedPath;
     QString root() const { return area.path() + QStringLiteral("/imports/recovery"); }
     QString recordPath() const { return QDir(root()).filePath(recoveryFileName(controller->recoveryRecord()->sessionId)); }
+    bool finishBeforeAutosave()
+    {
+        // finish() pumps events: block timeout delivery before Import/Save can
+        // schedule its immediate tick, then stop both triggers before unblocking.
+        const auto blocked = RecoveryTestAccess::blockAutosave(*controller);
+        const auto completed = finish(*controller);
+        RecoveryTestAccess::timers(*controller);
+        return completed;
+    }
+    QMap<QString, QByteArray> datasetDigests() const
+    {
+        QMap<QString, QByteArray> result;
+        QDirIterator files(area.path(), {"*.pc2dcache"}, QDir::Files, QDirIterator::Subdirectories);
+        while (files.hasNext()) {
+            const auto path = files.next();
+            result.insert(path, QCryptographicHash::hash(bytes(path), QCryptographicHash::Sha256));
+        }
+        return result;
+    }
     void SetUp() override
     {
         ASSERT_TRUE(area.isValid());
@@ -36,10 +66,20 @@ protected:
         write(source, "1 2 0\n3 4 0\n");
         controller = std::make_unique<ProjectController>(area.path() + QStringLiteral("/imports"));
         ASSERT_EQ(controller->importAscXyz({source, {8ULL << 20, 64ULL << 20, 8}}).outcome, CommandOutcome::Applied);
-        ASSERT_TRUE(finish(*controller)); ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded)
+        ASSERT_TRUE(finishBeforeAutosave()); ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded)
             << (controller->operation().failure && controller->operation().failure->recoveryError
                 ? controller->operation().failure->recoveryError->detail.toStdString() : "no recovery diagnostic");
-        RecoveryTestAccess::timers(*controller);
+        ASSERT_EQ(controller->operation().kind, OperationKind::Import);
+        ASSERT_FALSE(controller->recoveryRecord());
+    }
+    void TearDown() override
+    {
+        if (controller) {
+            RecoveryTestAccess::timers(*controller);
+            fault({});
+            RecoveryTestAccess::acceptance(*controller, {});
+            controller.reset(); // drain while the fixture's storage still exists
+        }
     }
     void autosave()
     {
@@ -47,12 +87,18 @@ protected:
         ASSERT_TRUE(finish(*controller)); ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded)
             << (controller->operation().failure && controller->operation().failure->recoveryError
                 ? controller->operation().failure->recoveryError->detail.toStdString() : "no recovery diagnostic");
+        ASSERT_TRUE(controller->recoveryRecord());
+        ASSERT_TRUE(matchesSavedContent(*controller->project(), *controller->recoveryRecord()->state));
+        const auto persisted = candidate();
+        ASSERT_TRUE(persisted.record);
+        EXPECT_EQ(persisted.record->digest, controller->recoveryRecord()->digest);
+        EXPECT_EQ(persisted.record->state->snapshot.snapshotId, controller->recoveryRecord()->state->snapshot.snapshotId);
     }
     void save()
     {
         ASSERT_EQ(controller->saveProject({savedPath}).outcome, CommandOutcome::Applied);
-        ASSERT_TRUE(finish(*controller)); ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded);
-        RecoveryTestAccess::timers(*controller);
+        ASSERT_TRUE(finishBeforeAutosave()); ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded);
+        ASSERT_EQ(controller->operation().kind, OperationKind::Save);
     }
     RecoveryCandidate candidate()
     {
@@ -85,6 +131,82 @@ TEST_F(Recovery, FirstImportAutomaticallyPublishesAfterNativeCompletion)
     EXPECT_TRUE(controller->isDirty()); EXPECT_FALSE(controller->savedProject());
     EXPECT_EQ(candidate().session, RecoverySessionState::Active);
 }
+
+class RecoveryScheduling : public Recovery, public testing::WithParamInterface<std::tuple<bool, bool>> {};
+TEST_P(RecoveryScheduling, ExactSnapshotNoChangeAndNewEditReallyPublishes)
+{
+    const auto [afterSave, automaticCompleted] = GetParam();
+    if (afterSave) {
+        ASSERT_EQ(controller->saveProject({savedPath}).outcome, CommandOutcome::Applied);
+    } else {
+        ImportRequest request{source, {8ULL << 20, 64ULL << 20, 8}}; request.replacementConfirmed = true;
+        ASSERT_EQ(controller->importAscXyz(request).outcome, CommandOutcome::Applied);
+    }
+    if (automaticCompleted) {
+        ASSERT_TRUE(spinUntil([&] {
+            OperationTestAccess::poll(*controller);
+            return controller->operation().kind == OperationKind::Autosave
+                && !controller->operation().active && controller->recoveryRecord();
+        }));
+        ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded);
+        RecoveryTestAccess::timers(*controller);
+    } else {
+        ASSERT_TRUE(finishBeforeAutosave());
+        ASSERT_EQ(controller->operation().kind, afterSave ? OperationKind::Save : OperationKind::Import);
+        ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded);
+        ASSERT_FALSE(controller->recoveryRecord());
+        const auto found = discoverRecovery(root());
+        ASSERT_TRUE(found); ASSERT_TRUE(found.value().empty());
+        ASSERT_NO_FATAL_FAILURE(autosave()); // first publication must perform real I/O
+    }
+
+    const auto initial = candidate();
+    ASSERT_TRUE(initial.record); ASSERT_TRUE(initial.record->state);
+    EXPECT_EQ(initial.session, RecoverySessionState::Active);
+    EXPECT_EQ(initial.relation, afterSave ? RecoveryRelation::MatchesExplicit : RecoveryRelation::Unsaved);
+    EXPECT_TRUE(matchesSavedContent(*controller->project(), *initial.record->state));
+    EXPECT_DOUBLE_EQ(initial.record->state->snapshot.cell, 1);
+    ASSERT_NO_FATAL_FAILURE(expectSameLocation(initial.record->state->content, *controller->project()->dataset()));
+    ASSERT_EQ(bool(initial.record->baseline), afterSave);
+    if (afterSave) {
+        EXPECT_EQ(initial.record->baseline->manifestPath, savedPath);
+        EXPECT_EQ(initial.record->baseline->manifestDigest, controller->savedProject()->manifestDigest);
+    }
+    const auto before = bytes(recordPath()), explicitBytes = bytes(savedPath);
+    const auto datasets = datasetDigests(); ASSERT_FALSE(datasets.isEmpty());
+    const auto operationId = controller->operation().id;
+    const auto phases = std::make_shared<std::vector<RecoveryPhase>>();
+    auto hooks = std::make_shared<RecoveryTransactionTestAccess::Hooks>();
+    hooks->phase = [phases](RecoveryPhase phase) { phases->push_back(phase); };
+    fault(hooks); // all automatic/initial publication has completed before observation
+    EXPECT_EQ(controller->autosave().outcome, CommandOutcome::NoChange);
+    EXPECT_EQ(controller->operation().id, operationId);
+    EXPECT_EQ(bytes(recordPath()), before); EXPECT_TRUE(phases->empty());
+
+    ASSERT_EQ(controller->setCell(.125).outcome, CommandOutcome::Applied);
+    const auto revision = controller->project()->inputRevision();
+    ASSERT_NO_FATAL_FAILURE(autosave());
+    EXPECT_NE(controller->operation().id, operationId);
+    EXPECT_EQ(std::count(phases->begin(), phases->end(), RecoveryPhase::BeforeCommit), 1);
+    EXPECT_EQ(std::count(phases->begin(), phases->end(), RecoveryPhase::Published), 1);
+    const auto updated = candidate(); ASSERT_TRUE(updated.record);
+    EXPECT_TRUE(matchesSavedContent(*controller->project(), *updated.record->state));
+    EXPECT_DOUBLE_EQ(updated.record->state->snapshot.cell, .125);
+    EXPECT_NE(updated.record->state->snapshot.snapshotId, initial.record->state->snapshot.snapshotId);
+    EXPECT_NE(bytes(recordPath()), before);
+    ASSERT_NO_FATAL_FAILURE(expectSameLocation(updated.record->state->content, initial.record->state->content));
+    ASSERT_EQ(bool(updated.record->baseline), afterSave);
+    if (afterSave) {
+        EXPECT_EQ(updated.record->baseline->manifestDigest, initial.record->baseline->manifestDigest);
+        EXPECT_EQ(updated.record->baseline->manifestPath, initial.record->baseline->manifestPath);
+    }
+    EXPECT_EQ(bytes(savedPath), explicitBytes); EXPECT_EQ(datasetDigests(), datasets);
+    EXPECT_EQ(controller->project()->inputRevision(), revision);
+    EXPECT_TRUE(controller->isDirty()); EXPECT_TRUE(controller->canUndo()); EXPECT_FALSE(controller->canRedo());
+}
+INSTANTIATE_TEST_SUITE_P(ImportAndSaveOrders, RecoveryScheduling, testing::Combine(testing::Bool(), testing::Bool()),
+    [](const auto &info) { return std::string(std::get<0>(info.param) ? "AfterSave" : "AfterImport")
+        + (std::get<1>(info.param) ? "AutomaticCompleted" : "BeforeAutomatic"); });
 TEST_F(Recovery, ExactCellUnsavedRestoreWithNewRuntimeAndEmptyHistory)
 {
     const auto id = controller->project()->projectId();
@@ -234,7 +356,7 @@ TEST_F(Recovery, ConflictSurvivesAutosaveRestartUndoAndFailedSaveAs)
     EXPECT_TRUE(controller->recoveryRequiresSaveAs()); EXPECT_FALSE(controller->savedProject());
     controller->setCell(.125); autosave(); restart(); restore(candidate());
     EXPECT_TRUE(controller->recoveryRequiresSaveAs());
-    ASSERT_EQ(controller->saveProjectAs({destination}).outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(*controller));
+    ASSERT_EQ(controller->saveProjectAs({destination}).outcome, CommandOutcome::Applied); ASSERT_TRUE(finishBeforeAutosave());
     ASSERT_EQ(controller->operation().status, OperationStatus::Succeeded); RecoveryTestAccess::timers(*controller);
     EXPECT_FALSE(controller->recoveryRequiresSaveAs()); EXPECT_FALSE(controller->isDirty());
     ASSERT_TRUE(controller->savedProject()); EXPECT_EQ(controller->savedProject()->manifestPath, destination);
@@ -317,22 +439,51 @@ INSTANTIATE_TEST_SUITE_P(MissingAndCorrupt, RecoveryPartial, testing::Bool());
 class RecoveryFault : public Recovery, public testing::WithParamInterface<int> {};
 TEST_P(RecoveryFault, FailedUpdatePreservesPreviousRecordAndAllDatasets)
 {
-    save(); autosave(); const auto before = bytes(recordPath()), explicitBytes = bytes(savedPath);
+    ASSERT_NO_FATAL_FAILURE(save());
+    ASSERT_NO_FATAL_FAILURE(autosave());
+    const auto before = bytes(recordPath()), explicitBytes = bytes(savedPath);
+    const auto previous = candidate(); ASSERT_TRUE(previous.record); ASSERT_TRUE(previous.record->baseline);
+    const auto datasets = datasetDigests(); ASSERT_EQ(datasets.size(), 2); // imported + explicit copy
     const auto cachePath = QString::fromStdWString(controller->project()->dataset()->cachePath().wstring());
-    controller->setCell(.5); auto hooks = std::make_shared<RecoveryTransactionTestAccess::Hooks>();
+    ASSERT_EQ(controller->setCell(.5).outcome, CommandOutcome::Applied);
+    auto hooks = std::make_shared<RecoveryTransactionTestAccess::Hooks>();
+    struct Observation { std::vector<RecoveryPhase> phases; bool injected = false; };
+    const auto observed = std::make_shared<Observation>();
     const auto faultId = GetParam();
-    if (faultId < 2) hooks->phase = [faultId](RecoveryPhase p) {
-        if (p == (faultId == 0 ? RecoveryPhase::Target : RecoveryPhase::Open))
+    hooks->phase = [faultId, observed](RecoveryPhase p) {
+        observed->phases.push_back(p);
+        if (faultId < 2 && p == (faultId == 0 ? RecoveryPhase::Target : RecoveryPhase::Open)) {
+            observed->injected = true;
             throw Error{ErrorCode::FileIO, {}, QStringLiteral("Injected open/target failure")};
+        }
     };
-    if (faultId == 2) hooks->write = [](QIODevice &, const char *, qint64) { return qint64(-1); };
-    if (faultId == 3) hooks->write = [](QIODevice &f, const char *b, qint64 n) { return f.write(b, n / 2); };
-    if (faultId == 4) hooks->flush = [](QFileDevice &) { return false; };
-    if (faultId == 5) hooks->commit = [](QSaveFile &) { return false; };
-    if (faultId == 6) hooks->write = [](QIODevice &, const char *, qint64) { SetLastError(ERROR_DISK_FULL); return qint64(-1); };
-    fault(hooks); controller->autosave(); ASSERT_TRUE(finish(*controller));
-    EXPECT_EQ(controller->operation().status, OperationStatus::Failed); EXPECT_TRUE(controller->operation().failure->recoveryError);
+    if (faultId == 2 || faultId == 3 || faultId == 6) hooks->write = [faultId, observed](QIODevice &f, const char *b, qint64 n) {
+        observed->injected = true;
+        if (faultId == 3) return f.write(b, n / 2);
+        if (faultId == 6) SetLastError(ERROR_DISK_FULL);
+        return qint64(-1);
+    };
+    if (faultId == 4) hooks->flush = [observed](QFileDevice &) { observed->injected = true; return false; };
+    if (faultId == 5) hooks->commit = [observed](QSaveFile &) { observed->injected = true; return false; };
+    fault(hooks);
+    ASSERT_EQ(controller->autosave().outcome, CommandOutcome::Applied); ASSERT_TRUE(finish(*controller));
+    ASSERT_EQ(controller->operation().status, OperationStatus::Failed);
+    ASSERT_TRUE(controller->operation().failure); EXPECT_TRUE(controller->operation().failure->recoveryError);
+    EXPECT_TRUE(observed->injected); ASSERT_FALSE(observed->phases.empty());
+    const auto expectedPhase = faultId == 0 ? RecoveryPhase::Target : faultId == 1 ? RecoveryPhase::Open
+        : faultId == 4 ? RecoveryPhase::Flush : faultId == 5 ? RecoveryPhase::BeforeCommit : RecoveryPhase::Write;
+    EXPECT_EQ(observed->phases.back(), expectedPhase);
+    EXPECT_EQ(std::count(observed->phases.begin(), observed->phases.end(), RecoveryPhase::Published), 0);
     EXPECT_EQ(bytes(recordPath()), before); EXPECT_EQ(bytes(savedPath), explicitBytes); EXPECT_TRUE(QFile::exists(cachePath));
+    EXPECT_EQ(datasetDigests(), datasets);
+    const auto retained = candidate(); ASSERT_TRUE(retained.record);
+    EXPECT_EQ(retained.record->digest, previous.record->digest);
+    EXPECT_EQ(retained.record->state->snapshot.snapshotId, previous.record->state->snapshot.snapshotId);
+    EXPECT_DOUBLE_EQ(retained.record->state->snapshot.cell, 1);
+    ASSERT_NO_FATAL_FAILURE(expectSameLocation(retained.record->state->content, previous.record->state->content));
+    ASSERT_TRUE(retained.record->baseline);
+    EXPECT_EQ(retained.record->baseline->manifestDigest, previous.record->baseline->manifestDigest);
+    EXPECT_DOUBLE_EQ(controller->project()->cell(), .5); EXPECT_TRUE(controller->isDirty());
 }
 INSTANTIATE_TEST_SUITE_P(FileFailures, RecoveryFault, testing::Range(0, 7));
 
@@ -455,7 +606,7 @@ TEST_F(Recovery, CancelledAcceptanceKeepsPreviousProjectAndRecovery)
 {
     autosave(); restart(); const auto c = candidate();
     ASSERT_EQ(controller->importAscXyz({source, {8ULL << 20, 64ULL << 20, 8}}).outcome, CommandOutcome::Applied);
-    ASSERT_TRUE(finish(*controller)); RecoveryTestAccess::timers(*controller);
+    ASSERT_TRUE(finishBeforeAutosave());
     controller->setCell(.25); const auto *before = controller->project();
     RecoveryTestAccess::acceptance(*controller, [&] { controller->cancelOperation(); });
     RecoveryRequest request{c}; request.replacementConfirmed = true;

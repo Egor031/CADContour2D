@@ -691,3 +691,132 @@ PASS. Полный diff просмотрен, `git diff --check` — PASS. От�
 production-код, tests, CMake и прочие файлы вне документальной области не изменены.
 Принятие оформляется отдельным локальным commit без push.
 05.5 не начиналась; задача 05 целиком остаётся **IN PROGRESS / NOT ACCEPTED**.
+
+## N. Recovery P3 — синхронизация fixture
+
+Дата: 2026-10-29. Baseline `main`,
+`8d622e0129ccdfa6de6f0ad75eba0845da9de1e3`; HEAD совпал с заданным,
+`git status --short` был пуст. Прочитаны действующий root AGENTS.md, README,
+относящиеся контракты requirements/architecture/algorithms, Recovery implementation,
+tests/hooks и отчёты 05.4/06.1/06.2. Локальные материалы независимого ревью 06.2
+доступны в `build/review062-independent/`.
+
+### Причина и исторические failures
+
+История раздела M сохраняется. Различаются два подтверждённых проявления:
+
+- **post-Import:** независимое 06.2, первый широкий Debug-прогон,
+  `Recovery.ClosePreservesRecoveryAndConfirmedCloseDiscards`. Первый `autosave()`
+  в теле теста получал NoChange вместо Applied ещё до проверок Close/Discard.
+  Исходный failure сохранён в
+  `build/review062-independent/regression-debug-discovery-duplicates.xml/log`;
+  последующий уникальный inventory и PASS не отменяют этот FAIL.
+- **post-Save:** независимое 06.1, Release,
+  `FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/6`.
+  Helper после `save()` получал NoChange до установки fault hooks. Исходный FAIL
+  сохранён в `build/review061/release-headless.xml/log` и
+  [отчёте 06.1](../task-06/raster-foundation.md#остаточные-ограничения).
+
+`finish()` вызывает `OperationTestAccess::poll` и обрабатывает Qt events.
+После успешного native completion Import/Save `finishOperation()` запускает
+нулевой `autosaveSoon_`. Вложенная доставка событий до возврата из `finish()`
+может запустить и завершить Autosave. Остановка timers после `finish()` не
+отменяет уже опубликованный snapshot. В этом случае production `autosave()`
+корректно возвращает NoChange по content/baseline. Эти failures не подтверждали
+потери Recovery или datasets; Density Storage/Raster Mapping в причине не участвуют.
+
+### Изменение и сохранённые инварианты
+
+Production-код, публичные API, форматы и Save/Recovery workflow не изменены.
+В существующий friend `RecoveryTestAccess` добавлен test-only `blockAutosave()`:
+пара RAII `QSignalBlocker` для immediate и periodic timers. Fixture
+`finishBeforeAutosave()` блокирует доставку timeout до event pumping,
+дожидается обычного completion и останавливает triggers до снятия блокировки.
+Он используется в SetUp, `save()`, подготовительном успешном Save As
+в `ConflictSurvivesAutosaveRestartUndoAndFailedSaveAs` и Import в
+`CancelledAcceptanceKeepsPreviousProjectAndRecovery`. Последний также не должен
+публиковать вторую Recovery-запись до установки cancellation hook; это тот же
+локальный паттерн подготовки, без изменения проверяемой отмены Restore.
+
+SetUp дополнительно требует завершённый Import и отсутствие Recovery. Helper
+`autosave()` **по-прежнему строго требует Applied**, успешный native completion
+и теперь сверяет persistent content, persisted digest/snapshotId с controller.
+Идентичный snapshot отдельно проверяется как строгий NoChange: неизменны bytes
+и OperationId, transaction hooks не вызваны. При новой правке требуется реальная
+публикация с новым snapshotId и единственным прохождением BeforeCommit/Published.
+
+Четыре параметризованных `RecoveryScheduling` cases проверяют Import/Save ×
+«автоматический Autosave уже завершён» / «ещё не выполнен». Первый порядок
+дожидается наблюдаемого Autosave/record и inactive worker через прежний
+`spinUntil` с timeout 10 s. Второй управляется блокировкой timer signals и требует
+первую явную запись. Нет фиксированных задержек, увеличения timeout, безусловного
+принятия Applied/NoChange или повторов до первого PASS.
+
+Все семь `RecoveryFault` variants ставят hooks только после предыдущей завершённой
+записи и новой правки cell. Проверяются фактический вызов injection, конечная фаза
+Target/Open/Write/Flush/BeforeCommit и отсутствие Published. Сохраняются прежние
+bytes/digest/snapshotId, baseline, storage ID/cache path/cache ID, explicit manifest,
+SHA-256 **обоих** datasets (imported и explicit copy), текущая dirty-правка.
+Проверки Close/Discard, конфликта Save As, persisted content и Undo не ослаблены.
+
+RAII восстанавливает предыдущую блокировку сигналов при выходе из scope.
+TearDown останавливает timers, очищает fixture hooks и уничтожает controller
+с drain до удаления временного storage, включая ранний выход/fatal assertion.
+Новые наблюдения hooks владеют своим временем жизни через shared_ptr;
+новых глобальных settings и production test seam нет.
+
+Воспроизводимый runner, состав наборов, исходные FAIL и hashes:
+[Recovery P3 evidence](recovery-p3/README.md), [результаты](recovery-p3/results.json).
+
+### Фактические проверки и вердикт
+
+Windows x64, MSVC 19.51.36260/C++20, Qt 6.12.0, CMake 3.30.5, Ninja 1.12.1.
+Штатная среда инициализирована локальным `build/task02-env.cmd`; глобальное
+окружение не менялось. Итоговая команда из корня checkout:
+
+```powershell
+python -u docs/reports/task-05/recovery-p3/verify.py --out build/recovery-p3/verification-final
+```
+
+Runner сохраняет полные argv, logs, JUnit XML и test lists. Сборки headless targets
+и всех потребителей изменённого test header выполнены в обеих конфигурациях.
+Discovery `ctest --preset windows-debug --show-only=json-v1` и аналогичный Release
+выполнялись **последовательно**: по 1086 уникальных имён, без дубликатов.
+CTest запускается с точными `--tests-from-file`, `-L production`,
+`--output-on-failure`, `--output-junit`, `--parallel 1`.
+
+| Итоговый код | Debug | Release |
+|---|---|---|
+| Build затронутых/headless targets | PASS, без compiler warnings | PASS, без compiler warnings |
+| Весь Recovery-набор: 68 application/crash + 50 GUI | 118 PASS / 0 FAIL / 0 SKIP | 118 PASS / 0 FAIL / 0 SKIP |
+| 20 последовательных прогонов 20 выбранных cases | 400 PASS / 0 FAIL / 0 SKIP | 400 PASS / 0 FAIL / 0 SKIP |
+| Широкая headless regression, 699 cases | 698 PASS / 0 FAIL / 1 SKIP | 698 PASS / 0 FAIL / 1 SKIP |
+
+Повторы включают оба исходных failures, всю новую матрицу, все семь fault variants,
+NoChange/Undo, periodic/first Import, explicit reconciliation, conflict Save As,
+CancelledAcceptance и ранее падавший InvalidRecords `/7`. Наборы пересекаются:
+их числа не суммируются как количество уникальных tests. Отдельная сверка всех
+XML подтвердила соответствие точным lists, уникальность cases и ровно 20 полных
+повторов в каждой конфигурации. Source SHA-256 до сборки и после проверки совпадают.
+
+Единственный SKIP в каждой широкой регрессии —
+`Persistence.StoragePath.FileSymlinkEscape`: Windows privilege **1314**.
+Ошибок Recovery нет. Native manual GUI и qmllint — **NOT RUN**: изменение только
+тестовой инфраструктуры, QML не менялся; 50 offscreen GUI Recovery cases выполнены.
+Physical disk-full/device flush failure и power-loss — **NOT RUN**, вне P3;
+инъекция `/6` подтверждает фазу Write и сохранность данных, не физический отказ носителя.
+
+Все промежуточные результаты сохранены. Первый compile дал C2045 из-за двух новых
+`ASSERT_NO_FATAL_FAILURE` на одной строке; macros разнесены. Первый узкий Debug-прогон
+дал 1 PASS / 11 FAIL: новые assertions ошибочно сравнивали shared_ptr identity после
+декодирования записи. Проверки исправлены на равенство значений physical binding;
+следующий узкий прогон на изменённом коде — 12/12 PASS. До распространения helper
+на подготовительный Import CancelledAcceptance промежуточная серия в обеих
+конфигурациях дала 118/118 Recovery, 380/380 повторов и 698 PASS / 0 FAIL / 1 SKIP
+headless. Она сохранена отдельно в `build/recovery-p3/verification/` и не подменяет
+итоговую проверку `verification-final/`. Никакие успешные повторы не удаляют FAIL.
+
+Итог P3 — **FIXED AND VERIFIED**. Production Autosave и семантика Applied/NoChange
+сохранены; самостоятельного production-дефекта в этой работе не установлено.
+Requirements/architecture/algorithms не меняются. Статусы принятия 06.1/06.2
+не изменены, 06.3 не начиналась. README уточняет только текущее состояние P3.
