@@ -1,5 +1,9 @@
 # 06.2 — каноническое хранилище Density Map D v1
 
+**Текущий статус: ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
+[Независимое ревью и принятие](#независимое-ревью-и-принятие) приведены после
+исторического отчёта исполнителя; его первоначальные результаты и статусы сохранены.
+
 2026-10-29. **READY FOR INDEPENDENT REVIEW**. Реализован headless storage API;
 собственные проверки не являются независимым ревью или пользовательской приёмкой.
 06.1 остаётся ACCEPTED WITH LIMITATIONS; её исторический отчёт не изменён.
@@ -216,3 +220,144 @@ Dataset immutable, owner сохраняет файл на всё время read
 flush не power-loss durability. Logical disk/owned allocation budgets не OS limits.
 06.3–06.8, versions/Undo/Recovery/Canvas/ROI/Rough/morphology/новые backends не реализованы.
 Requirements, manifest v1, принятый workflow задачи 05 и исторические отчёты сохранены.
+
+## Независимое ревью и принятие
+
+### Решение и область принятия
+
+2026-10-29 пользователь принял **06.2 — ACCEPTED WITH LIMITATIONS** на основании
+независимого ревью D commit `8d622e0129ccdfa6de6f0ad75eba0845da9de1e3` и отдельного
+исправления Recovery P3. Последний проверенный HEAD с P3 —
+`085a5f1d8c1abd0dd85368dd88e2803454c45c7b`, ветка `main`.
+При подготовке документального закрытия branch/HEAD подтверждены, Git status был
+чистым; diff после D ограничен Recovery fixture/tests и относящейся документацией.
+
+Независимый вердикт — **READY WITH LIMITATIONS**: подтверждённых замечаний P0–P3
+к D и storage-блокеров перехода к 06.3 не обнаружено. Принят самостоятельный
+headless storage, без полного C1 pipeline и application-интеграции. Зависимость
+06.2 для проектирования/реализации 06.3 выполнена в принятых границах.
+**06.3–06.8 не начаты; задача 06 целиком — IN PROGRESS.** Следующий шаг —
+спецификация **06.3A**; реализация в рамках этого закрытия не начиналась.
+
+### Основания и результаты по источникам
+
+Исходный [независимый отчёт](review062-independent/review-report.txt) сохранён
+без содержательных изменений из `build/review062-independent/review-report.txt`,
+с нормализацией окончаний строк в LF для Git; hashes обеих форм зафиксированы.
+[Summary с происхождением, доступностью и SHA-256](review062-independent/summary.json)
+фиксирует выбранные raw artifacts и результаты сверки при закрытии.
+Заключение хранится в tracked documentation и не зависит только от ignored build.
+
+Независимое ревью подтвердило в пределах описанных проверок:
+
+- exact uint32/uint64 counts, checked totals, partial/zero tiles, metadata bits
+  и source/build contract; sparse disk index без полного raster/index allocation;
+- разделение structural open, selective payload read и full physical integrity,
+  строгий завершённый zlib stream и отказ без частичного Tile;
+- bounded descriptor sorting/merge и раздельные resource budgets, включая
+  одновременные scratch/candidate и readback; явные отказы до превышения accounting;
+- cooperative cancellation, terminal writer failures, ownership и cleanup;
+  cleanup diagnostic не заменяет первичную ошибку и не разрешает удалять прежние datasets;
+- безопасное файловое завершение: flush и full readback до non-overwriting rename,
+  RAII PendingDataset с discard/releaseToOwner, без application Accept.
+
+Все числа ниже относятся **к каждой из конфигураций Debug и Release** отдельно.
+
+| Источник | Debug и Release, в каждой конфигурации |
+|---|---|
+| Независимое ревью 06.2, D `8d622e0` | D: 115 PASS; Mapping: 14 PASS; широкий набор: 694 PASS / 0 FAIL / 1 SKIP из 695 |
+| Последующее исправление P3, `085a5f1` | Recovery: 118 PASS; повторы: 400 PASS; широкий набор: 698 PASS / 0 FAIL / 1 SKIP из 699 |
+
+Configure/build независимого ревью и build затронутых/headless targets P3 прошли
+в обеих конфигурациях. Наборы пересекаются; их нельзя складывать как уникальные
+tests. Широкие наборы — выбранная headless regression, а не весь CTest/GUI/lint.
+Recovery 118 включает 68 application/crash и 50 offscreen GUI cases; 400 —
+20 последовательных повторов 20 выбранных cases в каждой конфигурации.
+
+Собственные probes ревью: Reader — 27 wire fixtures / 68 checks / 0 failures,
+Writer — 6 PASS / 0 FAIL в каждой конфигурации. Независимые packing/CRC/zlib fixtures
+проверили selective/full reads и mutations; writer probe — forced merge,
+отмену после частичной работы, terminal state, cleanup и сохранность прежнего файла.
+Свежие 6 benchmark trials и 3 fixed-area T-scaling trials согласованы с независимым
+oracle. При T=24/96/384 structural open читал 2304/8064/31104 bytes (=384+80T),
+не декодируя payload; buffer/codec/sort reserves оставались постоянными.
+Это подтверждает измеренный logical I/O и отсутствие full-index allocation;
+sort/merge добавляет проходы, поэтому writer finish не объявлен O(T).
+Timing — одиночные warm-cache samples, без performance-нормативов.
+Краткие результаты и hashes исходников/логов/JSON — в
+[summary](review062-independent/summary.json), методика и команды — в
+[разделах PROBES, EVIDENCE и КОМАНДЫ исходного отчёта](review062-independent/review-report.txt).
+
+### Recovery P3 — отдельное исправление
+
+**FIXED AND VERIFIED отдельным изменением**
+`085a5f1d8c1abd0dd85368dd88e2803454c45c7b`:
+[Recovery P3 — причина, исправление и проверки](../task-05/autosave-recovery.md#n-recovery-p3--синхронизация-fixture),
+[tracked results/hashes](../task-05/recovery-p3/results.json) и
+[воспроизводимый runner и состав наборов](../task-05/recovery-p3/README.md).
+Исправлена синхронизация тестовой fixture, production Autosave и D не изменялись.
+
+- **post-Import:** первоначальный широкий Debug-прогон независимого 06.2 получил
+  NoChange вместо Applied в helper `ClosePreservesRecoveryAndConfirmedCloseDiscards`,
+  до проверок Close/Discard. Автоматический Autosave уже записал тот же snapshot.
+- **post-Save:** исторический Release-прогон независимого 06.1 получил тот же
+  ошибочный тестовый expectation в
+  `FailedUpdatePreservesPreviousRecordAndAllDatasets/6`, до установки fault hooks.
+
+Оба проявления различаются по сценарию; общей причиной было управление Autosave
+в fixture. Строгое ожидание Applied для реальной записи сохранено; оба порядка
+Import/Save × завершённый/ещё не выполненный автоматический Autosave проверены
+отдельно вместе с точным persisted content и сохранностью datasets.
+Первоначальные FAIL остаются историческими фактами: успешные повторы их не отменяют.
+Первый независимый broad inventory содержал discovery duplicates (791 entries);
+его FAIL сохранён отдельно, итоговые 695 cases уникальны. Ошибки запуска/discovery
+не выдаются за дефекты D. Промежуточные failures при разработке P3 также сохранены
+в его results.json и не заменены итоговой серией.
+
+### Сохранённые ограничения и evidence
+
+- **SKIP:** `Persistence.StoragePath.FileSymlinkEscape`, Windows privilege **1314**
+  в каждом широком наборе. SKIP не считается PASS.
+- Mapping factory отдельно проверяет соседние границы за **O(width+height)**,
+  O(1) RAM, с явным бюджетом/cancellation. Начальные 10 млн checks — caller policy
+  с ResourceRefused, не универсальный предел dimensions; sparse storage не снимает
+  стоимость проверки осей.
+- Structural open проверяет весь sparse index, **не payload**. Selective read
+  проверяет только выбранный payload; повреждение другого может оставаться неизвестным.
+  Full validation/physical iteration проверяют все физические tiles.
+- Resource accounting ограничивает собственные buffers/codec/sort, logical file
+  bytes и dataset handles. Он не ограничивает всю память процесса/ОС, caller-retained
+  buffers, физическую аллокацию NTFS, OS caches или process-wide handles.
+  Отмена ограничена checkpoints, без гарантии wall-clock latency. Cleanup failure
+  может оставить диагностированный собственный orphan.
+- CRC контролирует случайное повреждение, без аутентификации. Flush/readback/rename
+  не обещают power-loss durability; hostile external mutation после open не покрыта.
+- **NOT RUN:** physical disk-full/device flush faults и power-loss, cold-HDD,
+  UNC/network, hostile concurrent mutation/security audit, representative real scans.
+  Phase injection не подтверждает physical device failure; warm-cache I/O не
+  подтверждает cold-HDD performance. Native GUI/lint в независимом storage-ревью
+  не запускались; offscreen Recovery tests P3 этого не заменяют.
+- Полный **Point Cache → C1 → D**, source distribution, versions/persistence,
+  Canvas/ROI и качество Rough не подтверждены storage-проверками. Полного C1 pipeline
+  и application-интеграции пока нет; representative real scans остаются обязательными
+  для подтверждения алгоритмического качества.
+
+При документальном закрытии исходный отчёт, выбранные raw XML/log/JSON/probe sources
+независимого ревью, финальные P3 logs/XML и оба исторических XML failures доступны
+локально; проверенный состав и SHA-256 перечислены в summary. Доступность остальных
+файлов, упомянутых в отчётах, этим не утверждается. Большие build-деревья и полные
+raw logs не коммитятся. Если ignored artifacts позднее отсутствуют, сохранённый отчёт
+остаётся источником ранее выполненных проверок, но его наличие/hashes не доказывают
+наличие raw файлов на другом checkout.
+
+Это **документальное принятие**, без новой реализации и повторного технического ревью.
+Сборки, CTest, probes и benchmarks не повторялись: закрытие опирается на ранее
+выполненные проверки двух явно разделённых источников. Нормативный D layout,
+исторические результаты 06.0/06.1 и принятые контракты задачи 05 не изменены.
+
+Документальные проверки: 389 относительных ссылок/путей и 220 anchors в шести
+изменённых Markdown-документах — PASS; выбранные evidence hashes сверены.
+Неизменность исторического отчёта A–G и отсутствие изменений исходников, тестов,
+CMake, зависимостей и нормативного D layout проверены. Итоговый diff просмотрен,
+`git diff --check` — PASS. Закрытие оформляется отдельным локальным docs commit
+без push.

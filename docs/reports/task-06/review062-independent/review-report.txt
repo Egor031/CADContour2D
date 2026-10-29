@@ -1,0 +1,219 @@
+CADContour2D — независимое ревью 06.2 / Density Storage D v1
+Дата: 2026-10-29. Checkout D:\ZherlitsynEE\CADContour2D.
+
+ЗАМЕЧАНИЯ
+
+Новых подтверждённых замечаний P0–P3 к реализации 06.2 не обнаружено.
+
+P3, вне diff 06.2: нестабильность fixture Recovery после Import.
+tests/recovery_tests.cpp:46 ожидает безусловный Applied от autosave().
+В первом широком Debug-прогоне Recovery.ClosePreservesRecoveryAndConfirmedCloseDiscards
+получил NoChange. Проверки Close/Discard ещё не начинались: helper вызван в строке436.
+SetUp (строки38–42) останавливает timers только после finish(import); finish обрабатывает
+Qt events (tests/operation_test_support.h:39), а успешный Import запускает immediate
+Autosave (src/application/project_controller.cpp:838–840). После его завершения
+autosave() закономерно возвращает NoChange для идентичного snapshot (строки924–932).
+Это post-Import сценарий, отдельный от известного post-Save /6, хотя причина родственна.
+Последствие — ложный FAIL регрессии, не потеря Recovery/datasets. Минимальное направление
+исправления: синхронизировать fixture со стартовым Autosave, сохранив проверки содержимого.
+Recovery в рамках этого ревью не изменялся. Первоначальный FAIL не аннулируется повтором.
+
+Причастность к baseline установлена по коду: git blob IDs recovery_tests.cpp,
+project_controller.cpp, operation_test_support.h совпадают между baseline и HEAD;
+diff application/persistence/io/core и Recovery helpers пуст. Recovery не линкует
+cadcontour_density; единственное изменение в прежних dependencies — добавление
+StagedFile::discard(), которое прежние CacheWriter/Recovery callers не вызывают.
+Подробности: recovery-analysis.txt и regression-debug-discovery-duplicates.log/xml.
+Отдельная исполняемая сборка baseline для этого вывода не выполнялась.
+
+ОБЛАСТЬ РЕВЬЮ
+
+Baseline: 1f5ce9028d46ed781ce616a21fa4fbc3d3509998.
+HEAD: 8d622e0129ccdfa6de6f0ad75eba0845da9de1e3, main.
+Ровно один commit после baseline, 20 файлов, +2474/-23 строк.
+Перед работой HEAD совпал с контрольным, status был пуст.
+Изучены AGENTS/README, относящиеся requirements/architecture, algorithms §6,
+implementation-plan 06.2–06.3, density-map-format.md, density-storage.md,
+density062 evidence, новые source/tests/tools, CMake/vcpkg и callers StagedFile.
+Tracked-файлы не изменены; commit/push не выполнялись.
+
+ПРОВЕРЕННЫЕ КОНТРАКТЫ
+
+- Явные LE widths, binary64 bit_cast, signed zero, UUID/source/build contract.
+  Header/footer CRC и reserved, checked section arithmetic, contiguous payloads,
+  точный размер файла и completion; ошибки до allocation/seek/conversion.
+- Mapping восстанавливается factory с явной ValidationPolicy/callback;
+  origin bits, original bounds, dimensions и convention сверяются. FP-контракт
+  06.1 не обходится. Mapping work O(width+height) остаётся отдельным ограничением.
+- Точные u32/u64, канонический выбор по maximum, partial edges, X-fast/Y-up,
+  checked totals и CompletePointCache total == declared measurements.
+- Open проверяет весь sparse structural index O(T), без payload и без RAM-array
+  descriptors. Только затем missing key означает ноль. ReadTile проверяет нужный
+  payload; fullValidate/physical iteration — все физические tiles. Повреждение
+  другого payload может оставаться неизвестным при selective read: это объявленная
+  граница, а не подтверждение полной целостности Open.
+- Строгий один завершённый zlib stream: exact output и consumed input, decoded CRC,
+  max/total, canonical encoding/zero omission; dictionary/trailing/concatenation,
+  truncation и oversized output отвергаются, частичный Tile не возвращается.
+- Arbitrary ingest, включая zero submissions; bounded initial runs <=4096 Entry,
+  две descriptor tapes и bounded two-way merge, canonical payload/index order,
+  duplicate zero/nonzero rejection. Нет full raster или unlimited descriptor list.
+- Buffer reserve покрывает одновременно decoded/packed/compressed +64 KiB I/O;
+  custom zalloc учитывает charged headers и отказывает до allocation. Sort array
+  освобождается до merge/copy/readback. Caller-retained results/borrowed buffers
+  исключены явно; fixed Qt/allocator/OS overhead не объявлен memory cap.
+- Scratch/output/combined logical bytes проверяются до роста файлов; обе tapes
+  учтены одновременно. Writer требует5 dataset handles с readback, Reader1.
+  Work writer накопителен с остатком для Open/full readback; mapping budget отдельный.
+  Ноль не означает unlimited. Cancellation bounded checkpoints, не wall-clock deadline.
+- Single-use/terminal failures, reentry guard, independent reader handles, borrowed
+  callback lifetimes и diagnostic context до destruction writer/pending согласованы.
+  Flush и полный readback до non-overwriting rename; PendingDataset RAII discard и
+  releaseToOwner. Cleanup diagnostic не заменяет primary error. Новый discard не
+  меняет прежние методы/поля/поведение StagedFile и не используется Point Cache.
+
+СВЕЖИЕ СБОРКИ И ТЕСТЫ
+
+Windows10 x64 / MSVC19.51.36260.0 / C++20, Qt6.12.0, zlib1.3.2,
+CMake3.30.5, Ninja1.12.1. Обычный x64 vcvars64 через проверенный build/task02-env.cmd.
+Новые CMake binary dirs: build/review062-independent/debug и /release.
+Уже установленные зависимости соответствующей конфигурации переиспользованы через
+VCPKG_INSTALLED_DIR и VCPKG_MANIFEST_INSTALL=OFF; глобальные инструменты не менялись.
+Configure/build обеих конфигураций PASS; compiler warnings/errors в build logs нет.
+Optional Qt TaskTree/QmlAssetDownloader/Vulkan configure diagnostics сохранены.
+
+Debug D:115 PASS/0 FAIL/0 SKIP (density-debug.xml).
+Release D:115 PASS/0 FAIL/0 SKIP (density-release.xml).
+RasterMapping:14 PASS/0 FAIL/0 SKIP в каждой (raster-debug.xml/raster-release.xml).
+Broad Debug:694 PASS/0 FAIL/1 SKIP из695, 136.68s (regression-debug.xml/log).
+Broad Release:694 PASS/0 FAIL/1 SKIP из695, 162.80s (regression-release.xml/log).
+SKIP в обеих: Persistence.StoragePath.FileSymlinkEscape; XML system-out подтверждает
+Windows file symlink privilege unavailable:1314. Это не PASS.
+Оба Recovery набора64/64 прошли в итоговых прогонах; первоначальный FAIL сохраняется.
+
+Inventory получен по executable basename и label production: D115 +580 остальных =695.
+Targets: density_storage_tests raster_mapping_tests project_tests cache_tests
+persistence_tests asc_xyz_tests operation_tests import_application_tests
+nonzero_z_confirmation_tests save_tests open_tests recovery_tests dependency_smoke.
+Cache integration с другим label и GUI/lint в broad selection не включены.
+
+Промежуточная ошибка собственного запуска: cmd quoting потерял pipe в regex первой
+объединённой -R команде, оболочка вернула255. Это не test FAIL. Далее ошибочно
+параллельно запущенный PRE_TEST discovery создал generated duplicates:142 D entries
+при115 unique commands,791 broad entries при695 unique. Первый broad завершился:
+789 PASS/1 FAIL/1 SKIP; FAIL — описанная Recovery fixture, SKIP — privilege1314.
+Все96 повторных entries были успешны. Логи сохранены с suffix discovery-duplicates.
+После окончания CTest удалены только13 generated *_tests.cmake в ignored debug/tests,
+один последовательный inventory пересоздал их; проверены ровно695 unique entries.
+Затем отдельно повторены D115 и весь broad695. Tests/source не менялись и не ослаблялись.
+
+СОБСТВЕННЫЕ PROBES И ORACLE
+
+probes-reader/fixtures.py: Python struct+binascii.crc32+zlib1.3.1, без production
+packing/addressing/CRC/validation helpers. Создаёт27 самостоятельных wire fixtures.
+probes-reader/reader.cpp использует только публичный Reader API.
+Debug и Release:27 cases /68 checks /0 failures. Проверены mixed u32/u64, UINT64_MAX,
+partial1×256/1×1, координаты samples X-fast/Y-up, нулевой CompletePointCache384 bytes,
+signed-zero/UUID bits, missing-zero, corrupt payload versus zero, repaired-CRC index
+duplicates/order/gap/reserved/dimensions/origin/contract/summary contradictions,
+noncanonical encoding/physical-zero, strict trailing/concatenated/truncated/dictionary/
+oversized streams и incomplete/trailing/missing completion. PASS обоих run logs одинаков.
+
+probes-writer/writer_probe.cpp: Debug/Release6 PASS/0 FAIL в каждой.
+33 reverse submissions, partial7×1, mixed counts, CompletePointCache exact total4294969547;
+sortReserve72 bytes при budget96,6 merge passes. Expected vectors заданы простым
+независимым арифметическим pattern; selective/full/physical reads совпали.
+Реальный cancel callback после20 Sort,40 Merge,30 Copy checkpoints; readback cancel
+на261-м callback после structural Open, внутри частичного payload Validate.
+Во всех случаях final отсутствует, own scratch/candidate удалены до Writer destruction,
+addTile/finish терминально InvalidState, previous sentinel dataset побитово сохранён.
+Проверено уничтожение PendingDataset с удалением собственного final.
+
+Existing test oracle также независим по LE packing/CRC/layout/addressing; Writer
+сравнивается с вручную собранными bytes, Reader — с исходными vectors. Metadata тестов
+использует public Mapping factory; точный FP oracle относится к RasterMapping tests.
+115 D cases включают финальные shape-valid duplicate/order и partial-work cancellation.
+
+EVIDENCE / ИЗМЕРЕНИЯ
+
+Независимо сверены15 hashes старых artifacts (8 CTest XML/log,6 build logs,release.json).
+Старый широкий692 =D112+580; финальный узкий115. Старый PASS не переносился на HEAD.
+Python evidence-review/verify-evidence.py заново вычислил xorshift64(seed6002), u32LE,
+обратный tile order, FNV digest и zlib file bytes: все6 committed строк совпали.
+Open reads=384+80T, decodedOpen0, selective decoded5, index bytes80T,
+finish включает readback — подтверждено независимо. Старые6 trials фиксируютT96,
+поэтому сами по себе доказывают независимость от пустой logical area, не T-scaling.
+Свежий исходный benchmark:6/6 trials PASS; counts/digest/file bytes совпали с
+committed evidence. Дополнительный fixed logical area1000003×1000001:
+T                         24           96          384
+file bytes              9000        34848       138240
+open read bytes         2304         8064        31104 (=384+80T)
+scratch peak           10536        42144       168576
+combined disk peak     19536        76992       306816
+merge passes               4            6            8
+full iteration ms      31.25       107.83       332.34
+finish ms              47.51       169.61       490.80
+readback within ms     44.12       119.10       385.58
+Во всех строках buffers1638573/codec268104/sort144 bytes неизменны; Open не decode'ит
+payload. Python oracle3/3 PASS. T-scaling логического I/O и отсутствие full-index
+allocation подтверждены; timing — отдельные warm-cache samples без статистических
+нормативов. Sort/merge имеет дополнительные проходы при росте T, не O(T) writer finish.
+Reader mapping cost выделен отдельно; он зависит от осевых dimensions, не только T.
+Артефакты: evidence-review/fresh-six.json, vary-t.json, independent-verification.log,
+verify-evidence.py, vary-t.cpp, vary-t.cmd. Собственная адаптация меняет лишь benchmark
+T/profile/keys в ignored копии, production библиотеки — свежая Release сборка HEAD.
+
+ОГРАНИЧЕНИЯ / NOT RUN
+
+Physical disk-full/flush device fault, power-loss durability, cold-HDD, UNC/network,
+hostile concurrent file mutation/security audit и representative real scans NOT RUN:
+отдельная инфраструктура/входы и расширение scope для этого отсутствуют.
+Phase fault injection не выдается за physical device fault; warm cache logical I/O
+не выдается за cold-HDD. CRC не является защитой от намеренной подделки.
+GUI/lint NOT RUN: diff headless storage, GUI не меняется.
+Полный Point Cache → C1 → D, versions/persistence, Canvas/ROI и Rough quality NOT RUN:
+это последующие06.3–06.8, storage probes не подтверждают эти подсистемы.
+Гигантские uint64 keys проверяются адресной арифметикой; фактическое создание mapping
+таких размеров ограничено явным O(width+height) validation budget06.1.
+Логический accounting не ограничивает NTFS physical allocation, Qt/allocator/OS memory
+и process-wide handles. Cleanup failure может оставить диагностированный собственный
+orphan, но не заменяет первопричину и не разрешает удалять прежние datasets.
+
+КОМАНДЫ
+
+Фактически использованные конфигурации (заменить debug/release в соответствующих строках):
+cmd /d /c build\task02-env.cmd cmake --preset windows-debug -B build/review062-independent/debug -DCADCONTOUR2D_BUILD_TOOLS=ON -DVCPKG_INSTALLED_DIR=D:/ZherlitsynEE/CADContour2D/build/windows-debug/vcpkg_installed -DVCPKG_MANIFEST_INSTALL=OFF
+cmd /d /c build\task02-env.cmd cmake --preset windows-release -B build/review062-independent/release -DCADCONTOUR2D_BUILD_TOOLS=ON -DVCPKG_INSTALLED_DIR=D:/ZherlitsynEE/CADContour2D/build/windows-release/vcpkg_installed -DVCPKG_MANIFEST_INSTALL=OFF
+cmd /d /c build\task02-env.cmd cmake --build build/review062-independent/debug --target density_storage_tests raster_mapping_tests density_storage_benchmark project_tests cache_tests persistence_tests asc_xyz_tests operation_tests import_application_tests nonzero_z_confirmation_tests save_tests open_tests recovery_tests dependency_smoke --parallel 4
+Та же build команда для /release.
+cmd /d /c build\task02-env.cmd ctest --test-dir build/review062-independent/debug -R DensityStorage --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/review062-independent/density-debug.xml
+cmd /d /c build\task02-env.cmd ctest --test-dir build/review062-independent/debug -R RasterMapping --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/review062-independent/raster-debug.xml
+Такие же команды для /release с соответствующими XML именами.
+cmd /d /c build\task02-env.cmd ctest --test-dir build/review062-independent/debug --show-only=json-v1
+cmd /d /c build\task02-env.cmd ctest --test-dir build/review062-independent/debug -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/review062-independent/headless-debug.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/review062-independent/regression-debug.xml
+Такие же inventory/broad команды для /release с headless-release.txt и regression-release.xml.
+python build/review062-independent/probes-reader/fixtures.py
+cmd /d /c build\task02-env.cmd cmake -S build/review062-independent/probes-reader -B build/review062-independent/probes-reader/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCFG=debug -DCMAKE_PREFIX_PATH=D:/Qt/6.12.0/msvc2022_64
+cmd /d /c build\task02-env.cmd cmake --build build/review062-independent/probes-reader/debug --parallel 1
+probes-reader/debug/independent_reader.exe probes-reader/suite.json (пути относительно review062-independent; Qt/zlib DLL в process PATH).
+Такие же configure/build/run для Release; исходники standalone CMake сохранены.
+cmd /d /c build\review062-independent\probes-writer\build-probe.cmd debug
+cmd /d /c build\review062-independent\probes-writer\build-probe.cmd release
+git diff --check 1f5ce9028d46ed781ce616a21fa4fbc3d3509998..HEAD (PASS)
+cmd /d /c build\task02-env.cmd build\review062-independent\release\density_storage_benchmark.exe D:/ZherlitsynEE/CADContour2D/build/review062-independent/evidence-review D:/ZherlitsynEE/CADContour2D/build/review062-independent/evidence-review/fresh-six.json
+cmd /d /c build\review062-independent\evidence-review\vary-t.cmd
+python build/review062-independent/evidence-review/verify-evidence.py build/review062-independent/evidence-review/fresh-six.json build/review062-independent/evidence-review/vary-t.json
+
+ЗАКЛЮЧЕНИЕ
+READY WITH LIMITATIONS. Подтверждённых storage-блокеров перехода к06.3 не найдено.
+D v1 format, selective/full integrity, bounded sort/resources, cleanup/publication
+и существующий Point Cache regression проверены в рамках описанных контрактов.
+Унаследованный P3 fixture, symlink SKIP, policy-bound Mapping и перечисленные NOT RUN
+сохраняются. Полный C1 pipeline и достоверность source distribution относятся к06.3;
+качество Rough на real scans storage-проверками не подтверждается.
+Это заключение независимого ревью, не пользовательское принятие или закрытие этапа.
+
+Финальный Git: main, HEAD8d622e0129ccdfa6de6f0ad75eba0845da9de1e3,
+git status --porcelain=v1 пуст; staged/unstaged tracked diff пуст.
+Все артефакты ревью размещены только в ignored build/review062-independent.
+Commit/push не выполнялись.

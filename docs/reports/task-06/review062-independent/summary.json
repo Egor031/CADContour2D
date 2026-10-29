@@ -1,0 +1,421 @@
+{
+  "recordedDate": "2026-10-29",
+  "scope": "Documentary acceptance only. No build, test, probe or benchmark rerun; no repeated technical review.",
+  "checkout": "D:\\ZherlitsynEE\\CADContour2D",
+  "branch": "main",
+  "dCommit": "8d622e0129ccdfa6de6f0ad75eba0845da9de1e3",
+  "latestVerifiedHeadWithP3": "085a5f1d8c1abd0dd85368dd88e2803454c45c7b",
+  "independentVerdict": "READY WITH LIMITATIONS",
+  "userDecision": "ACCEPTED WITH LIMITATIONS",
+  "reportCopy": {
+    "original": "build/review062-independent/review-report.txt",
+    "tracked": "docs/reports/task-06/review062-independent/review-report.txt",
+    "lineEndings": "Tracked copy normalized to LF; text otherwise unchanged.",
+    "contentIdenticalAfterLfNormalization": true,
+    "originalSha256": "d1d561127a1a1e47c2f2c95da10847cf2576c97964437436e3ee6d7c6fe18417",
+    "trackedLfSha256": "d1d561127a1a1e47c2f2c95da10847cf2576c97964437436e3ee6d7c6fe18417"
+  },
+  "provenance": "The copied independent report is the source of review conclusions and probe interpretation. Selected existing XML counters and hashes were read at documentary closure; this does not constitute rerunning the checks. Raw build artifacts remain ignored and are not promised on other checkouts.",
+  "independentReview": {
+    "baseline": "1f5ce9028d46ed781ce616a21fa4fbc3d3509998",
+    "finalJunit": [
+      {
+        "path": "build/review062-independent/density-debug.xml",
+        "total": 115,
+        "passed": 115,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "build/review062-independent/density-release.xml",
+        "total": 115,
+        "passed": 115,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "build/review062-independent/raster-debug.xml",
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "build/review062-independent/raster-release.xml",
+        "total": 14,
+        "passed": 14,
+        "failed": 0,
+        "skipped": 0
+      },
+      {
+        "path": "build/review062-independent/regression-debug.xml",
+        "total": 695,
+        "passed": 694,
+        "failed": 0,
+        "skipped": 1
+      },
+      {
+        "path": "build/review062-independent/regression-release.xml",
+        "total": 695,
+        "passed": 694,
+        "failed": 0,
+        "skipped": 1
+      }
+    ],
+    "preliminaryJunit": [
+      {
+        "path": "build/review062-independent/regression-debug-discovery-duplicates.xml",
+        "total": 791,
+        "passed": 789,
+        "failed": 1,
+        "skipped": 1
+      }
+    ],
+    "probesPerConfiguration": {
+      "readerCases": 27,
+      "readerChecks": 68,
+      "readerFailures": 0,
+      "writerPassed": 6,
+      "writerFailures": 0,
+      "source": "Copied report and hashed run logs; not rerun."
+    },
+    "measurements": {
+      "freshSixTrials": 6,
+      "fixedAreaTrials": 3,
+      "conditions": "Synthetic, single warm-cache Release samples. Logical I/O/accounting, not cold-HDD measurements or OS memory/disk caps; writer finish includes merge passes and full readback. Mapping O(width+height) work has a separate explicit budget.",
+      "fixedAreaRows": [
+        {
+          "T": "24",
+          "width": "1000003",
+          "height": "1000001",
+          "file_bytes": "9000",
+          "open_read_bytes": "2304",
+          "open_decoded_tiles": "0",
+          "index_bytes": "1920",
+          "scratch_peak_logical_bytes": "10536",
+          "combined_disk_peak_logical_bytes": "19536",
+          "merge_passes": "4",
+          "buffer_reserve_bytes": "1638573",
+          "codec_peak_charged_bytes": "268104",
+          "sort_reserve_bytes": "144",
+          "finish_ms": 47.5064,
+          "readback_ms": 44.1225,
+          "full_physical_iteration_ms": 31.252
+        },
+        {
+          "T": "96",
+          "width": "1000003",
+          "height": "1000001",
+          "file_bytes": "34848",
+          "open_read_bytes": "8064",
+          "open_decoded_tiles": "0",
+          "index_bytes": "7680",
+          "scratch_peak_logical_bytes": "42144",
+          "combined_disk_peak_logical_bytes": "76992",
+          "merge_passes": "6",
+          "buffer_reserve_bytes": "1638573",
+          "codec_peak_charged_bytes": "268104",
+          "sort_reserve_bytes": "144",
+          "finish_ms": 169.6064,
+          "readback_ms": 119.1023,
+          "full_physical_iteration_ms": 107.8274
+        },
+        {
+          "T": "384",
+          "width": "1000003",
+          "height": "1000001",
+          "file_bytes": "138240",
+          "open_read_bytes": "31104",
+          "open_decoded_tiles": "0",
+          "index_bytes": "30720",
+          "scratch_peak_logical_bytes": "168576",
+          "combined_disk_peak_logical_bytes": "306816",
+          "merge_passes": "8",
+          "buffer_reserve_bytes": "1638573",
+          "codec_peak_charged_bytes": "268104",
+          "sort_reserve_bytes": "144",
+          "finish_ms": 490.7982,
+          "readback_ms": 385.5838,
+          "full_physical_iteration_ms": 332.3435
+        }
+      ]
+    },
+    "selectedRawArtifacts": [
+      {
+        "path": "build/review062-independent/review-report.txt",
+        "available": true,
+        "bytes": 20136,
+        "sha256": "d1d561127a1a1e47c2f2c95da10847cf2576c97964437436e3ee6d7c6fe18417"
+      },
+      {
+        "path": "build/review062-independent/configure-debug.log",
+        "available": true,
+        "bytes": 3790,
+        "sha256": "48f970c0ca967504a975a4a7fbc9d4f52bbfa90543d51228eec105d5c8de02af"
+      },
+      {
+        "path": "build/review062-independent/configure-release.log",
+        "available": true,
+        "bytes": 3800,
+        "sha256": "f0f7134f22c7bf2916fb0f13cb5353803cb193b9313ecc82546b3f963c7ec03e"
+      },
+      {
+        "path": "build/review062-independent/build-debug.log",
+        "available": true,
+        "bytes": 7856,
+        "sha256": "cc10a35e78a9e213062e3f853b433c6ead9f85ed7d49184153835bdd82f2b561"
+      },
+      {
+        "path": "build/review062-independent/build-release.log",
+        "available": true,
+        "bytes": 7836,
+        "sha256": "b15d2f760bb0c27c768a091546dccd438ccf91f50924278b86e46646f4993595"
+      },
+      {
+        "path": "build/review062-independent/density-debug.xml",
+        "available": true,
+        "bytes": 123432,
+        "sha256": "beb806433f2b281f1a9746c1546a672ce25b3ef963d5671c544f2339493a01a4"
+      },
+      {
+        "path": "build/review062-independent/density-release.xml",
+        "available": true,
+        "bytes": 123355,
+        "sha256": "eb2229c6071b360a0247cb93b58a113a65f6d054f25447a3f4aa2516f7083662"
+      },
+      {
+        "path": "build/review062-independent/raster-debug.xml",
+        "available": true,
+        "bytes": 14624,
+        "sha256": "cc8ea591412a75a031720ccd2872d8a5c339fc98db0464453e087500d07bf209"
+      },
+      {
+        "path": "build/review062-independent/raster-release.xml",
+        "available": true,
+        "bytes": 14623,
+        "sha256": "a867441a99275d326d1646b3ca4dfb3cfa36733155a59ac3c66b8836e01dcbbb"
+      },
+      {
+        "path": "build/review062-independent/regression-debug.xml",
+        "available": true,
+        "bytes": 699564,
+        "sha256": "4221c0cbcf47179e97e99fe2e45d779ab8407e8ea0747622b23c2b182b299328"
+      },
+      {
+        "path": "build/review062-independent/regression-release.xml",
+        "available": true,
+        "bytes": 699533,
+        "sha256": "c8c4ce7c31c2e49a726cf914169a24ba6743d4fa9d14a1035892047d4d7c2727"
+      },
+      {
+        "path": "build/review062-independent/regression-debug-discovery-duplicates.xml",
+        "available": true,
+        "bytes": 807488,
+        "sha256": "ce7a6f4e823babbe60d5c847dd1e0eaec8ea59ef9c2a6402cb01f109ca0bcba1"
+      },
+      {
+        "path": "build/review062-independent/recovery-analysis.txt",
+        "available": true,
+        "bytes": 2190,
+        "sha256": "47404ba7c4f1895250e759f50ae50fbdc97c701519ab2a0bb8aacaf9ecf162d3"
+      },
+      {
+        "path": "build/review062-independent/probes-reader/fixtures.py",
+        "available": true,
+        "bytes": 5183,
+        "sha256": "455a914e2a6a5ac08f833a4c9d49db866ee472924d2c8f9693a68c11c74ac0fb"
+      },
+      {
+        "path": "build/review062-independent/probes-reader/reader.cpp",
+        "available": true,
+        "bytes": 2654,
+        "sha256": "7c7dae6a3e2d66fe9abad12573db4300a136084a4606361b9858afd044b645e1"
+      },
+      {
+        "path": "build/review062-independent/probes-reader/suite.json",
+        "available": true,
+        "bytes": 9930,
+        "sha256": "5781eff4a5101cda886a67815747dfab62bcddd665e1d31ac0db444be54cf90a"
+      },
+      {
+        "path": "build/review062-independent/probes-reader/run-debug.log",
+        "available": true,
+        "bytes": 619,
+        "sha256": "e615bcb18eed2f5876b3f51a2fd8254d793d227ecfd080d91284992ee7c02474"
+      },
+      {
+        "path": "build/review062-independent/probes-reader/run-release.log",
+        "available": true,
+        "bytes": 619,
+        "sha256": "e615bcb18eed2f5876b3f51a2fd8254d793d227ecfd080d91284992ee7c02474"
+      },
+      {
+        "path": "build/review062-independent/probes-writer/writer_probe.cpp",
+        "available": true,
+        "bytes": 8276,
+        "sha256": "7cb46572aabeb0931367ddf679c229b9d1066ab4a6fa25d33b0ad2b340de0087"
+      },
+      {
+        "path": "build/review062-independent/probes-writer/debug-run.log",
+        "available": true,
+        "bytes": 753,
+        "sha256": "36567ed8df875a9605ff7b5caa8f97733738cebefc26d525fe9c9073f115b14c"
+      },
+      {
+        "path": "build/review062-independent/probes-writer/release-run.log",
+        "available": true,
+        "bytes": 753,
+        "sha256": "36567ed8df875a9605ff7b5caa8f97733738cebefc26d525fe9c9073f115b14c"
+      },
+      {
+        "path": "build/review062-independent/evidence-review/fresh-six.json",
+        "available": true,
+        "bytes": 9562,
+        "sha256": "3fb2ef5fac79cec80a4471ad54313acc08d94fed1d16ba2ec95e6e003b07c848"
+      },
+      {
+        "path": "build/review062-independent/evidence-review/vary-t.json",
+        "available": true,
+        "bytes": 4918,
+        "sha256": "de3df424f7fd88179316564beb9ff6c78833fba35f9ee9980926f38f1d1231e8"
+      },
+      {
+        "path": "build/review062-independent/evidence-review/verify-evidence.py",
+        "available": true,
+        "bytes": 1674,
+        "sha256": "0eb04c89c65cb5b052b281d64810c07f2c053f4e5e095741b003aa3fa31b8c31"
+      },
+      {
+        "path": "build/review062-independent/evidence-review/vary-t.cpp",
+        "available": true,
+        "bytes": 5902,
+        "sha256": "054766c8ef94bca43b545e4abdf5f81792dd29dc30a878b9e7f636fa18ed4871"
+      },
+      {
+        "path": "build/review062-independent/evidence-review/independent-verification.log",
+        "available": true,
+        "bytes": 309,
+        "sha256": "82bc9c349af6608d768c35de241feae0ba88795de09ef377878796ad2794ced0"
+      }
+    ],
+    "missingSelectedRawArtifacts": [],
+    "unlistedArtifacts": "Availability and hashes of unlisted files referenced by the report were not exhaustively audited."
+  },
+  "recoveryP3": {
+    "verdict": "FIXED AND VERIFIED",
+    "commit": "085a5f1d8c1abd0dd85368dd88e2803454c45c7b",
+    "scope": "Separate test fixture synchronization after Import/Save; D and production Autosave unchanged. Original failures remain historical facts.",
+    "trackedResults": {
+      "path": "docs/reports/task-05/recovery-p3/results.json",
+      "available": true,
+      "bytes": 13401,
+      "sha256": "b0f432c3d00f7773aed2d075cdbcfbfc4a60351d8ee88498fbdc7a8188cdc3a5"
+    },
+    "finalRawSummary": {
+      "path": "build/recovery-p3/verification-final/summary.json",
+      "available": true,
+      "bytes": 44324,
+      "sha256": "6e53557e4c2c8d8bf92655e7506d4008211781f9648496da0515d0bde961490f"
+    },
+    "finalResultsReadFromExistingXml": [
+      {
+        "configuration": "debug",
+        "recovery": {
+          "path": "build/recovery-p3/verification-final/recovery-debug.xml",
+          "total": 118,
+          "passed": 118,
+          "failed": 0,
+          "skipped": 0
+        },
+        "headless": {
+          "path": "build/recovery-p3/verification-final/headless-debug.xml",
+          "total": 699,
+          "passed": 698,
+          "failed": 0,
+          "skipped": 1
+        },
+        "repeatRounds": 20,
+        "repeatCasesPerRound": 20,
+        "repeatPassed": 400.0,
+        "repeatFailed": 0,
+        "repeatSkipped": 0
+      },
+      {
+        "configuration": "release",
+        "recovery": {
+          "path": "build/recovery-p3/verification-final/recovery-release.xml",
+          "total": 118,
+          "passed": 118,
+          "failed": 0,
+          "skipped": 0
+        },
+        "headless": {
+          "path": "build/recovery-p3/verification-final/headless-release.xml",
+          "total": 699,
+          "passed": 698,
+          "failed": 0,
+          "skipped": 1
+        },
+        "repeatRounds": 20,
+        "repeatCasesPerRound": 20,
+        "repeatPassed": 400.0,
+        "repeatFailed": 0,
+        "repeatSkipped": 0
+      }
+    ],
+    "sourceSummaryLogXmlHashesMatched": 57,
+    "hashCheckScope": "Final summary versus tracked results.json; two source files; all final run logs versus raw summary; four final Recovery/headless XML files; two historical failure XML files. Repeat XML counters inspected for all 40 rounds. No checks rerun.",
+    "historicalFailures": [
+      {
+        "context": "post-Import (independent 06.2)",
+        "xml": {
+          "path": "build/review062-independent/regression-debug-discovery-duplicates.xml",
+          "available": true,
+          "bytes": 807488,
+          "sha256": "ce7a6f4e823babbe60d5c847dd1e0eaec8ea59ef9c2a6402cb01f109ca0bcba1"
+        },
+        "counters": {
+          "path": "build/review062-independent/regression-debug-discovery-duplicates.xml",
+          "total": 791,
+          "passed": 789,
+          "failed": 1,
+          "skipped": 1
+        },
+        "failedCases": [
+          "RecoveryApplication.Recovery.ClosePreservesRecoveryAndConfirmedCloseDiscards"
+        ],
+        "cause": "Fixture helper expected Applied after automatic Autosave had already persisted the same snapshot; actual NoChange was correct."
+      },
+      {
+        "context": "post-Save (independent 06.1)",
+        "xml": {
+          "path": "build/review061/release-headless.xml",
+          "available": true,
+          "bytes": 576673,
+          "sha256": "d5ef8e4c3616fbba12a81b66f5fc40785dfc7cfaae7ae7af081395bad95e5923"
+        },
+        "counters": {
+          "path": "build/review061/release-headless.xml",
+          "total": 580,
+          "passed": 578,
+          "failed": 1,
+          "skipped": 1
+        },
+        "failedCases": [
+          "RecoveryApplication.FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/6"
+        ],
+        "cause": "Fixture helper expected Applied after automatic Autosave had already persisted the same snapshot; actual NoChange was correct."
+      }
+    ]
+  },
+  "counting": "Per Debug and Release configuration. D/Mapping/broad, Recovery/repeats/broad and the two sources overlap; do not sum as unique tests.",
+  "limitations": [
+    "FileSymlinkEscape SKIP: Windows privilege 1314, not PASS.",
+    "Mapping O(width+height), separate explicit work budget and cancellation.",
+    "Structural open reads index but not payload; selective read checks only requested payload; full validation checks all physical tiles.",
+    "Logical owned-resource accounting is not a cap on all process/OS memory, physical disk allocation or process-wide handles.",
+    "CRC is not authentication; flush/readback/rename does not promise power-loss durability.",
+    "NOT RUN: physical device/disk-full/flush faults, power-loss, cold-HDD, UNC/network, hostile concurrent mutation/security audit, representative real scans.",
+    "Full Point Cache -> C1 -> D and Rough quality unverified; full C1 and application integration absent. 06.3-06.8 not started; task 06 IN PROGRESS. Next: specification 06.3A."
+  ]
+}

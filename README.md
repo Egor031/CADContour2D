@@ -196,12 +196,15 @@ ctest --preset windows-release -R DensityStorage --output-on-failure
 ```
 
 `density_storage_benchmark` требует `CADCONTOUR2D_BUILD_TOOLS=ON`.
-D Storage — **115/115 PASS**, RasterMapping — **14/14 PASS** в обеих конфигурациях.
-Широкая headless selection — **691 PASS / 0 FAIL / 1 SKIP** из 692 в каждой;
-Recovery в этих прогонах PASS, прежний baseline FAIL не объявлен исправленным.
-Широкий прогон включал 112 D cases; после финальной проверки oracle узкий набор
-и проверок отмены расширен до 115 и повторён в обеих конфигурациях.
-SKIP — Windows symlink privilege 1314. [Отчёт, команды и измерения](docs/reports/task-06/density-storage.md).
+Независимое ревью D `8d622e0`: **115/115 PASS**, RasterMapping — **14/14 PASS**,
+широкая headless selection — **694 PASS / 0 FAIL / 1 SKIP** из 695 в каждой конфигурации.
+Последующее исправление Recovery P3 `085a5f1`: Recovery **118 PASS**, повторы **400 PASS**,
+широкий набор **698 PASS / 0 FAIL / 1 SKIP** из 699 в каждой конфигурации.
+Наборы пересекаются, их числа не суммируются. SKIP — Windows symlink privilege 1314.
+Исторические проверки исполнителя, первоначальные FAIL, команды и измерения сохранены
+в [отчёте](docs/reports/task-06/density-storage.md#независимое-ревью-и-принятие).
+Документальное принятие 06.2 опирается на эти ранее выполненные проверки;
+сборки и тесты при закрытии не повторялись.
 
 Raster Foundation 06.1: в указанном MSVC-окружении выполнены Debug/Release builds
 и отдельные CTest-проверки production mapping:
@@ -534,13 +537,18 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**06.2 D v1 — READY FOR INDEPENDENT REVIEW.** Реализован отдельный headless
+**06.2 D v1 — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
+Независимый вердикт на `8d622e0129ccdfa6de6f0ad75eba0845da9de1e3` —
+**READY WITH LIMITATIONS**, подтверждённых замечаний P0–P3 к D и storage-блокеров
+перехода к 06.3 нет. Последний проверенный HEAD с отдельным Recovery P3 —
+`085a5f1d8c1abd0dd85368dd88e2803454c45c7b`; P3 **FIXED AND VERIFIED** в fixture,
+без изменения D или production Autosave. Реализован отдельный headless
 writer/reader точных counts с sparse disk index, bounded descriptor sort/merge,
 строгим zlib, resource/cancel/error policy и RAII pending-result после полного
 readback. Файл самодостаточен, binary64 metadata побитовы; side 256/512.
 [Нормативный format/API](docs/density-map-format.md),
-[проверки, evidence и ограничения](docs/reports/task-06/density-storage.md).
-Независимое ревью и пользовательская приёмка 06.2 ещё не выполнены.
+[принятие, проверки, tracked evidence и ограничения](docs/reports/task-06/density-storage.md#независимое-ревью-и-принятие).
+Зависимость 06.2 для проектирования/реализации 06.3 выполнена в принятых границах.
 
 **06.1 Raster Foundation — ACCEPTED WITH LIMITATIONS** по решению пользователя
 (2026-10-29). В `cadcontour_core` добавлен immutable `raster::Mapping` без Qt/GUI:
@@ -550,8 +558,10 @@ Point Cache, parser, Project State и experimental harness не изменены
 Независимое ревью `1db741b` — **READY WITH LIMITATIONS**, новых замечаний P0–P3
 к Raster Foundation нет. RasterMapping — 14/14 PASS в Debug/Release и дополнительной
 AVX2-сборке; headless selection из 580: Debug **579 PASS / 0 FAIL / 1 SKIP**,
-Release **578 PASS / 1 FAIL / 1 SKIP**. Recovery FAIL — унаследованная нестабильность
-`NoChange`/`Applied`, не исправлена; отдельные 10/10 PASS не отменяют FAIL.
+Release **578 PASS / 1 FAIL / 1 SKIP**. На момент принятия 06.1 Recovery FAIL —
+унаследованная нестабильность `NoChange`/`Applied`; отдельные 10/10 PASS не отменяют FAIL.
+Последующее отдельное исправление fixture P3 и его проверки приведены
+в [Recovery-отчёте](docs/reports/task-05/autosave-recovery.md#n-recovery-p3--синхронизация-fixture).
 SKIP — Windows symlink privilege 1314. Полная проверка осей — O(width+height),
 O(1) памяти; явный начальный бюджет 10 млн — изменяемая политика с `ResourceRefused`,
 без универсального предела размеров карты или гарантии времени.
@@ -567,7 +577,8 @@ scanAll с bounded events и обработкой только occupied groups. 
 
 **Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1
 и headless D storage 06.2. Полный builder/интеграция Density Map, Canvas и ROI
-не реализованы; **06.3–06.8 не начаты**. Следующий implementation этап — C1 builder.
+не реализованы; **06.3–06.8 не начаты**. Следующий шаг — спецификация **06.3A**
+для C1 builder; реализация не начиналась.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).

@@ -325,7 +325,10 @@ Side 256/512, partial edges без padding; UINT64_MAX допустим в от�
 Произвольные submissions сортируются bounded runs/merge, включая проверку duplicate
 zero keys. Open/index, selective payload integrity и full physical validation разделены.
 Factory mapping 06.1 и её численный/work контракт сохранены; byte layout не дублируется
-здесь. [Реализация, независимый oracle и измерения 06.2](reports/task-06/density-storage.md).
+здесь. **06.2 — ACCEPTED WITH LIMITATIONS** пользователем 2026-10-29 после
+независимого **READY WITH LIMITATIONS**, без подтверждённых замечаний P0–P3 к D;
+Recovery P3 исправлен и проверен отдельно.
+[Принятие, результаты по источникам и ограничения 06.2](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
 
 **C1 — один `CacheReader::scanAll()` с ограниченной временной группировкой событий.**
 Точки распределяются по raster groups, затем обрабатываются только фактически
@@ -418,7 +421,8 @@ Canvas/ROI/rough должны получать соответствие чере
 [отчёт 06.1](reports/task-06/raster-foundation.md). 06.1 — **ACCEPTED WITH LIMITATIONS**
 по решению пользователя от 2026-10-29 после независимого ревью;
 [основания и ограничения](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-Зависимость 06.2 выполнена; headless D v1 реализован отдельно. 06.3–06.8 ещё не реализованы.
+Зависимости 06.1/06.2 для проектирования/реализации 06.3 выполнены в принятых границах.
+Следующий шаг — спецификация 06.3A; 06.3–06.8 не начаты, задача 06 целиком — IN PROGRESS.
 Исторический experimental ceil mapping 06.0 сохранён в стенде без изменений.
 
 ### Counts → intensity/mask → display

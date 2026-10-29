@@ -375,8 +375,9 @@ metadata/state потребуется расширить версиониров�
 
 **Общий статус: IN PROGRESS** — завершены исследовательские
 работы 06.0 с ограничениями; Raster Foundation 06.1 завершён и принят пользователем
-с ограничениями (2026-10-29). Headless storage D v1 реализован в 06.2;
-полный builder, интеграция Density Map, Canvas и ROI ещё не реализованы.
+с ограничениями (2026-10-29). Headless storage D v1 06.2 — **ACCEPTED WITH LIMITATIONS**
+(2026-10-29); зависимость для проектирования/реализации 06.3 выполнена.
+Полный builder, интеграция Density Map, Canvas и ROI ещё не реализованы.
 Пользователь согласовал **D + C1** как архитектурную основу дальнейшей разработки.
 Это закрывает исследование 06.0, сохраняя раздельно исторический вердикт независимого
 06.0D `INCONCLUSIVE` и последующее `P1 CLOSED WITH LIMITATIONS`.
@@ -389,7 +390,7 @@ metadata/state потребуется расширить версиониров�
 | 06.0D | Независимое ревью | `INCONCLUSIVE`, выявлен P1 |
 | 06.0D/P1 | Исправление sparse scaling C1 | `P1 CLOSED WITH LIMITATIONS` |
 | 06.1 | Raster Foundation и численные контракты | Завершён; `ACCEPTED WITH LIMITATIONS` |
-| 06.2 | Каноническое тайловое хранилище D | Реализован; проверки и границы — в отчёте 06.2; независимое ревью ожидается |
+| 06.2 | Каноническое тайловое хранилище D | Завершён; `ACCEPTED WITH LIMITATIONS` |
 | 06.3 | Построение через C1 и безопасная публикация | Не начат |
 | 06.4 | Версии и Project State | Не начат |
 | 06.5 | Save/Open/Recovery | Не начат |
@@ -442,10 +443,10 @@ LOD и необязательный PNG-export разделены по
   **READY WITH LIMITATIONS**, без новых замечаний P0–P3 к Raster Foundation.
   Независимые headless regressions: Debug 579 PASS / 0 FAIL / 1 SKIP,
   Release 578 PASS / 1 FAIL / 1 SKIP; RasterMapping 14/14 PASS в обеих конфигурациях.
-  Recovery P3 не исправлен и требует отдельной синхронизации fixture без ослабления
+  На момент принятия 06.1 Recovery P3 не исправлен и требует отдельной синхронизации fixture без ослабления
   инвариантов; symlink SKIP и явный бюджет проверки осей сохранены.
   [Основания и границы принятия](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-  При документальном закрытии сборки и тесты не повторялись. 06.2–06.8 не начаты.
+  При документальном закрытии 06.1 сборки и тесты не повторялись; тогда 06.2–06.8 не начаты.
 
 #### 06.2. Каноническое тайловое хранилище D
 
@@ -463,12 +464,22 @@ LOD и необязательный PNG-export разделены по
   external descriptor sort, strict zlib, full readback до publication. Собственные
   проверки не являются независимым ревью или пользовательской приёмкой.
   [Проверки, benchmark evidence и статус](reports/task-06/density-storage.md).
+- **Принятие 2026-10-29:** **ACCEPTED WITH LIMITATIONS** по решению пользователя.
+  Независимое ревью D `8d622e0129ccdfa6de6f0ad75eba0845da9de1e3` —
+  **READY WITH LIMITATIONS**; подтверждённых замечаний P0–P3 к D и storage-блокеров
+  06.3 нет. Recovery P3 отдельно **FIXED AND VERIFIED** в
+  `085a5f1d8c1abd0dd85368dd88e2803454c45c7b`, без изменения production Autosave/D.
+  [Результаты по источникам, evidence и ограничения](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
+  Закрытие документальное, сборки/тесты не повторялись; полный C1 pipeline и
+  application-интеграция отсутствуют. Исторические результаты 06.1, включая FAIL,
+  сохраняются; текущее состояние P3 — в отдельном связанном отчёте.
 
 #### 06.3. Построение через C1 и безопасная публикация
 
 - **Цель/результат:** явный Build по snapshot, один scanAll, bounded event grouping,
   occupied-only accumulation → завершённый D; adapter существующего OperationRunner.
-- **Зависимости:** 06.1–06.2 и contracts 02–05.
+- **Зависимости:** 06.1–06.2 — выполнены (`ACCEPTED WITH LIMITATIONS`), contracts 02–05 сохранены.
+- **Текущий шаг:** спецификация **06.3A**; 06.3 не начата, реализацию пока не начинать.
 - **Завершение:** end-to-end Point Cache → C1 → D совпадает с независимым count oracle,
   включая повторные measurements. Измерены CPU/time/memory/I/O и compression cost;
   контролируются scratch, output, metadata, files/handles. Preflight отличает
@@ -763,7 +774,7 @@ LOD и необязательный PNG-export разделены по
 ### Какие решения действительно блокируют этапы
 
 - Cache layout и index construction — решены в принятой задаче 03; v1 описан в [point-cache-format.md](point-cache-format.md).
-- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS; headless D layout/versioning/API реализованы в 06.2, независимое ревью ожидается; полный C1→D и event/group ресурсы — 06.3/06.8.
+- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1 и headless D layout/versioning/API 06.2 — ACCEPTED WITH LIMITATIONS; storage-зависимость 06.3 выполнена. Полный C1→D и event/group ресурсы — 06.3/06.8; следующий шаг — спецификация 06.3A.
 - Intensity/mask/threshold/morphology — решения 07–10 до принятия rough detection; необязательный PNG-export не блокирует построение 06.
 - Reference boundary и one-sided validator — блокируют принятие automatic precise geometry.
 - Representative real scans — блокируют подтверждение алгоритмов, **но не** разработку storage/UI и экспериментальных prototypes.
@@ -826,5 +837,7 @@ Performance-нормативы пока отсутствуют. Для их оп
 При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статусы последующей реализации задач 01–04 указаны выше.
 
 Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS по решению пользователя
-от 2026-10-29. Headless D v1 реализован в 06.2 и ожидает независимого ревью;
-06.3–06.8 ещё не начаты. Следующий implementation этап — C1 builder 06.3.
+от 2026-10-29. Headless D v1 06.2 — ACCEPTED WITH LIMITATIONS по решению пользователя
+от той же даты после независимого READY WITH LIMITATIONS и отдельного Recovery P3.
+Зависимость 06.3 выполнена; следующий шаг — спецификация 06.3A для C1 builder.
+06.3–06.8 ещё не начаты, задача 06 целиком остаётся IN PROGRESS.

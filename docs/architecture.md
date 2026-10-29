@@ -755,8 +755,13 @@ source-order pages и тем же BBox index, в том числе на HDD, п�
 ## 15. Density Map
 
 Выбранное пользователем архитектурное направление задачи 06 — **D + C1**.
-06.0 завершена с ограничениями. В 06.2 реализовано headless хранилище D v1;
-полный builder и интеграция Density Map остаются 06.3–06.8.
+06.0 завершена с ограничениями. Headless хранилище D v1 06.2 —
+**ACCEPTED WITH LIMITATIONS** пользователем 2026-10-29 после независимого
+**READY WITH LIMITATIONS** и отдельного Recovery P3.
+[Принятие и границы](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
+Storage-зависимость для проектирования/реализации 06.3 выполнена; следующий шаг —
+спецификация 06.3A. 06.3–06.8 не начаты, задача 06 целиком — IN PROGRESS;
+полный builder и application-интеграция Density Map отсутствуют.
 Исторические отчёты не меняются; основания и пределы —
 [algorithms.md, §6](algorithms.md#6-построение-density-map), этапы —
 [implementation-plan.md, задача 06](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -2001,7 +2006,7 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS (§11); headless D v1 реализован в 06.2 (§15, [format](density-map-format.md)), независимое ревью ещё требуется. Полный C1→D, event/group resources и end-to-end — 06.3/06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным кандидатом.
+- **Density production details:** Raster Foundation 06.1 и headless D v1 06.2 — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); storage-зависимость 06.3 выполнена. Следующий шаг — спецификация 06.3A; полный C1→D, event/group resources и end-to-end — 06.3/06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным кандидатом.
 - **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.

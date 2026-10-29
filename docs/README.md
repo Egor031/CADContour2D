@@ -28,8 +28,12 @@ PNG-export необязателен; аналитические данные и�
 Canvas/display LOD. Raster Foundation 06.1 — `ACCEPTED WITH LIMITATIONS`
 по решению пользователя от 2026-10-29 после независимого ревью:
 [API, проверки, ограничения и принятие](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-Headless D v1 реализован в 06.2; [проверки и ограничения](reports/task-06/density-storage.md).
+Headless D v1 **06.2 — ACCEPTED WITH LIMITATIONS** пользователем 2026-10-29;
+независимый вердикт **READY WITH LIMITATIONS**, Recovery P3 отдельно **FIXED AND VERIFIED**.
+[Принятие, результаты по источникам и tracked evidence](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
+Зависимость для проектирования/реализации 06.3 выполнена; следующий шаг — спецификация 06.3A.
 Полный builder/интеграция Density Map, Canvas и ROI не реализованы, 06.3–06.8 не начаты.
+Задача 06 целиком остаётся **IN PROGRESS**.
 [Архитектура](architecture.md#15-density-map),
 [численные условия и ограничения](algorithms.md#6-построение-density-map),
 [план 06.1–06.8](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -87,7 +91,9 @@ GUI Recovery/startup decision и сквозные проверки реализ�
 заключительное независимое ревью и перепроверка IR-05-T1 завершены.
 Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFICATION;
 системный DPI 200% — OUT OF SCOPE; перенос между мониторами — N/A.
-Наблюдение Recovery `Applied`/`NoChange` не объявляется исправленным.
+На момент принятия 05 наблюдение Recovery `Applied`/`NoChange` оставалось открытым;
+последующее отдельное исправление fixture **P3 FIXED AND VERIFIED** (`085a5f1`)
+и сохранённые первоначальные failures — в [Recovery-отчёте](reports/task-05/autosave-recovery.md#n-recovery-p3--синхронизация-fixture).
 На момент принятия 05 задача 06 не начата; [полные границы принятия](reports/task-05/gui-recovery.md#независимое-закрытие-ir-05-t1-и-принятие-задачи-05).
 
 ### Task 06
@@ -97,7 +103,7 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [06.0C: C1/C2 construction](reports/task-06/density-construction.md) — исходная рекомендация пересмотрена.
 - [06.0D/P1: sparse scaling C1](reports/task-06/density-construction-p1.md) — P1 закрыт с ограничениями.
 - [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; ACCEPTED WITH LIMITATIONS после независимого ревью и решения пользователя.
-- [06.2: Density storage](reports/task-06/density-storage.md) — D v1 writer/reader/pending, независимый byte oracle, resource/lifecycle checks и адресные измерения; ожидает независимого ревью.
+- [06.2: Density storage](reports/task-06/density-storage.md#независимое-ревью-и-принятие) — **ACCEPTED WITH LIMITATIONS**, независимое ревью D `8d622e0` — **READY WITH LIMITATIONS**, storage-блокеров 06.3 нет; отдельный Recovery P3 `085a5f1` — **FIXED AND VERIFIED**. Исходный отчёт ревью и summary/hashes сохранены рядом с отчётом реализации.
 
 Отчёты сохраняют результаты своих этапов; согласованное направление Close задано нормативными
 документами выше, а не ретроспективной правкой результатов экспериментов.
