@@ -374,8 +374,8 @@ metadata/state потребуется расширить версиониров�
 ### 06. Density Map, Engineering Canvas и ROI
 
 **Общий статус: IN PROGRESS** — завершены исследовательские
-работы 06.0 с ограничениями; Raster Foundation 06.1 реализован для независимого
-ревью. Production Density Map, Canvas и ROI не реализованы.
+работы 06.0 с ограничениями; Raster Foundation 06.1 завершён и принят пользователем
+с ограничениями (2026-10-29). Production Density Map, Canvas и ROI не реализованы.
 Пользователь согласовал **D + C1** как архитектурную основу дальнейшей разработки.
 Это закрывает исследование 06.0, сохраняя раздельно исторический вердикт независимого
 06.0D `INCONCLUSIVE` и последующее `P1 CLOSED WITH LIMITATIONS`.
@@ -387,7 +387,7 @@ metadata/state потребуется расширить версиониров�
 | 06.0C | Сравнение C1/C2 | Завершён; исходная рекомендация пересмотрена |
 | 06.0D | Независимое ревью | `INCONCLUSIVE`, выявлен P1 |
 | 06.0D/P1 | Исправление sparse scaling C1 | `P1 CLOSED WITH LIMITATIONS` |
-| 06.1 | Raster Foundation и численные контракты | `READY WITH LIMITATIONS`, для независимого ревью; не принят |
+| 06.1 | Raster Foundation и численные контракты | Завершён; `ACCEPTED WITH LIMITATIONS` |
 | 06.2 | Каноническое тайловое хранилище D | Не начат |
 | 06.3 | Построение через C1 и безопасная публикация | Не начат |
 | 06.4 | Версии и Project State | Не начат |
@@ -414,8 +414,8 @@ LOD и необязательный PNG-export разделены по
 [architecture.md, §15](architecture.md#15-density-map).
 
 **Предпосылки:** 01–05; автоматическая рекомендация `cell` не требуется.
-Ниже краткие границы последовательных этапов; документационное закрытие 06.0
-не начинает реализацию 06.1.
+Ниже краткие границы последовательных этапов. При документальном закрытии 06.0
+реализация 06.1 ещё не начиналась; её последующее принятие зафиксировано ниже.
 
 #### 06.1. Raster Foundation и численные контракты
 
@@ -437,15 +437,21 @@ LOD и необязательный PNG-export разделены по
 - **Проверка/статус:** независимые rational/integer golden bits, terminal-cell
   regression, Debug/Release tests и адресные измерения —
   [отчёт 06.1](reports/task-06/raster-foundation.md).
-  `READY WITH LIMITATIONS`: известные нестабильности Recovery в связанных
-  regressions отражены в отчёте; numerical tests PASS. Окончательного принятия нет.
-  06.2–06.8 не начаты.
+  **ACCEPTED WITH LIMITATIONS** пользователем 2026-10-29 после независимого ревью
+  **READY WITH LIMITATIONS**, без новых замечаний P0–P3 к Raster Foundation.
+  Независимые headless regressions: Debug 579 PASS / 0 FAIL / 1 SKIP,
+  Release 578 PASS / 1 FAIL / 1 SKIP; RasterMapping 14/14 PASS в обеих конфигурациях.
+  Recovery P3 не исправлен и требует отдельной синхронизации fixture без ослабления
+  инвариантов; symlink SKIP и явный бюджет проверки осей сохранены.
+  [Основания и границы принятия](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
+  При документальном закрытии сборки и тесты не повторялись. 06.2–06.8 не начаты.
 
 #### 06.2. Каноническое тайловое хранилище D
 
 - **Цель/результат:** production immutable writer/reader точных uint32/uint64 counts,
   independent zlib tiles, selective access и проверяемый индекс.
-- **Зависимости:** 06.1.
+- **Зависимости:** 06.1 — выполнена (`ACCEPTED WITH LIMITATIONS`);
+  можно начинать проектирование 06.2, реализация не начата.
 - **Завершение:** утверждены versioned layout и integrity checks после production
   validation; exact round-trip, partial/zero tiles, >uint32 counts, corrupt/truncated
   index/payload и overflow проверены. Omitted entry означает ноль только при валидном
@@ -751,7 +757,7 @@ LOD и необязательный PNG-export разделены по
 ### Какие решения действительно блокируют этапы
 
 - Cache layout и index construction — решены в принятой задаче 03; v1 описан в [point-cache-format.md](point-cache-format.md).
-- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1 реализован для независимого ревью; D layout/versioning — 06.2; ресурсы и полный C1→D — 06.3/06.8.
+- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS, зависимость 06.2 выполнена; D layout/versioning — 06.2; ресурсы и полный C1→D — 06.3/06.8.
 - Intensity/mask/threshold/morphology — решения 07–10 до принятия rough detection; необязательный PNG-export не блокирует построение 06.
 - Reference boundary и one-sided validator — блокируют принятие automatic precise geometry.
 - Representative real scans — блокируют подтверждение алгоритмов, **но не** разработку storage/UI и экспериментальных prototypes.
@@ -813,5 +819,5 @@ Performance-нормативы пока отсутствуют. Для их оп
 
 При составлении плана реализация, изменение файлов, сборка и Git-операции, меняющие состояние, не выполнялись. Статусы последующей реализации задач 01–04 указаны выше.
 
-Raster Foundation 06.1 реализован, ожидает независимого ревью и согласования
-пользователя. 06.2–06.8 ещё не начаты; следующий implementation scope — 06.2.
+Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS по решению пользователя
+от 2026-10-29. 06.2–06.8 ещё не начаты; следующий этап — проектирование 06.2.

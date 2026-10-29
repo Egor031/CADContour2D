@@ -1979,7 +1979,7 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** D + C1 выбраны (§15); Raster Foundation 06.1 реализован, ожидает независимого ревью (§11); D byte layout/integrity/versioning — 06.2; resource policy и end-to-end — 06.3/06.8. Размеры tile 256 и group 512 — инженерные кандидаты.
+- **Density production details:** D + C1 выбраны (§15); Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS по решению пользователя от 2026-10-29 (§11), зависимость 06.2 выполнена; D byte layout/integrity/versioning — 06.2; resource policy и end-to-end — 06.3/06.8. Размеры tile 256 и group 512 — инженерные кандидаты.
 - **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.

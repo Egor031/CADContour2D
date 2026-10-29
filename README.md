@@ -517,17 +517,21 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**06.1 Raster Foundation — READY WITH LIMITATIONS, для независимого ревью**
+**06.1 Raster Foundation — ACCEPTED WITH LIMITATIONS** по решению пользователя
 (2026-10-29). В `cadcontour_core` добавлен immutable `raster::Mapping` без Qt/GUI:
 единые model→indices и indices→nominal/coverage bounds, минимальные dimensions по
 binary64-границам с раздельным RN-even, представимость, work refusal и cancellation.
-Point Cache, parser и experimental harness не изменены. Начальная явная политика —
-10 млн проверок границ, O(1) памяти. Debug/Release и AVX2 numerical tests — 14/14 PASS;
-связанные headless regressions в каждой конфигурации — 578 PASS / 1 FAIL / 1 SKIP
-из 580. Оба FAIL — известный тип нестабильности Autosave `NoChange`/`Applied`;
-по 10 отдельных повторов PASS, исправление не заявлено. SKIP — Windows symlink
-privilege 1314. [API, numerical matrix, команды, измерения и ограничения](docs/reports/task-06/raster-foundation.md).
-Окончательное принятие 06.1 требует независимого ревью и согласования пользователя.
+Point Cache, parser, Project State и experimental harness не изменены.
+Независимое ревью `1db741b` — **READY WITH LIMITATIONS**, новых замечаний P0–P3
+к Raster Foundation нет. RasterMapping — 14/14 PASS в Debug/Release и дополнительной
+AVX2-сборке; headless selection из 580: Debug **579 PASS / 0 FAIL / 1 SKIP**,
+Release **578 PASS / 1 FAIL / 1 SKIP**. Recovery FAIL — унаследованная нестабильность
+`NoChange`/`Applied`, не исправлена; отдельные 10/10 PASS не отменяют FAIL.
+SKIP — Windows symlink privilege 1314. Полная проверка осей — O(width+height),
+O(1) памяти; явный начальный бюджет 10 млн — изменяемая политика с `ResourceRefused`,
+без универсального предела размеров карты или гарантии времени.
+[Независимое ревью, ограничения и принятие](docs/reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
+При документальном закрытии сборки и тесты не повторялись.
 
 **06.0 Close — исследование завершено с ограничениями; D + C1 согласованы пользователем**
 (2026-10-27). Проверенная экспериментальная база — `1be09454c57da7bcb00cde0baa1c1e37b60648d1`.
@@ -538,6 +542,7 @@ scanAll с bounded events и обработкой только occupied groups. 
 
 **Задача 06: IN PROGRESS** — выполнены исследования и Raster Foundation 06.1.
 Production Density Map, Canvas и ROI не реализованы; **06.2–06.8 не начаты**.
+Зависимость 06.2 от 06.1 выполнена; следующий этап — проектирование хранилища D.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).

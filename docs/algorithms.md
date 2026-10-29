@@ -408,8 +408,10 @@ Canvas/ROI/rough должны получать соответствие чере
 целочисленного RN/ties-to-even; проверены minimality, nextafter, unique ownership,
 реальные шестизначные координаты, subnormal/большие величины и отдельное округление.
 Результаты Debug/Release, FMA-capable compilation и измерения —
-[отчёт 06.1](reports/task-06/raster-foundation.md). Статус реализации — готова
-к независимому ревью; это не окончательное принятие 06.1 и не готовность 06.2–06.8.
+[отчёт 06.1](reports/task-06/raster-foundation.md). 06.1 — **ACCEPTED WITH LIMITATIONS**
+по решению пользователя от 2026-10-29 после независимого ревью;
+[основания и ограничения](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
+Зависимость 06.2 выполнена; 06.2–06.8 ещё не реализованы.
 Исторический experimental ceil mapping 06.0 сохранён в стенде без изменений.
 
 ### Counts → intensity/mask → display

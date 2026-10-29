@@ -24,8 +24,9 @@ UX/UI Design действует в пределах их контрактов; �
 06.0 закрыта с ограничениями; пользователь согласовал **D + C1**: immutable exact
 count tiles / zlib и один scanAll с bounded event grouping только occupied groups.
 PNG-export необязателен; аналитические данные исходного разрешения отделены от
-Canvas/display LOD. Raster Foundation 06.1 реализован для независимого ревью:
-`READY WITH LIMITATIONS`, [API, проверки и ограничения](reports/task-06/raster-foundation.md).
+Canvas/display LOD. Raster Foundation 06.1 — `ACCEPTED WITH LIMITATIONS`
+по решению пользователя от 2026-10-29 после независимого ревью:
+[API, проверки, ограничения и принятие](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
 Production Density Map/Canvas/ROI не реализованы, 06.2–06.8 ещё не начаты.
 [Архитектура](architecture.md#15-density-map),
 [численные условия и ограничения](algorithms.md#6-построение-density-map),
@@ -93,7 +94,7 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [06.0B: D/E storage](reports/task-06/density-formats.md).
 - [06.0C: C1/C2 construction](reports/task-06/density-construction.md) — исходная рекомендация пересмотрена.
 - [06.0D/P1: sparse scaling C1](reports/task-06/density-construction-p1.md) — P1 закрыт с ограничениями.
-- [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; READY WITH LIMITATIONS для независимого ревью.
+- [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; ACCEPTED WITH LIMITATIONS после независимого ревью и решения пользователя.
 
 Отчёты сохраняют результаты своих этапов; согласованное направление Close задано нормативными
 документами выше, а не ретроспективной правкой результатов экспериментов.

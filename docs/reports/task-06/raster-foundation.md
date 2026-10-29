@@ -1,8 +1,11 @@
 # 06.1 — Raster Foundation
 
-Дата: 2026-10-29. **READY WITH LIMITATIONS**, реализация для независимого ревью.
-Окончательное принятие 06.1 требует независимого ревью и согласования пользователя.
-06.2–06.8 не начаты.
+**06.1 — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
+Независимое ревью контрольного commit `1db741b7fcce215080e1eb58cc139f6bdba154e0`
+завершено с вердиктом **READY WITH LIMITATIONS**; основания и остаточные ограничения —
+в [разделе H](#h-independent-review-and-acceptance). 06.2–06.8 не начаты.
+Разделы A–G сохраняют исторический отчёт исполнителя от 2026-10-29,
+его первоначальный статус и исходные результаты проверок.
 
 ## A. Baseline
 
@@ -230,3 +233,79 @@ Refusal для `width=height=2^53`, required checks=18 014 398 509 481 984:
 Блокирующих вопросов к реализации 06.1 не выявлено; независимое ревью и
 пользовательское принятие ещё не выполнены. Storage D, C1 integration, versions,
 persistence, Canvas/ROI и rough algorithms в эту реализацию не входят.
+
+## H. Independent review and acceptance
+
+2026-10-29. Проверен контрольный commit реализации
+`1db741b7fcce215080e1eb58cc139f6bdba154e0` относительно baseline
+`3b1e036db468109a31475cbbb88bf268ecccc4c5`, ветка `main`, исходный Git status пуст.
+Независимое ревью — **READY WITH LIMITATIONS**, новых замечаний P0–P3 к Raster
+Foundation нет. Пользователь принял **06.1 — ACCEPTED WITH LIMITATIONS**.
+
+Ревьюер подтвердил численный контракт, минимальность dimensions и terminal-cell
+regression для `cell=binary64(0.1)`, независимость golden oracle, согласованность
+`locate`/nominal/coverage bounds и безопасные численные/ресурсные отказы.
+Проверены свежие Debug/Release objects и отдельная AVX2-компиляция:
+фактический `/fp:strict`, раздельные FP instructions, отсутствие FMA contraction.
+Архитектурных препятствий к 06.2–06.7 не обнаружено.
+
+### Результаты независимых проверок
+
+Это отдельные результаты ревьюера, а не замена исторических результатов разделов C–E.
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Сборка core и связанных headless targets | PASS | PASS |
+| RasterMapping | 14 PASS | 14 PASS |
+| Coordinates/ProjectState (в составе headless selection) | 32 PASS | 32 PASS |
+| Headless production selection, 580 tests | 579 PASS / 0 FAIL / 1 SKIP | 578 PASS / 1 FAIL / 1 SKIP |
+| Независимый differential probe | PASS | PASS |
+| Дополнительная AVX2-сборка и RasterMapping | — | 14 PASS |
+
+Новых compiler warnings — 0. Differential probe в каждой конфигурации сопоставил
+8000 осей, 55 172 результата `cellBounds`, 277 478 запросов принадлежности и
+216 сценариев изменения FP-окружения callback без расхождений. Oracle использует
+точные `Fraction`, отдельное округление произведения/суммы через CPython и линейный
+поиск размера/принадлежности, без production helper или генератора golden fixtures.
+
+Локальное evidence в `build/review061/` доступно при документальном закрытии
+и сверено с этим итогом: `commands.txt`, `debug-headless.log/.xml`,
+`release-headless.log/.xml`, `avx2-run.log`, `numerical/evidence.txt`
+и `docs-integration/recovery-probe.log`. Это build-артефакты, не versioned evidence.
+Временный FP harness первоначально дал 12 FAIL в каждой конфигурации из-за неверного
+ожидания числа callback; после исправления только ожидания harness расхождений нет.
+Исходные логи сохранены, production tests/assertions не изменялись.
+
+### Остаточные ограничения
+
+- **Legacy Recovery P3 — не исправлен.** В независимом Release-прогоне упал
+  `RecoveryApplication.FileFailures/RecoveryFault.FailedUpdatePreservesPreviousRecordAndAllDatasets/6`:
+  helper `tests/recovery_tests.cpp:46` ожидал `Applied`, получил `NoChange`.
+  Это вызов после `save()` на строке 320, до установки fault hooks: автоматический
+  post-Save Autosave успел сохранить тот же snapshot. Такой `NoChange` корректен;
+  Raster Mapping не участвует, production/test sources сценария не менялись.
+  Причина соответствует ранее подтверждённой [нестабильности 05.4](../task-05/autosave-recovery.md#неблокирующее-наблюдение-о-надёжности-тестов).
+  Отдельные 10/10 повторов PASS не отменяют исходный FAIL. Независимый управляемый
+  probe подтвердил допустимый `NoChange`, сохранность snapshot и успешное сохранение
+  следующей правки (50/50). Требуется отдельное адресное исправление синхронизации
+  Recovery fixture без ослабления проверяемых инвариантов; для 06.1 неблокирующее.
+- **Windows symlink SKIP.** `Persistence.StoragePath.FileSymlinkEscape` пропущен
+  в обеих конфигурациях из-за отсутствия privilege 1314. Это унаследованное
+  ограничение среды; текущий SKIP не считается PASS, прежние сведения о проверках
+  сохраняются в отчётах задачи 05.
+- **Стоимость больших осей.** Полная проверка — O(width+height) времени и O(1)
+  дополнительной памяти. Начальный явный budget 10 млн — инженерная политика,
+  не универсальный предел размеров карты; превышение даёт `ResourceRefused`.
+  Независимые Release medians: 10 млн — 41,96 мс; 50 млн с повышенным бюджетом —
+  207,38 мс. Универсальная гарантия времени не установлена.
+- GUI, HDD, representative real scans и полный Point Cache → C1 → D pipeline
+  в 06.1 не проверялись; это последующие этапы, не подтверждение Rough на real scans.
+
+### Граница принятия и следующий этап
+
+06.1 завершён и принят с перечисленными ограничениями; обязательных исправлений
+Raster Foundation перед переходом нет. Зависимость 06.2 от 06.1 выполнена,
+можно начинать проектирование канонического хранилища D. 06.2–06.8 не начаты.
+Численные контракты, исходные критерии этапа и историческое evidence 06.0 сохранены.
+При документальном закрытии изменена только документация; сборки, тесты и probes
+не повторялись, результаты независимого ревью не являются новыми прогонами Close.
