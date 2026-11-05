@@ -1,0 +1,25 @@
+{
+  "test": "OpenApplication.Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3",
+  "firstDebugStatus": "FAIL",
+  "assertion": "tests/open_tests.cpp:590: Closing != Ready",
+  "firstRunEvidence": "headless-debug.xml (archived in verification evidence)",
+  "isolatedRepeat": {
+    "command": "build/windows-debug/open_tests.exe --gtest_filter=Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3 --gtest_repeat=10",
+    "passed": 10,
+    "failed": 0,
+    "logSha256": "6953e59855b4e43e93811ac843f7bc7cee229486513c1f7c809434ec15ae4085"
+  },
+  "unchangedSourceDiffExitCode": 0,
+  "unchangedSourcePaths": [
+    "tests/open_tests.cpp",
+    "tests/operation_test_support.h",
+    "src/application",
+    "CMakeLists.txt",
+    "tests/CMakeLists.txt"
+  ],
+  "openLinkRule": "build open_tests.exe: CXX_EXECUTABLE_LINKER__open_tests_Debug tests\\CMakeFiles\\open_tests.dir\\operation_test_main.cpp.obj tests\\CMakeFiles\\open_tests.dir\\open_tests.cpp.obj | cadcontour_application.lib vcpkg_installed\\x64-windows\\debug\\lib\\gtest.lib cadcontour_io.lib cadcontour_persistence.lib cadcontour_cache.lib cadcontour_core.lib D$:\\Qt\\6.12.0\\msvc2022_64\\lib\\Qt6Guid.lib D$:\\Qt\\6.12.0\\msvc2022_64\\lib\\Qt6Cored.lib vcpkg_installed\\x64-windows\\debug\\lib\\fmtd.lib || cadcontour_application.lib cadcontour_cache.lib cadcontour_core.lib cadcontour_io.lib cadcontour_persistence.lib",
+  "openExecutableSha256": "6d6bd4741fa5cc66b06e1c303da4b031670e293b55f3df943685b2e8f1f67116",
+  "sourceInference": "finish() waits only for !operation.active; onOperationReleased may queue finishRecoverySessions while shutdown remains Closing. This is consistent with the assertion; the exact failing interleaving was not instrumented.",
+  "classification": "Separate Open lifecycle observation outside density dependency graph; not attributed to fixed Recovery P3 and not fixed in this task",
+  "historyRule": "An isolated or broad later PASS does not erase the first FAIL"
+}

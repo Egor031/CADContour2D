@@ -45,11 +45,11 @@ struct BuildResourcePolicy {
 BuildResourcePolicy initialBuildResourcePolicy() noexcept;
 
 struct BuildRequest {
-    ImportedDataset source; // immutable snapshot; retained physical cachePath must be absolute
+    ImportedDataset source; // immutable snapshot; physical cachePath must be fully qualified drive/UNC
     double cell = 1;
     std::uint32_t tileSide = 256, groupSide = 512;
     U64 eventCapacity = 16384;
-    QString outputPath, scratchParent; // absolute paths; scratchParent must already exist
+    QString outputPath, scratchParent; // fully qualified drive/UNC paths; scratchParent must exist
     BuildResourcePolicy resources;
     // Borrowed only until build returns; callbacks must not throw or reenter.
     CancelCheck cancel = nullptr;

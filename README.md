@@ -554,11 +554,14 @@ scratch/output/combined disk, files/handles и work; failure/cancel очищаю
 Независимый spatial oracle тестов и отдельный full-pipeline benchmark проверяют
 counts, shapes, keys и implicit zeros. [Результаты и статус](docs/reports/task-06/density-builder.md),
 [evidence](docs/benchmarks/density063a/README.md).
-Финальная headless regression Debug/Release: **782 PASS / 0 FAIL / 1 SKIP** из 783
-в каждой конфигурации, включая 84 builder, 115 storage и 14 mapping tests.
-SKIP — только Windows symlink privilege 1314. Полная synthetic matrix 9×1 млн
-и независимый audit — PASS; representative64 median 1.705 s, owned working
-reservation около 12.7 MiB. Это измерение указанного профиля, не норматив скорости.
+Блокеры независимого ревью B1/P1 (целостность event stream) и B2/P2 (Windows paths)
+исправлены: per-group CRC и fully qualified drive/UNC validation до callbacks/I/O.
+Финальная headless regression Debug/Release: **826 PASS / 0 FAIL / 1 SKIP** из 827
+в каждой конфигурации, включая 128 builder, 115 storage и 14 mapping tests.
+Первый отдельный Open FAIL сохранён и расследован, повторный Debug прошёл;
+[RED/GREEN, история и ограничения](docs/reports/task-06/density-builder.md#h-исправления-блокеров-независимого-ревью).
+SKIP — только Windows symlink privilege 1314. Свежий smoke 9×100k и audit — PASS;
+историческая matrix 9×1 млн на `03fd6e2` остаётся отдельным evidence исходной реализации.
 Это не принятие 06.3 целиком. OperationRunner/application publication — 06.3B,
 каталог версий/выбор/Undo — 06.4; они не реализованы. Форматы Point Cache/D/manifest
 и принятые 06.1/06.2/Recovery P3 сохранены.

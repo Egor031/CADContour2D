@@ -1,0 +1,5 @@
+[1/5] Building CXX object CMakeFiles\cadcontour_density.dir\src\density\density_builder.cpp.obj
+[2/5] Linking CXX static library cadcontour_density.lib
+[3/5] Linking CXX executable density_builder_benchmark.exe
+[4/5] Linking CXX executable density_storage_tests.exe
+[5/5] Linking CXX executable density_builder_tests.exe

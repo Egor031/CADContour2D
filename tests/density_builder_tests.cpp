@@ -90,6 +90,11 @@ struct Fixture {
     ImportedDataset source;
     std::vector<cache::Measurement> input;
     explicit Fixture(std::vector<cache::Measurement> points) : input(std::move(points))
+    { initialize(); }
+    Fixture(std::vector<cache::Measurement> points, const QString &directoryTemplate)
+        : dir(directoryTemplate), input(std::move(points))
+    { initialize(); }
+    void initialize()
     {
         if (!dir.isValid()) throw std::runtime_error("fixture directory");
         auto writer = cache::CacheWriter::create(dir.filePath("source.pc2dcache"), cacheLimits, dir.path());
@@ -555,6 +560,63 @@ TEST_P(SpoolCorruption, LengthExtraEventAndInvalidIndex)
 }
 INSTANTIATE_TEST_SUITE_P(Events, SpoolCorruption, testing::Range(1u, 4u));
 
+void inRangeEventCorruption(bool bitFlip)
+{
+    Fixture f({{0, 0, 0}, {1, 0, 0}, {2, 0, 0}});
+    const auto sourceDigest = digest(f.cache->path());
+    auto r = f.request(1, 256, 1); // stable append order across three event chunks
+    struct Context {
+        bool bitFlip, fired = false, changed = false;
+        qint64 before = -1, after = -1;
+        U64 densityIngestCalls = 0;
+    } c{bitFlip};
+    auto hook = [](Access::Point point, const QString &path, void *context) noexcept -> std::optional<BuildError> {
+        auto &c = *static_cast<Context *>(context);
+        if (point == Access::Point::DensityIngest) { ++c.densityIngestCalls; return {}; }
+        if (point != Access::Point::Reopen || c.fired) return {};
+        c.fired = true;
+        QFile file(path);
+        if (!file.open(QIODevice::ReadWrite)) return BuildError{BuildErrorCode::ScratchIO,
+            BuildPhase::Accumulation, QStringLiteral("event integrity fixture open failed")};
+        auto bytes = file.readAll();
+        c.before = bytes.size();
+        const QByteArray original("\x00\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00", 12);
+        if (bytes != original) return BuildError{BuildErrorCode::ScratchIO,
+            BuildPhase::Accumulation, QStringLiteral("event integrity fixture order mismatch")};
+        if (c.bitFlip) bytes[0] = static_cast<char>(static_cast<unsigned char>(bytes[0]) ^ 1u);
+        else bytes = QByteArray("\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00", 12);
+        if (!file.seek(0) || file.write(bytes) != bytes.size() || !file.flush())
+            return BuildError{BuildErrorCode::ScratchIO, BuildPhase::Accumulation,
+                QStringLiteral("event integrity fixture rewrite failed")};
+        c.after = file.size(); c.changed = true;
+        return {};
+    };
+    {
+        auto previousRequest = r; previousRequest.outputPath = f.dir.filePath("previous.density");
+        auto previous = DensityBuilder::build(previousRequest); ASSERT_TRUE(previous);
+        const auto previousDigest = digest(previous.value().dataset.path());
+        {
+            auto result = Access::build(r, +hook, &c);
+            ASSERT_TRUE(c.fired); ASSERT_TRUE(c.changed);
+            EXPECT_EQ(c.before, 12); EXPECT_EQ(c.after, c.before);
+            EXPECT_FALSE(result) << "In-range event corruption must not produce a completed dataset";
+            if (result) verify(result.value(), {2, 1, {{{0, 0}, 1}, {{1, 0}, 2}}}, 3, 256);
+            else {
+                EXPECT_EQ(result.error().code, BuildErrorCode::InconsistentEvents);
+                EXPECT_EQ(result.error().phase, BuildPhase::Accumulation);
+                EXPECT_TRUE(result.error().group.has_value());
+            }
+        }
+        EXPECT_EQ(c.densityIngestCalls, 0);
+        EXPECT_EQ(digest(previous.value().dataset.path()), previousDigest);
+        verify(previous.value(), {2, 1, {{{0, 0}, 1}, {{1, 0}, 2}}}, 3, 256);
+    }
+    EXPECT_EQ(digest(f.cache->path()), sourceDigest);
+    f.clean();
+}
+TEST(EventIntegrity, InRangeBitFlipCannotChangeSpatialCounts) { inRangeEventCorruption(true); }
+TEST(EventIntegrity, SameLengthValidEventsCannotChangeSpatialCounts) { inRangeEventCorruption(false); }
+
 class ShortTransfer : public testing::TestWithParam<bool> {};
 TEST_P(ShortTransfer, RealPartialTransferIsRejectedAndCleaned)
 {
@@ -590,6 +652,175 @@ TEST(InvalidSource, RelativePathsAreRefused)
         EXPECT_EQ(result.error().code, BuildErrorCode::InvalidInput); f.clean();
     }
 }
+
+class CurrentDirectoryGuard {
+public:
+    explicit CurrentDirectoryGuard(const QString &path) : previous_(QDir::currentPath())
+    { if (!QDir::setCurrent(path)) throw std::runtime_error("fixture current directory change failed"); }
+    ~CurrentDirectoryGuard() { if (!QDir::setCurrent(previous_)) ADD_FAILURE() << "Cannot restore fixture current directory"; }
+    CurrentDirectoryGuard(const CurrentDirectoryGuard &) = delete;
+    CurrentDirectoryGuard &operator=(const CurrentDirectoryGuard &) = delete;
+private:
+    QString previous_;
+};
+void replacePath(BuildRequest &r, unsigned field, const QString &path)
+{
+    if (field == 0) r.outputPath = path;
+    else if (field == 1) r.scratchParent = path;
+    else {
+        auto location = *r.source.location;
+        location.storageDirectory.clear(); location.relativeCachePath = path.toStdWString();
+        r.source.location = std::make_shared<const DatasetLocation>(std::move(location));
+    }
+}
+QString requestPath(const BuildRequest &r, unsigned field)
+{
+    return field == 0 ? r.outputPath : field == 1 ? r.scratchParent
+        : QString::fromStdWString(r.source.cachePath().wstring());
+}
+struct PathCallbacks {
+    U64 calls = 0;
+    QString changeTo;
+    bool changed = false;
+    static void progress(const BuildProgress &, void *context) noexcept {
+        auto &c = *static_cast<PathCallbacks *>(context); ++c.calls;
+        c.changed = QDir::setCurrent(c.changeTo);
+    }
+    static bool cancel(void *context) noexcept { ++static_cast<PathCallbacks *>(context)->calls; return false; }
+    static void diagnostic(const BuildError &, void *context) noexcept { ++static_cast<PathCallbacks *>(context)->calls; }
+};
+class InvalidWindowsPath : public testing::TestWithParam<unsigned> {};
+TEST_P(InvalidWindowsPath, RefusedBeforeCallbacksAndCwdChanges)
+{
+    // Keep both the initial drive CWD and the callback destination inside owned
+    // directories on the current checkout's drive (D: in the verified environment).
+    Fixture f({{0, 0, 0}}, QDir::current().filePath(".density-path-test-XXXXXX"));
+    const auto original = digest(f.cache->path());
+    const unsigned field = GetParam() / 5, form = GetParam() % 5;
+    {
+        QTemporaryDir other(QDir(f.dir.path()).filePath("callback-XXXXXX")); ASSERT_TRUE(other.isValid());
+        CurrentDirectoryGuard cwd(f.dir.path());
+        auto r = f.request();
+        const auto absolute = QDir::fromNativeSeparators(requestPath(r, field));
+        ASSERT_GE(absolute.size(), 3); ASSERT_EQ(absolute[1], QLatin1Char(':'));
+        const auto drive = absolute.left(2);
+        const QString relative = field == 1 ? QStringLiteral(".") : QFileInfo(absolute).fileName();
+        QString ambiguous;
+        switch (form) {
+        case 0: ambiguous = relative; break;
+        case 1: ambiguous = drive + relative; break;
+        case 2: ambiguous = drive; break;
+        case 3: ambiguous = absolute.mid(2); break;
+        case 4: ambiguous = QDir::toNativeSeparators(absolute.mid(2)); break;
+        }
+        replacePath(r, field, ambiguous);
+        auto callbacks = std::make_shared<PathCallbacks>(); callbacks->changeTo = other.path();
+        r.context = callbacks.get(); r.progress = PathCallbacks::progress; r.cancel = PathCallbacks::cancel;
+        r.diagnostic = PathCallbacks::diagnostic; r.diagnosticContext = callbacks;
+        {
+            auto result = DensityBuilder::build(r);
+            EXPECT_FALSE(result) << ambiguous.toStdString();
+            if (!result) EXPECT_EQ(result.error().code, BuildErrorCode::InvalidInput);
+        }
+        EXPECT_EQ(callbacks->calls, 0); EXPECT_FALSE(callbacks->changed);
+        EXPECT_EQ(QDir::currentPath(), f.dir.path());
+        EXPECT_EQ(QDir(other.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot), QStringList{});
+    }
+    EXPECT_EQ(digest(f.cache->path()), original); f.clean();
+}
+std::string invalidWindowsPathName(const testing::TestParamInfo<unsigned> &info)
+{
+    const char *fields[]{"Output", "Scratch", "Source"};
+    const char *forms[]{"Relative", "DriveRelative", "DriveOnly", "SlashRootRelative", "BackslashRootRelative"};
+    return std::string(fields[info.param / 5]) + "_" + forms[info.param % 5];
+}
+INSTANTIATE_TEST_SUITE_P(WindowsForms, InvalidWindowsPath, testing::Range(0u, 15u), invalidWindowsPathName);
+
+class InvalidWindowsSyntax : public testing::TestWithParam<unsigned> {};
+TEST_P(InvalidWindowsSyntax, RefusedBeforeCancelAndFilesystemAccess)
+{
+    Fixture f({{0, 0, 0}});
+    const auto drive = QDir::fromNativeSeparators(f.dir.path()).left(2);
+    QString bad;
+    switch (GetParam()) {
+    case 0: bad = QString(); break;
+    case 1: bad = QStringLiteral("//server"); break;
+    case 2: bad = QStringLiteral("//server/"); break;
+    case 3: bad = QStringLiteral("//server//share"); break;
+    case 4: bad = QStringLiteral("///share"); break;
+    case 5: bad = QStringLiteral(":/resource"); break;
+    case 6: bad = QStringLiteral("qrc:/resource"); break;
+    case 7: bad = QStringLiteral("\\\\.\\pipe\\density-builder"); break;
+    case 8: bad = QStringLiteral("\\\\?\\") + drive + QStringLiteral("relative"); break;
+    case 9: bad = drive + QStringLiteral("/file") + QChar(0) + QStringLiteral("suffix"); break;
+    case 10: bad = QStringLiteral("/"); break;
+    case 11: bad = QStringLiteral("\\"); break;
+    case 12: bad = QStringLiteral("Я:/density-builder"); break;
+    case 13: bad = QStringLiteral("\\\\?\\UNC\\server"); break;
+    case 14: bad = QStringLiteral("\\\\?\\UNC\\server\\\\share"); break;
+    }
+    for (unsigned field = 0; field < 3; ++field) {
+        SCOPED_TRACE(field); auto r = f.request(); replacePath(r, field, bad);
+        unsigned calls = 0; r.context = &calls;
+        r.progress = [](const BuildProgress &, void *context) noexcept { ++*static_cast<unsigned *>(context); };
+        r.cancel = [](void *context) noexcept { ++*static_cast<unsigned *>(context); return true; };
+        auto result = DensityBuilder::build(r);
+        ASSERT_FALSE(result); EXPECT_EQ(result.error().code, BuildErrorCode::InvalidInput);
+        EXPECT_EQ(calls, 0); f.clean();
+    }
+}
+INSTANTIATE_TEST_SUITE_P(WindowsSyntax, InvalidWindowsSyntax, testing::Range(0u, 15u));
+
+class QualifiedWindowsSyntax : public testing::TestWithParam<unsigned> {};
+TEST_P(QualifiedWindowsSyntax, DriveAndUncGrammarReachCancellationWithoutIo)
+{
+    Fixture f({{0, 0, 0}});
+    const auto drive = QDir::fromNativeSeparators(f.dir.path()).left(2);
+    QString qualified;
+    switch (GetParam()) {
+    case 0: qualified = drive + QStringLiteral("/density-абв/file"); break;
+    case 1: qualified = drive + QStringLiteral("\\density-абв\\file"); break;
+    case 2: qualified = drive.toLower() + QStringLiteral("/density-абв/file"); break;
+    case 3: qualified = drive + QStringLiteral("/"); break;
+    case 4: qualified = QStringLiteral("//сервер/общая/file"); break;
+    case 5: qualified = QStringLiteral("\\\\сервер\\общая\\file"); break;
+    case 6: qualified = QStringLiteral("//server/share"); break;
+    case 7: qualified = QStringLiteral("\\\\?\\") + drive + QStringLiteral("\\density-абв\\file"); break;
+    case 8: qualified = QStringLiteral("\\\\?\\UNC\\сервер\\общая\\file"); break;
+    }
+    for (unsigned field = 0; field < 3; ++field) {
+        SCOPED_TRACE(field); auto r = f.request(); replacePath(r, field, qualified);
+        unsigned calls = 0; r.context = &calls;
+        r.cancel = [](void *context) noexcept { ++*static_cast<unsigned *>(context); return true; };
+        auto result = DensityBuilder::build(r); ASSERT_FALSE(result);
+        EXPECT_EQ(result.error().code, BuildErrorCode::Cancelled); EXPECT_GT(calls, 0); f.clean();
+    }
+}
+INSTANTIATE_TEST_SUITE_P(WindowsSyntax, QualifiedWindowsSyntax, testing::Range(0u, 9u));
+
+class QualifiedWindowsPath : public testing::TestWithParam<unsigned> {};
+TEST_P(QualifiedWindowsPath, UnicodeOutputRemainsIndependentOfCallbackCwd)
+{
+    Fixture f({{0, 0, 0}, {1, 0, 0}, {2, 0, 0}}, QDir::current().filePath(".density-path-test-XXXXXX"));
+    const auto original = digest(f.cache->path());
+    {
+        QTemporaryDir other(QDir(f.dir.path()).filePath("callback-XXXXXX")); ASSERT_TRUE(other.isValid());
+        CurrentDirectoryGuard cwd(f.dir.path());
+        auto r = f.request(); r.outputPath = f.dir.filePath(QStringLiteral("карта №1.density"));
+        if (GetParam() == 1) r.outputPath = QDir::toNativeSeparators(r.outputPath);
+        if (GetParam() == 2) r.outputPath[0] = r.outputPath.at(0).toLower();
+        PathCallbacks callbacks; callbacks.changeTo = other.path();
+        r.context = &callbacks; r.progress = PathCallbacks::progress;
+        {
+            auto result = DensityBuilder::build(r); ASSERT_TRUE(result);
+            EXPECT_TRUE(callbacks.changed);
+            verify(result.value(), {2, 1, {{{0, 0}, 1}, {{1, 0}, 2}}}, 3, 256);
+        }
+        EXPECT_EQ(QDir(other.path()).entryList(QDir::AllEntries | QDir::NoDotAndDotDot), QStringList{});
+    }
+    EXPECT_EQ(digest(f.cache->path()), original); f.clean();
+}
+INSTANTIATE_TEST_SUITE_P(DriveAbsolute, QualifiedWindowsPath, testing::Range(0u, 3u));
 
 TEST(NumericalEnvironment, UnsupportedRoundModeAndCallbackMutation)
 {

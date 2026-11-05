@@ -832,14 +832,18 @@ Construction group 512×512 — начальный инженерный проф
 `DensityBuilder::build` копирует request до callbacks и удерживает immutable physical
 binding `ImportedDataset` до завершения. Собственный CacheReader сверяет CacheId,
 count и исходные bounds; mapping создаётся factory 06.1, каждая запись проходит locate.
-Physical source path, output и scratch parent обязаны быть абсолютными: callback
-или другой caller не меняет их смысл сменой рабочего каталога. Relative paths отклоняются.
+Physical source path, output и scratch parent обязаны быть полностью квалифицированными
+Windows drive/UNC paths. Единая синтаксическая проверка до callbacks и filesystem queries
+отклоняет в том числе drive-relative и root-relative формы; разрешения через CWD нет.
 Пустой source отклоняется, непустые degenerate axes поддержаны. Builder не создаёт
 потоков и не зависит от ProjectState/GUI. Он возвращает move-only завершённый
 PendingDataset, scalar statistics либо structured error, без application Accept.
 
 Bounded event chunks сортируются по паре uint64 group coordinates. LE uint32 local
 indices дописываются только в occupied spools; проверены local area и partial edges.
+Ожидаемый per-group CRC32 точных записанных LE bytes сверяется с независимо накопленным
+CRC чтения до выдачи tiles группы. Это обнаружение случайного повреждения временного
+stream, не аутентификация; checksum metadata входит в фактические node allocations.
 После scan reader/event chunk освобождаются, группы обрабатываются с повторным
 использованием counts/read/tile buffers. Ненулевые tiles передаются штатному D Writer
 ровно один раз; source/scanned/events/accumulated/tile/D totals обязаны совпасть.

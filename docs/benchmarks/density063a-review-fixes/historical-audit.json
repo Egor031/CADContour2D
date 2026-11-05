@@ -1,0 +1,10 @@
+{
+  "collectedAtUtc": "2026-11-05T11:41:42.6952709Z",
+  "classification": "Historical recorded data audit; not a fresh measurement and not evidence that B1/B2 are fixed",
+  "command": "python tools/density_builder_benchmark/audit.py docs/benchmarks/density063a/release.json",
+  "exitCode": 0,
+  "historicalDataSha256": "2d793c03a71b9724afb32bfdb3775effaba1ef52e36ad5c464b093070f087563",
+  "auditScriptSha256": "f7f68b6df0a056fd4458f381a5ed747a5b0dafde2f21119134162aab21817e27",
+  "currentHead": "03fd6e2480710e6a959411d6623621710ec209f5",
+  "status": "PASS"
+}

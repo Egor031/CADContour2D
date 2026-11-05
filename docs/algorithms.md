@@ -347,6 +347,8 @@ mapping или результат. Partial groups/tiles сохраняют X-fas
 в разных chunks. Обходятся только зарегистрированные occupied spools; count buffers
 переиспользуются, нулевые tiles пропускаются, остальные идут штатному D Writer.
 На успехе source/scanned/events written/read/accumulated/tile/D totals совпадают.
+Per-group CRC32 записанного LE event stream сверяется при чтении до выдачи tiles:
+одни totals/range checks не обнаруживают подмену допустимого local index.
 Ни source spatial queries, ни повторного source scan, ни полного raster allocation нет.
 
 RAM зависит от bounded event chunk, фактической occupied metadata, group/tile buffers

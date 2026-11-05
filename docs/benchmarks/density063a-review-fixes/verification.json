@@ -1,0 +1,282 @@
+{
+  "schema": "density063a-review-fixes-verification-v1",
+  "date": "2026-11-05",
+  "baseline": {
+    "head": "03fd6e2480710e6a959411d6623621710ec209f5",
+    "initialStageBaseline": "20a74277f3b077a8e52348264d876d266908af04",
+    "branch": "main",
+    "status": "clean"
+  },
+  "status": "READY FOR INDEPENDENT REVIEW; B1/P1 FIXED; B2/P2 FIXED; no stage acceptance",
+  "finalSourceSha256": {
+    "src/density/density_builder.cpp": "511146ef5670ea2580dae4d74d9dc1a0ca7698f5b5ad9771c666655e436500d3",
+    "src/density/density_builder.h": "7ad81b54b2b8390ce3b0a126c6bbb62c4b61730d850f493fa3b9b36615bbedcf",
+    "tests/density_builder_tests.cpp": "1b5a09e028220337a061d498451429c57c9b626d5d42f4f6b89e2e1c1776df3d"
+  },
+  "builds": {
+    "build-red-debug-2.log": {
+      "status": "PASS",
+      "sha256": "217061f4ac4ac2bce7611af427aa1b0f528fbfb330a744d8e29a1b39bc5fbd55"
+    },
+    "build-green-debug.log": {
+      "status": "PASS",
+      "sha256": "27ba527827034b2e2afbaa19dfeed0ee53f55ee74db6f36d63232062c94ab983"
+    },
+    "build-debug-final.log": {
+      "status": "PASS",
+      "sha256": "50a28efdf5c391cd4ea28cb701bf02992bcd4be31650ec05b5bc437366fa378d"
+    },
+    "build-release-final.log": {
+      "status": "PASS",
+      "sha256": "9c5c7a7ff204a6df232312852a1df8b3ea828a48ae57459d4648db01bec8c4b6"
+    },
+    "build-debug-verified.log": {
+      "status": "PASS",
+      "sha256": "50a28efdf5c391cd4ea28cb701bf02992bcd4be31650ec05b5bc437366fa378d"
+    },
+    "build-release-verified.log": {
+      "status": "PASS",
+      "sha256": "6cb11064268df8ed0fd67d2bc7d5aa143d74edd5d4f572feb9c175c1890d866e"
+    }
+  },
+  "runs": [
+    {
+      "stage": "RED: original production 03fd6e2 + new regressions",
+      "tests": 44,
+      "passed": 12,
+      "failed": 32,
+      "skipped": 0,
+      "failureNames": [
+        "InRangeBitFlipCannotChangeSpatialCounts",
+        "SameLengthValidEventsCannotChangeSpatialCounts",
+        "RefusedBeforeCallbacksAndCwdChanges/Output_Relative",
+        "RefusedBeforeCallbacksAndCwdChanges/Output_DriveRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Output_DriveOnly",
+        "RefusedBeforeCallbacksAndCwdChanges/Output_SlashRootRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Output_BackslashRootRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Scratch_Relative",
+        "RefusedBeforeCallbacksAndCwdChanges/Scratch_DriveRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Scratch_DriveOnly",
+        "RefusedBeforeCallbacksAndCwdChanges/Scratch_SlashRootRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Scratch_BackslashRootRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Source_Relative",
+        "RefusedBeforeCallbacksAndCwdChanges/Source_DriveRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Source_DriveOnly",
+        "RefusedBeforeCallbacksAndCwdChanges/Source_SlashRootRelative",
+        "RefusedBeforeCallbacksAndCwdChanges/Source_BackslashRootRelative",
+        "RefusedBeforeCancelAndFilesystemAccess/0",
+        "RefusedBeforeCancelAndFilesystemAccess/1",
+        "RefusedBeforeCancelAndFilesystemAccess/2",
+        "RefusedBeforeCancelAndFilesystemAccess/3",
+        "RefusedBeforeCancelAndFilesystemAccess/4",
+        "RefusedBeforeCancelAndFilesystemAccess/5",
+        "RefusedBeforeCancelAndFilesystemAccess/6",
+        "RefusedBeforeCancelAndFilesystemAccess/7",
+        "RefusedBeforeCancelAndFilesystemAccess/8",
+        "RefusedBeforeCancelAndFilesystemAccess/9",
+        "RefusedBeforeCancelAndFilesystemAccess/10",
+        "RefusedBeforeCancelAndFilesystemAccess/11",
+        "RefusedBeforeCancelAndFilesystemAccess/12",
+        "RefusedBeforeCancelAndFilesystemAccess/13",
+        "RefusedBeforeCancelAndFilesystemAccess/14"
+      ],
+      "skipNames": [],
+      "subsets": {
+        "DensityBuilder.": 0,
+        "DensityStorage.": 0,
+        "RasterMapping.": 0,
+        "RecoveryApplication.": 0
+      },
+      "archive": {
+        "path": "tests/red-debug.xml.gz",
+        "sha256": "cbd2b599abb1b507c35035287b3bdcb868b5d5b792099129b1184a80da5fc112",
+        "uncompressedSha256": "a1ceb414528f94d0064e3c080b636119c99b9ec9fc6210456d67c7900e0cf646"
+      }
+    },
+    {
+      "stage": "GREEN targeted after fix",
+      "tests": 44,
+      "passed": 44,
+      "failed": 0,
+      "skipped": 0,
+      "failureNames": [],
+      "skipNames": [],
+      "subsets": {
+        "DensityBuilder.": 0,
+        "DensityStorage.": 0,
+        "RasterMapping.": 0,
+        "RecoveryApplication.": 0
+      },
+      "archive": {
+        "path": "tests/green-debug.xml.gz",
+        "sha256": "7cafd5505efaeeafaefc928e8015c0fd46681a16170268d30a783991d53f93f3",
+        "uncompressedSha256": "dd20e82e3130b1595664f7a1c58aab2bd9310b4c5e13e9e9b7786731f9b0529d"
+      }
+    },
+    {
+      "stage": "First full Debug; separate Open FAIL retained",
+      "tests": 827,
+      "passed": 825,
+      "failed": 1,
+      "skipped": 1,
+      "failureNames": [
+        "OpenApplication.Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3"
+      ],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "subsets": {
+        "DensityBuilder.": 128,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "archive": {
+        "path": "tests/headless-debug.xml.gz",
+        "sha256": "7067b7b10cc588e16e4fb48656ce91a0d93d8d0ee965834330ab82be17db6be6",
+        "uncompressedSha256": "af2b1a022e6b6a61184bc31016eaca82f0b36631e29c0aa20f9a360ab0fc8f6c"
+      }
+    },
+    {
+      "stage": "Full Release",
+      "tests": 827,
+      "passed": 826,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "subsets": {
+        "DensityBuilder.": 128,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "archive": {
+        "path": "tests/headless-release.xml.gz",
+        "sha256": "bfb0616e7691877319a7b52cec6b356095b88934da8c5bff364c006517d25f2d",
+        "uncompressedSha256": "a328f7f3d60be94bbd605a8d56dcd6888a469444fa9d80eaef04be5e41ced3ca"
+      }
+    },
+    {
+      "stage": "Final full Debug rerun",
+      "tests": 827,
+      "passed": 826,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "subsets": {
+        "DensityBuilder.": 128,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "archive": {
+        "path": "tests/headless-debug-rerun.xml.gz",
+        "sha256": "5b5b3de733533f85cced3cd8ecc51da09a6d96a7bf0f586873c5ee23e2d382fc",
+        "uncompressedSha256": "15fb3ec22b43d477774ab2fa5dfb5c275a6ad373361410b553cdfde3fa4c52c4"
+      }
+    }
+  ],
+  "selectedNames": {
+    "path": "tests/headless-tests.txt.gz",
+    "sha256": "b82aa3c2df6401d625c17fa1eeed726576fed0d4043b9253ef78128404bc5fd1",
+    "uncompressedSha256": "de8c5a484fcddcba8f4c73dd95bde0d7169cec85667a068356a4a0850b9ff0f9"
+  },
+  "inventory": {
+    "debug": {
+      "entries": 1214,
+      "caseSensitiveUnique": 1214,
+      "selected": 827,
+      "subsets": {
+        "DensityBuilder.": 128,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "inventorySha256": "9ce49320e9fa6b6f650d5b59f6b9909654785e31c778bd5acde9269c423be85b"
+    },
+    "release": {
+      "entries": 1214,
+      "caseSensitiveUnique": 1214,
+      "selected": 827,
+      "subsets": {
+        "DensityBuilder.": 128,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "inventorySha256": "365cf3778cf238153731489ed83529065e5dba92f84ce129807dde15de0387da"
+    },
+    "selectionEqual": true
+  },
+  "history": {
+    "rule": "Later PASS does not erase any earlier FAIL/SKIP",
+    "expectedRedFailures": 32,
+    "unexpectedFirstDebugFailure": "OpenApplication.Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3",
+    "observation": "open-lifecycle-observation.json; no Open or application source changes; no density link; inference distinguishes operation completion from queued recovery closure",
+    "isolatedOpenRepeat": {
+      "passed": 10,
+      "failed": 0,
+      "archive": {
+        "path": "tests/open-debug-repeat.log.gz",
+        "sha256": "aff46a468fe1481f206cff678d03c3146aa0f7b34df952c9ec036da22a1d105a",
+        "uncompressedSha256": "6953e59855b4e43e93811ac843f7bc7cee229486513c1f7c809434ec15ae4085"
+      }
+    },
+    "initialTestCompileFailure": {
+      "reason": "GTest macro inline lambda comma initializer parsing; fixed by named generator function; no assertions weakened",
+      "archive": {
+        "path": "tests/build-red-debug.log.gz",
+        "sha256": "4f6bb1fd434bb0d6f1ceb2ff814c3bf63287cb72788c963e85d5c04e88e9edb1",
+        "uncompressedSha256": "0b2699b981941274bb87873453f02f3f662407b97e69502a2919eeb2b62a49b8"
+      }
+    },
+    "symlinkSkip": "Persistence.StoragePath.FileSymlinkEscape: Windows privilege 1314; all Recovery cases pass"
+  },
+  "contracts": {
+    "eventFingerprint": "Incremental per-group CRC32 of acknowledged encoded bytes vs independent read CRC, checked before group tiles; not authentication",
+    "paths": "Fully qualified Windows drive/UNC and canonical namespace aliases validated before Engine, all user callbacks and filesystem queries; no CWD resolution",
+    "wireFormatsChanged": false,
+    "extraSourceScans": 0,
+    "fullPipelineSmoke": "9 x 100000 points with independent spatial oracle; fresh artifacts separate from historical 1M data"
+  },
+  "commands": {
+    "environment": "cmd /d /c build\\task02-env.cmd <command>",
+    "red": "build/windows-debug/density_builder_tests.exe --gtest_filter=EventIntegrity.*:WindowsForms/*:WindowsSyntax/*:DriveAbsolute/* --gtest_output=xml:build/density063a-review-fixes/red-debug.xml",
+    "green": "Same filter and executable after fix; --gtest_output=xml:build/density063a-review-fixes/green-debug.xml",
+    "discovery": [
+      "ctest --preset windows-debug --show-only=json-v1",
+      "ctest --preset windows-release --show-only=json-v1"
+    ],
+    "selection": "Exact case-sensitive test names; selected existing production headless executable list from inventory. 1214 unique inventory / 827 unique selected; Debug and Release names equal.",
+    "broad": [
+      "ctest --preset windows-debug -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-debug.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-debug.xml",
+      "ctest --preset windows-release -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-release.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-release.xml"
+    ],
+    "debugRepeat": "Same Debug broad command with headless-debug-rerun.xml",
+    "openRepeat": "build/windows-debug/open_tests.exe --gtest_filter=Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3 --gtest_repeat=10"
+  },
+  "smoke": {
+    "summary": "summary.json",
+    "raw": "smoke-release-100k.json",
+    "rawSha256": "f0c9230083c22440c1d38e90822ccc5eab4acee8ab70864fb33c9b3750228683",
+    "environmentSha256": "52872bc25a4409aefab43f797dc4e899a18a29fe8cb275ee88ca1e394c5a18c8",
+    "status": "PASS"
+  },
+  "notRun": {
+    "UNCnetworkIO": "No connected share exercised; syntax probes cancel before I/O",
+    "physicalColdHddOrFaults": "No controlled device/cache conditions",
+    "representativeRealScans": "No representative scan used; synthetic correctness only",
+    "GUIAndLargeCacheIntegration": "Unchanged subsystems; existing broad production headless selection only",
+    "freshMillionPointPerformance": "Proportionate 100k full-pipeline smoke; old 1M audit explicitly historical"
+  },
+  "review": {
+    "diffCheck": "PASS: worktree and staged; final diff reviewed",
+    "scope": "B1/B2 builder fixes, 44 additional tests, related contracts/report and new isolated evidence; Open/application/historical benchmark files untouched"
+  }
+}

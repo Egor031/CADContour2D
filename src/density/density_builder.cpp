@@ -3,7 +3,9 @@
 #include <QDir>
 #include <QElapsedTimer>
 #include <QFileInfo>
+#include <QStringView>
 #include <QTemporaryDir>
+#include <zlib.h>
 
 #include <algorithm>
 #include <bit>
@@ -15,6 +17,7 @@
 namespace cadcontour::density {
 namespace {
 constexpr U64 ioBytes = 65536;
+static_assert(ioBytes <= std::numeric_limits<uInt>::max());
 constexpr U64 fixedBookkeeping = 65536;
 struct Failure { BuildError error; };
 BuildError error(BuildErrorCode code, BuildPhase phase, const char *detail)
@@ -51,6 +54,42 @@ void budget(U64 need, U64 limit, BuildPhase phase, const char *detail)
 }
 bool same(double a, double b) { return std::bit_cast<U64>(a) == std::bit_cast<U64>(b); }
 bool same(ModelPoint a, ModelPoint b) { return same(a.x, b.x) && same(a.y, b.y); }
+bool pathSeparator(QChar c) noexcept { return c == u'/' || c == u'\\'; }
+bool qualifiedDrive(QStringView path) noexcept
+{
+    if (path.size() < 3) return false;
+    const auto drive = path[0].unicode();
+    return ((drive >= u'A' && drive <= u'Z') || (drive >= u'a' && drive <= u'z'))
+        && path[1] == u':' && pathSeparator(path[2]);
+}
+// The leading UNC separators (or canonical device/UNC prefix) are already removed.
+bool qualifiedUnc(QStringView path) noexcept
+{
+    qsizetype serverEnd = 0;
+    while (serverEnd < path.size() && !pathSeparator(path[serverEnd])) ++serverEnd;
+    if (!serverEnd || serverEnd == path.size()) return false;
+    const auto server = path.first(serverEnd);
+    if (server == u"." || server == u".." || server == u"?") return false;
+    const auto shareStart = serverEnd + 1;
+    qsizetype shareEnd = shareStart;
+    while (shareEnd < path.size() && !pathSeparator(path[shareEnd])) ++shareEnd;
+    const auto share = path.sliced(shareStart, shareEnd - shareStart);
+    return !share.isEmpty() && share != u"." && share != u"..";
+}
+bool fullyQualifiedPath(QStringView path) noexcept
+{
+    if (path.contains(QChar(0))) return false;
+    // Preserve canonical drive/UNC namespace aliases without admitting other devices.
+    if (path.size() >= 4 && path[0] == u'\\' && path[1] == u'\\'
+        && (path[2] == u'?' || path[2] == u'.') && path[3] == u'\\') {
+        const auto tail = path.sliced(4);
+        if (tail.contains(u'/')) return false; // canonical namespace aliases use backslashes
+        if (qualifiedDrive(tail)) return true;
+        return tail.startsWith(u"UNC\\", Qt::CaseInsensitive) && qualifiedUnc(tail.sliced(4));
+    }
+    return qualifiedDrive(path) || (path.size() >= 2 && pathSeparator(path[0])
+        && pathSeparator(path[1]) && qualifiedUnc(path.sliced(2)));
+}
 struct Timer {
     U64 &destination;
     QElapsedTimer timer;
@@ -113,7 +152,7 @@ struct KeyLess {
     { return a.y < b.y || (a.y == b.y && a.x < b.x); }
 };
 struct Event { TileKey group; std::uint32_t local; };
-struct Group { U64 count = 0; bool exists = false; };
+struct Group { U64 count = 0; std::uint32_t fingerprint = 0; bool exists = false; };
 using Registry = std::map<TileKey, Group, KeyLess, Allocator<std::pair<const TileKey, Group>>>;
 
 // FaultPoint is private in the entry point; the engine uses a numeric bridge.
@@ -300,9 +339,6 @@ struct Engine {
         progress(BuildPhase::Preflight); check();
         require(r.source.location && !r.source.cacheId.isNull() && !r.source.cachePath().empty(),
             BuildErrorCode::InvalidInput, phase, "Missing immutable source binding/identity");
-        require(r.source.cachePath().is_absolute() && QFileInfo(r.outputPath).isAbsolute()
-            && QFileInfo(r.scratchParent).isAbsolute(), BuildErrorCode::InvalidInput, phase,
-            "Source, output and scratch paths must be absolute");
         require(r.source.pointCount != 0, BuildErrorCode::EmptySource, phase, "Point Cache has no measurements");
         require(!r.outputPath.isEmpty() && !r.scratchParent.isEmpty() && QDir(r.scratchParent).exists(),
             BuildErrorCode::InvalidInput, phase, "Output path and existing scratch parent required");
@@ -376,10 +412,14 @@ struct Engine {
                 check(); const U64 n = std::min<U64>(ioBytes / 4, end - pos);
                 for (U64 i = 0; i < n; ++i) cache::binary::putU32({wire.get(), size(ioBytes, phase)}, size(i * 4, phase), events[size(pos + i, phase)].local);
                 const U64 bytes = n * 4;
+                // Freeze the expected encoded bytes before an operation-local transfer seam.
+                const auto fingerprint = crc32(group.fingerprint,
+                    reinterpret_cast<const Bytef *>(wire.get()), static_cast<uInt>(bytes));
                 auto overridden = transfer ? transfer(true, file, {wire.get(), size(bytes, phase)}, transferContext) : std::nullopt;
                 const auto written = overridden ? *overridden
                     : file.write(reinterpret_cast<const char *>(wire.get()), static_cast<qint64>(bytes));
                 if (written != static_cast<qint64>(bytes)) ioFailure(file, "Short event spool write", cache::Operation::Write);
+                group.fingerprint = static_cast<std::uint32_t>(fingerprint);
                 stats.eventsWritten = add(stats.eventsWritten, n, phase);
                 stats.eventBytesWritten = add(stats.eventBytesWritten, bytes, phase); ++stats.eventWrites;
                 pos += n;
@@ -509,6 +549,7 @@ struct Engine {
                 require(file.size() >= 0 && static_cast<U64>(file.size()) == length && length % 4 == 0,
                     BuildErrorCode::InconsistentEvents, phase, "Spool length/per-group count mismatch");
                 U64 read = 0;
+                std::uint32_t fingerprint = 0;
                 while (read < group.count) {
                     check(); const U64 n = std::min<U64>(ioBytes / 4, group.count - read), bytes = n * 4;
                     {
@@ -517,6 +558,8 @@ struct Engine {
                         const auto got = overridden ? *overridden
                             : file.read(reinterpret_cast<char *>(wire.get()), static_cast<qint64>(bytes));
                         if (got != static_cast<qint64>(bytes)) ioFailure(file, "Short event spool read");
+                        fingerprint = static_cast<std::uint32_t>(crc32(fingerprint,
+                            reinterpret_cast<const Bytef *>(wire.get()), static_cast<uInt>(bytes)));
                     }
                     ++stats.eventReads; stats.eventBytesRead = add(stats.eventBytesRead, bytes, phase);
                     for (U64 i = 0; i < n; ++i) {
@@ -535,6 +578,8 @@ struct Engine {
                 char extra;
                 require(file.read(&extra, 1) == 0 && file.error() == QFileDevice::NoError,
                     BuildErrorCode::InconsistentEvents, phase, "Extra event data or spool read error");
+                require(fingerprint == group.fingerprint, BuildErrorCode::InconsistentEvents,
+                    phase, "Event stream fingerprint mismatch");
             }
             for (U64 y = 0; y < height; y += r.tileSide) {
                 for (U64 x = 0; x < width; x += r.tileSide) {
@@ -655,6 +700,13 @@ BuildResult DensityBuilder::buildWithTransferHook(const BuildRequest &request, F
             .scratchParent = request.scratchParent, .resources = request.resources,
             .cancel = request.cancel, .progress = request.progress, .context = request.context,
             .diagnostic = request.diagnostic, .diagnosticContext = request.diagnosticContext});
+        // This is syntax-only: reject CWD/current-drive-dependent paths before any
+        // filesystem query or user callback, including progress and cancellation.
+        require(snapshot->source.location
+            && fullyQualifiedPath(QString::fromStdWString(snapshot->source.cachePath().wstring()))
+            && fullyQualifiedPath(snapshot->outputPath) && fullyQualifiedPath(snapshot->scratchParent),
+            BuildErrorCode::InvalidInput, BuildPhase::Preflight,
+            "Source, output and scratch paths must be fully qualified Windows drive or UNC paths");
         // Keep a value snapshot independent of caller mutation from callbacks.
         // The source binding itself is an immutable shared retention contract.
         auto configure = [](Writer &writer, Status (*function)(Phase, void *) noexcept, void *ctx) {

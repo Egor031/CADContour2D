@@ -1,5 +1,9 @@
 # 06.3A — Headless Density Builder
 
+Последующие исправления блокеров независимого ревью B1/P1 и B2/P2 приведены
+в [разделе H](#h-исправления-блокеров-независимого-ревью).
+Разделы A–G сохраняют исходные результаты реализации на `03fd6e2`.
+
 ## A. Baseline
 
 Checkout `D:/ZherlitsynEE/CADContour2D`, branch `main`, исходный HEAD
@@ -227,3 +231,161 @@ threshold/morphology и PNG не реализованы. Форматы Point Ca
 Representative real scans, cold-HDD/UNC, physical disk-full/flush faults,
 power-loss/hostile filesystem mutation — **NOT RUN**. Synthetic tests не подтверждают
 качество Rough или эксплуатационные пределы числа occupied files.
+
+## H. Исправления блокеров независимого ревью
+
+### A. HEAD, diff и status
+
+Проверенный checkout `D:/ZherlitsynEE/CADContour2D`, ветка `main`, HEAD
+`03fd6e2480710e6a959411d6623621710ec209f5`, исходный status чистый.
+Baseline исходного этапа `20a74277f3b077a8e52348264d876d266908af04` не менялся.
+Прочитаны действующий AGENTS, README и относящиеся contracts requirements §§7–8,
+architecture §15 и algorithms §6; родительских AGENTS на D:/ и D:/ZherlitsynEE нет.
+Локальных независимых report/probes 06.3A в task-06 и верхних build review directories
+не найдено; сценарии пользователя воспроизводятся адресными tests.
+
+### B. Причины и исправления B1/B2
+
+B1: прежние length/count/index/EOF/total invariants не обнаруживали замену local
+index другим допустимым значением. D readback проверял согласованность уже неверного
+распределения и потому тоже проходил. Нужен независимый fingerprint точного event
+stream между scan/grouping и accumulation, до передачи tiles обработанной группы.
+CRC предназначен для обнаружения случайного повреждения, не аутентификации.
+`Group::fingerprint` хранит CRC32 последовательности точных LE32 bytes. CRC очередного
+bounded write chunk вычисляется по encoded buffer до transfer seam и фиксируется
+только после полного успешного write. Accumulation независимо считает CRC реально
+прочитанных chunks и сверяет его после length/count/index/EOF checks, до tile copy/ingest.
+Несовпадение даёт `InconsistentEvents`, phase `Accumulation` и group key; completed
+dataset/pending не возвращается. Short read/write остаются самостоятельными I/O errors.
+
+B2: Qt `QFileInfo::isAbsolute` не доказывает независимость Windows-пути от CWD и
+current drive. Кроме того, preflight progress/cancel вызывались раньше проверки
+путей. Требуется единая синтаксическая проверка fully qualified source/output/scratch
+до callbacks и filesystem queries, без преобразования относительного ввода через CWD.
+Проверка выполняется по копии request до создания Engine. Поддержаны ASCII drive
+letter + colon + root separator, UNC с непустыми server/share, а также canonical
+backslash namespace aliases полностью квалифицированных drive/UNC paths.
+Drive-relative, root-relative, QRC/resource, embedded NUL, malformed UNC и прочие
+device namespaces не принимаются. Unicode body не перекодируется через local codepage:
+source использует прежнее native-wide → QString преобразование; output/scratch
+проверяются как borrowed UTF16 views. Пути не trim/clean/canonicalize и не разрешаются
+через current directory/current drive.
+
+### C. Воспроизведение до и после
+
+Новые 44 regressions сначала собраны и запущены с неизменённым production `03fd6e2`:
+**12 PASS / 32 FAIL / 0 SKIP**. B1 — оба expected failures: build завершался success
+при same-length valid-index corruption. Первый byte flip менял counts `[1,2]` на
+`[0,3]`; полная подмена valid stream — на `[2,1]`. Point Cache содержит три measurements
+0/1/2, `cell=1`, original maximum относится к последней cell; eventCapacity=1 делает
+исходные LE events `[0,1,1]` детерминированными через три append chunks.
+
+B2 — 15 вариантов output/scratch/source × ordinary relative/drive-relative/drive-only/
+slash-root-relative/backslash-root-relative плюс 15 malformed/resource/device/NUL
+syntax cases не соблюдали требование отказа до callbacks. 12 positive cases проходили:
+девять drive/UNC/extended syntax probes с cancellation до I/O и три Unicode CWD builds.
+После исправления адресный Debug GREEN: **44 PASS / 0 FAIL / 0 SKIP**.
+
+B1 дополнительно проверяет ноль D ingest callbacks для повреждённой группы, отсутствие
+result/остатков scratch, неизменность source SHA-256 и ранее завершённого D dataset,
+его независимые spatial counts. B2 fixtures/CWD находятся внутри собственных temporary
+directories на D:, CWD восстанавливается RAII и при assertions. Valid absolute builds
+с callback-сменой CWD сохраняют точные paths, output counts и source bytes. UNC probes
+не обращаются к share: это validation/cancellation tests, не сетевой I/O.
+
+### D. Команды и результаты Debug/Release
+
+Debug/Release headless targets собраны тем же toolchain/локальным `task02-env.cmd`.
+После финального production изменения перелинкованы builder/storage/mapping tests
+и Release benchmark. Configure/dependency changes не понадобились. Discovery Debug,
+затем Release выполнены последовательно: **1214/1214 case-sensitive уникальных имён**
+в каждой конфигурации; совпадающая production headless выборка — **827/827**.
+В ней builder **128**, DensityStorage **115**, RasterMapping **14**, Recovery **68**.
+
+Фактические команды (CMD-среда `build\task02-env.cmd`):
+
+```bat
+cmake --build --preset windows-debug --target density_builder_tests density_storage_tests raster_mapping_tests project_tests cache_tests persistence_tests asc_xyz_tests operation_tests import_application_tests nonzero_z_confirmation_tests save_tests open_tests recovery_tests dependency_smoke --parallel 4
+cmake --build --preset windows-release --target density_builder_tests density_storage_tests raster_mapping_tests project_tests cache_tests persistence_tests asc_xyz_tests operation_tests import_application_tests nonzero_z_confirmation_tests save_tests open_tests recovery_tests dependency_smoke density_builder_benchmark --parallel 4
+build\windows-debug\density_builder_tests.exe --gtest_filter=EventIntegrity.*:WindowsForms/*:WindowsSyntax/*:DriveAbsolute/* --gtest_output=xml:build/density063a-review-fixes/red-debug.xml
+ctest --preset windows-debug --show-only=json-v1
+ctest --preset windows-release --show-only=json-v1
+ctest --preset windows-debug -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-debug.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-debug.xml
+ctest --preset windows-release -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-release.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-release.xml
+build\windows-debug\open_tests.exe --gtest_filter=Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3 --gtest_repeat=10 --gtest_output=xml:build/density063a-review-fixes/open-debug-repeat.xml
+ctest --preset windows-debug -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-debug.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-review-fixes/headless-debug-rerun.xml
+```
+
+RED-команда запущена до production исправлений; её повтор после исправлений записан
+как `green-debug.xml` с тем же filter. Первый compile новых tests завершился ошибкой
+GTest macro parsing inline lambda с comma-initializers; generator вынесен в функцию,
+assertions не ослаблялись. Эта ошибка и **32 RED failures** сохранены в evidence.
+
+| Проверка | Debug | Release |
+|---|---|---|
+| Final build headless targets | PASS | PASS |
+| B1/B2 targeted tests | 44 PASS | Включены в полный PASS |
+| Builder / Storage / Mapping в широком наборе | 128 / 115 / 14 PASS | 128 / 115 / 14 PASS |
+| Первый широкий headless прогон | 825 PASS / 1 FAIL / 1 SKIP | 826 PASS / 0 FAIL / 1 SKIP |
+| Повтор широкого Debug после расследования | 826 PASS / 0 FAIL / 1 SKIP | N/A |
+| Fresh full-pipeline smoke 9×100k / audit | N/A | PASS |
+
+Единственный SKIP — `Persistence.StoragePath.FileSymlinkEscape`, privilege 1314.
+Recovery **68/68 PASS**; исключений для P3 не вводилось. Debug FAIL — отдельный
+`OpenApplication.Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3`:
+строка 590 увидела Closing вместо Ready. Проверка только этого case с `--gtest_repeat=10`
+дала **10 PASS / 0 FAIL**. Предыдущий FAIL этим не отменяется.
+
+Причинная граница проверена: Open executable link rule не содержит cadcontour_density,
+application/Open/helper source и CMake не изменялись. `finish()` ждёт только
+`!operation.active`; controller может после этого держать retired recovery sessions
+и запланированный `finishRecoverySessions()`. Это согласуется с наблюдением Closing;
+точный порядок в неуспешном запуске отдельно не инструментировался. Это наблюдение
+вне B1/B2, не исправление и не допустимый заранее Recovery P3 failure. Open assertions
+и production lifecycle не изменены.
+
+Старые проверки A–G не считаются подтверждением нового кода. История всех FAIL/SKIP,
+case names, commands, source hashes и compressed XML/logs —
+[новый evidence](../../benchmarks/density063a-review-fixes/).
+
+### E. Ресурсы, lifecycle и ограничения
+
+Сохраняются один scanAll, occupied-only grouping, immutable Mapping, checked counts,
+bounded buffers, retained diagnostic context и PendingDataset cleanup/ownership.
+Checksum входит в `Group`, а custom allocator до allocation проверяет фактический
+`sizeof` tree node с новым полем. Отдельных arrays/containers/passes нет; ожидаемый CRC
+накапливается в scan/grouping, фактический — в существующем чтении spools по ≤64 KiB.
+CRC work входит в bounded I/O chunks и их существующие timers/checkpoints. Сохранены
+проверки length, partial-group indices, count, EOF и всех totals. Fingerprint metadata
+не сериализуется: event payload по-прежнему ровно `4*N`, D bytes/layout не меняются.
+Fresh Release smoke — **9 builds по 100 000 points**, с независимой сверкой всех
+tile keys/shapes/counts и implicit zeros. Каждый source — 2 498 560 bytes,
+37 point pages, 40 read/seek operations; каждый build scanAll=1/spatial=0,
+event write/read по 400 000 bytes и D opens=5. При одинаковой occupancy metadata
+совпала с историческим allocator accounting: 128 / 1088 / 4160 / 8256 / 16448 bytes
+для 1 / 16 / 64 / 128 / 256 групп. На MSVC node остался 64 bytes: CRC занял padding,
+а не исключён из accounting. Максимумы smoke: working 13 309 568, metadata 16 448,
+scratch/combined 1 138 624 / 1 795 712 bytes, files 261 / handles 5.
+
+Historical audit старого million-point JSON повторён PASS отдельно; он не является
+новым измерением. Исходные artifacts/harness не менялись. Размер 100k выбран для
+нескольких event flushes и spool read chunks, count >65535 и source paging;
+новой million-point performance серии не запускалось. Отдельный CRC timer/call
+counter не вводился; CRC fault-proof дают dedicated regressions. Сравнение старого
+1M и нового 100k используется только для metadata при равной occupancy, не CPU/I/O.
+Wire formats Point Cache/D, FP semantics и application publication не меняются.
+UNC syntax validation не означает проверку сетевого I/O; physical UNC/cold-HDD,
+physical device faults и representative real scans требуют отдельного окружения.
+
+### F. Готовность к повторному ревью
+
+**B1/P1 — FIXED; B2/P2 — FIXED. READY FOR INDEPENDENT REVIEW.** Финальный код прошёл
+128 builder / 115 storage / 14 mapping tests в обеих конфигурациях, новый full-pipeline
+smoke и независимый audit. Фактический первый Open FAIL и его расследование сохранены
+как отдельное наблюдение; повторный широкий Debug и Release прошли с единственным
+symlink SKIP. Новых изменений Open lifecycle или ослабления assertions нет.
+
+Код готов к повторному независимому ревью двух блокеров и к будущему adapter 06.3B;
+сам adapter, версии/GUI/persistence не реализованы. Самостоятельная проверка не является
+принятием 06.3A или всего этапа 06.3. Перед commit просмотрен diff и выполнен
+`git diff --check`; push не выполнялся.

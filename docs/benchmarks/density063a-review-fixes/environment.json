@@ -1,0 +1,83 @@
+{
+  "collectedAtUtc": "2026-11-05T12:01:02.9178658Z",
+  "classification": "Fresh full-pipeline correctness/resource smoke after B1/B2 production freeze; timings retained as samples, not a new performance recommendation",
+  "runEnvironment": {
+    "architecture": "x86_64",
+    "cacheCondition": "uncontrolled OS cache; source just prepared/reused; never claimed cold",
+    "compiler": "MSVC 19.51.36260.0",
+    "configuration": "Release",
+    "cpu": "Intel64 Family 6 Model 158 Stepping 9, GenuineIntel",
+    "cpuDefinition": "GetProcessTimes kernel+user delta in 100ns ticks; build-only",
+    "device": "\\\\?\\Volume{db953991-9984-4193-8397-491f2c9afecb}\\",
+    "executableSha256": "82fcb3bacb4f66776f3285c3697c6f2e165a622d156e6e4bdf316081b86e9064",
+    "fileSystem": "NTFS",
+    "gitStatus": "M docs/algorithms.md\n M docs/architecture.md\n M docs/reports/task-06/density-builder.md\n M src/density/density_builder.cpp\n M src/density/density_builder.h\n M tests/density_builder_tests.cpp\n?? docs/benchmarks/density063a-review-fixes/",
+    "head": "03fd6e2480710e6a959411d6623621710ec209f5",
+    "mediaModel": "not detected by harness; see accompanying environment evidence",
+    "memoryDefinition": "working-set snapshots before/after build; Windows peak is process-lifetime and includes preparation/oracle",
+    "msvcFullVersion": "195136260",
+    "os": "Windows 10 Version 22H2",
+    "physicalRamBytes": "17135476736",
+    "processIoDefinition": "GetProcessIoCounters build-only logical transfer/operation deltas; not physical disk I/O",
+    "qt": "6.12.0",
+    "scratchParent": "D:/ZherlitsynEE/CADContour2D/build",
+    "utc": "2026-11-05T11:56:32.223Z",
+    "volume": "D:/"
+  },
+  "sourceSha256": {
+    "src/density/density_builder.cpp": "511146ef5670ea2580dae4d74d9dc1a0ca7698f5b5ad9771c666655e436500d3",
+    "src/density/density_builder.h": "7ad81b54b2b8390ce3b0a126c6bbb62c4b61730d850f493fa3b9b36615bbedcf",
+    "src/density/density_storage.cpp": "656ab218c0e2c20061b77027c4b08e78a6a201f4da9cc139399938dceeff6a55",
+    "src/density/density_storage.h": "34f317adc26ceb878072bed12f52515fceb490e9d529bd14a97a16c57d1c5649",
+    "src/core/raster_mapping.cpp": "6f5639c0a53b2588ae6bf3546387de312bbf4faf53d49d06faec8f57330d1e00",
+    "src/core/raster_mapping.h": "67228b1ba1bcfa5b963af451427a5ebbece47565d9876c1c355fe34dcdace4dc",
+    "src/cache/cache_reader.cpp": "3b54dd1fe1a553218338a29122a8eecff614c607711e4b2a8c5a4dd5af294900",
+    "src/cache/cache_writer.cpp": "b39b8012652107b2710107291f36b1f382dd5b7e930aa06dd5d3d9dbcbf6c77d",
+    "CMakeLists.txt": "a6fedbffcbfc0d28eca231bd1b4c36b1e7b49dad7ff98f1259360be3d2db0875",
+    "tools/density_builder_benchmark/main.cpp": "0d44d06a3a06bcbed61dfd278c725d2082eb8235abbb99512de455d13bc605d6",
+    "tools/density_builder_benchmark/CMakeLists.txt": "ed389d70a0822feb2bc668c00a79f6dee428f18604e5b63e6220c74835c1d509",
+    "tools/density_builder_benchmark/audit.py": "f7f68b6df0a056fd4458f381a5ed747a5b0dafde2f21119134162aab21817e27",
+    "tests/density_builder_tests.cpp": "1b5a09e028220337a061d498451429c57c9b626d5d42f4f6b89e2e1c1776df3d"
+  },
+  "executableSha256": "82fcb3bacb4f66776f3285c3697c6f2e165a622d156e6e4bdf316081b86e9064",
+  "productionObjectSha256": "c56d19f867389e2c51fbfd9b934939bcba3517c3f526ab751a094fcd7e62afb5",
+  "productionLibrarySha256": "9e96bf5b62e5087106f927450357ba5db3061d864beafcab4dcd6c7fefe82cda",
+  "freshDataSha256": "f0c9230083c22440c1d38e90822ccc5eab4acee8ab70864fb33c9b3750228683",
+  "historicalDataSha256": "2d793c03a71b9724afb32bfdb3775effaba1ef52e36ad5c464b093070f087563",
+  "oldArtifactsAndHarnessUnchanged": {
+    "exitCode": 0,
+    "command": "git diff --exit-code HEAD -- docs/benchmarks/density063a tools/density_builder_benchmark"
+  },
+  "CPU": {
+    "Name": "Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz",
+    "NumberOfCores": 4,
+    "NumberOfLogicalProcessors": 4
+  },
+  "OS": {
+    "Caption": "Майкрософт Windows 10 Pro",
+    "Version": "10.0.19045",
+    "BuildNumber": "19045",
+    "OSArchitecture": "64-разрядная"
+  },
+  "RAM": {
+    "TotalPhysicalMemory": 17135476736
+  },
+  "storage": {
+    "Number": 1,
+    "FriendlyName": "Hitachi HDS721050CLA362",
+    "BusType": "SATA",
+    "Size": 500107862016
+  },
+  "commands": [
+    "cmake --build --preset windows-release --target density_builder_benchmark --parallel 4",
+    "build/windows-release/density_builder_benchmark.exe D:/ZherlitsynEE/CADContour2D/build D:/ZherlitsynEE/CADContour2D/docs/benchmarks/density063a-review-fixes/smoke-release-100k.json 100000",
+    "python tools/density_builder_benchmark/audit.py docs/benchmarks/density063a-review-fixes/smoke-release-100k.json"
+  ],
+  "callbackAndIOFaultProof": "Performed by dedicated B1/B2 regressions, not by this untampered smoke",
+  "limitations": [
+    "No separately instrumented CRC-call counter or isolated CRC CPU timing",
+    "No old 100k baseline available; historical 1M rows used only to compare metadata at equal occupied-group counts",
+    "No physical disk I/O or per-build/per-phase process memory peak",
+    "OS cache uncontrolled; no cold-HDD, UNC I/O, physical disk faults, representative real scans or 42M pipeline run"
+  ]
+}
