@@ -759,9 +759,10 @@ source-order pages и тем же BBox index, в том числе на HDD, п�
 **ACCEPTED WITH LIMITATIONS** пользователем 2026-10-29 после независимого
 **READY WITH LIMITATIONS** и отдельного Recovery P3.
 [Принятие и границы](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
-Storage-зависимость для проектирования/реализации 06.3 выполнена; следующий шаг —
-спецификация 06.3A. 06.3–06.8 не начаты, задача 06 целиком — IN PROGRESS;
-полный builder и application-интеграция Density Map отсутствуют.
+В 06.3A реализован самостоятельный синхронный headless builder Point Cache → C1 → D.
+Его собственные проверки и измерения приведены в [отчёте 06.3A](reports/task-06/density-builder.md);
+это не независимое принятие. Application-интеграция 06.3B и этапы 06.4–06.8
+не реализованы; задача 06 целиком остаётся IN PROGRESS.
 Исторические отчёты не меняются; основания и пределы —
 [algorithms.md, §6](algorithms.md#6-построение-density-map), этапы —
 [implementation-plan.md, задача 06](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -823,21 +824,47 @@ TIFF/BigTIFF остаётся исследованной альтернатив�
 Каждое исходное измерение учитывается ровно один раз, включая совпадающие повторы.
 После последовательного чтения обрабатываются только фактически занятые raster
 группы, без обязательного обхода пустых. Checked counts передаются в writer D.
-Construction group 512×512 — первоначальный инженерный кандидат; storage tile
+Construction group 512×512 — начальный инженерный профиль; storage tile
 и construction group имеют разные роли. C2 (Grouped Spatial Queries) остаётся
 исследованной альтернативой; второй production-алгоритм/автовыбор не предусматриваются
 без новых доказательств необходимости.
 
-Worker работает по snapshot с retained immutable cache reference, строит собственные
-scratch и completed dataset и не меняет ProjectState постепенно. RAM, scratch,
-число файлов/handles и output ограничены политикой §41. Failure/cancel/resource
-refusal не публикуют частичную карту и очищают собственные временные ресурсы.
-Готовый файл и metadata принимаются атомарно через application gate (§§24–26).
+`DensityBuilder::build` копирует request до callbacks и удерживает immutable physical
+binding `ImportedDataset` до завершения. Собственный CacheReader сверяет CacheId,
+count и исходные bounds; mapping создаётся factory 06.1, каждая запись проходит locate.
+Physical source path, output и scratch parent обязаны быть абсолютными: callback
+или другой caller не меняет их смысл сменой рабочего каталога. Relative paths отклоняются.
+Пустой source отклоняется, непустые degenerate axes поддержаны. Builder не создаёт
+потоков и не зависит от ProjectState/GUI. Он возвращает move-only завершённый
+PendingDataset, scalar statistics либо structured error, без application Accept.
 
-Полный Point Cache → C1 → D ещё не проверен. Compression CPU cost, time/memory/I/O,
-physical cold-HDD/network profile и representative real scans подлежат оценке
-в 06.3/06.8, без повторения всего 06.0. Benchmarks не являются нормативами времени
-или доказательством Rough detection.
+Bounded event chunks сортируются по паре uint64 group coordinates. LE uint32 local
+indices дописываются только в occupied spools; проверены local area и partial edges.
+После scan reader/event chunk освобождаются, группы обрабатываются с повторным
+использованием counts/read/tile buffers. Ненулевые tiles передаются штатному D Writer
+ровно один раз; source/scanned/events/accumulated/tile/D totals обязаны совпасть.
+Полного raster allocation, списка output descriptors или второго readback builder нет.
+
+Единая caller policy ограничивает phase RAM reservations, фактические allocations
+occupied metadata, logical scratch/output/combined bytes, existing files/handles,
+cumulative work checkpoints и отдельно mapping boundary checks. Ноль не означает
+unlimited. Резерв полного event payload 4×pointCount консервативно остаётся выделен
+до D finish; D получает остаток, даже когда spools уже удалены. Это может отказать
+раньше политики с динамическим переиспользованием disk budget. Accounting не является
+process/OS hard cap, physical file allocation или гарантией свободного места.
+
+Cancel/progress callbacks noexcept с borrowed context до возврата; late diagnostic
+context удерживается shared ownership внутри PendingDataset. Cleanup ограничен своим
+уникальным scope; source, parent и прежние datasets не удаляются. Cleanup failure
+диагностируется отдельно, а после finish до return исключает success. Последний cancel
+checkpoint предшествует возврату. Форматы D/Point Cache/manifest не меняются.
+
+06.3B должен связать immutable request → PendingDataset с существующим OperationRunner
+и application gate (§§24–26), сохраняя applicability и ownership handoff. Ready/Accept/
+Discard, publication permission и выбор версии в 06.3A не добавлены. Каталог версий,
+выбор/Undo — 06.4. Synthetic full-pipeline проверки не подтверждают Rough detection;
+physical cold-HDD/UNC, representative real scans и power-loss остаются непроверенными.
+Benchmarks не задают нормативов времени, размеров карты или числа occupied files.
 
 ### 15.3. Версии и рабочий выбор
 

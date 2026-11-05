@@ -1,0 +1,6 @@
+{
+  "command": "cmd /c build\\task02-env.cmd ctest --preset windows-debug -R \"^(DensityBuilder\\.|DensityStorage\\.|RasterMapping\\.)\" --output-on-failure",
+  "result": "COMMAND FAILED before CTest: CMD parsed the unescaped pipe; no tests executed",
+  "diagnostic": "'DensityStorage\\.' is not recognized as an internal or external command, operable program or batch file.",
+  "resolution": "Used unique selected test names with --tests-from-file; successful targeted run saved separately."
+}

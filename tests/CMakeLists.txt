@@ -10,6 +10,13 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(density_builder_tests density_builder_tests.cpp)
+set_target_properties(density_builder_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(density_builder_tests PRIVATE cadcontour_density GTest::gtest_main)
+target_compile_options(density_builder_tests PRIVATE /W4 /permissive- /fp:strict /utf-8)
+gtest_discover_tests(density_builder_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX DensityBuilder.
+    PROPERTIES LABELS production TIMEOUT 60)
+
 add_executable(density_storage_tests density_storage_tests.cpp)
 set_target_properties(density_storage_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(density_storage_tests PRIVATE cadcontour_density ZLIB::ZLIB GTest::gtest_main)

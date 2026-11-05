@@ -338,6 +338,29 @@ construction group 512×512; это не неизменяемые оптимал
 C2 (Grouped Spatial Queries) и TIFF/BigTIFF остаются исследованными альтернативами;
 два production-алгоритма и автоматический выбор без новых доказательств не нужны.
 
+В 06.3A этот путь реализован в синхронном headless builder. Immutable request
+фиксирует retained source, cell и ресурсный профиль. Проверенный factory mapping
+назначает каждую запись ровно одной ячейке; group key — пара uint64, local index —
+checked uint32, event encoding — LE. Group side кратен storage side и не меняет
+mapping или результат. Partial groups/tiles сохраняют X-fast row strides.
+Ограниченные chunks группируются независимо, повторная группа может дополняться
+в разных chunks. Обходятся только зарегистрированные occupied spools; count buffers
+переиспользуются, нулевые tiles пропускаются, остальные идут штатному D Writer.
+На успехе source/scanned/events written/read/accumulated/tile/D totals совпадают.
+Ни source spatial queries, ни повторного source scan, ни полного raster allocation нет.
+
+RAM зависит от bounded event chunk, фактической occupied metadata, group/tile buffers
+и резервов reader/D. Events занимают ровно 4×N logical payload bytes; directories,
+filesystem allocation и OS caches этой величиной не измеряются. Общая policy проверяет
+phase RAM, metadata, scratch/output/combined disk, existing files/handles и work
+до allocation/операций. Резерв 4×N остаётся закреплён за events до D finish, даже
+после удаления spools; это консервативное ограничение текущей реализации.
+Mapping имеет отдельный boundary-work budget. Общий work счётчик дополнительно
+заряжает point/sort-comparison/group/tile-row/I/O и component checkpoints;
+это проверяемая мера работы, не оценка wall-clock deadline.
+Сложность всего pipeline не объявляется O(N): mapping проверяет оси,
+event chunks и D descriptors сортируются, registry зависит от occupancy.
+
 Event scratch зависит от числа измерений; число spool-файлов — от занятых групп.
 Preflight учитывает подтверждённые обязательные расходы и консервативные верхние
 границы, но неизвестная разреженность сама по себе не оправдывает отказ на заведомо
@@ -421,8 +444,10 @@ Canvas/ROI/rough должны получать соответствие чере
 [отчёт 06.1](reports/task-06/raster-foundation.md). 06.1 — **ACCEPTED WITH LIMITATIONS**
 по решению пользователя от 2026-10-29 после независимого ревью;
 [основания и ограничения](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-Зависимости 06.1/06.2 для проектирования/реализации 06.3 выполнены в принятых границах.
-Следующий шаг — спецификация 06.3A; 06.3–06.8 не начаты, задача 06 целиком — IN PROGRESS.
+Зависимости 06.1/06.2 выполнены в принятых границах. Headless builder 06.3A реализован;
+его [проверки, измерения и ограничения](reports/task-06/density-builder.md) не заменяют
+независимого принятия. 06.3B (application publication) и 06.4–06.8 не реализованы,
+задача 06 целиком остаётся IN PROGRESS.
 Исторический experimental ceil mapping 06.0 сохранён в стенде без изменений.
 
 ### Counts → intensity/mask → display
@@ -450,9 +475,14 @@ Canvas/ROI/rough должны получать соответствие чере
   Проверены synthetic profiles до 4096 занятых spool groups и 42M measurements
   на регулярной узкой полосе. Исторический вердикт 06.0D сохраняется отдельно.
 
-Полный pipeline Point Cache → C1 → D, CPU cost сжатия, physical cold-HDD/network I/O
-и representative real scans ещё не проверены. Их оценка — реализация и приёмка 06.3/06.8,
-без повторения всего исследования 06.0 и без произвольных нормативов CPU/time/map size.
+- [06.3A: production headless builder](reports/task-06/density-builder.md),
+  [full-pipeline evidence](benchmarks/density063a/README.md): synthetic spatial oracle,
+  lifecycle/resource/fault проверки и адресные измерения полного pipeline.
+
+Physical cold-HDD/UNC, representative real scans и физические отказы диска в 06.3A
+не проверялись; synthetic evidence не подтверждает Rough detection и эксплуатационные
+пределы. CPU/time/map-size нормативы не вводятся; addTile time не считается отдельным
+измерением Deflate. Application applicability/publication остаётся 06.3B.
 
 ---
 

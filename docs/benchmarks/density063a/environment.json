@@ -1,0 +1,91 @@
+{
+  "collectedAtUtc": "2026-11-05T09:57:11.60305Z",
+  "measurementEnvironment": {
+    "architecture": "x86_64",
+    "cacheCondition": "uncontrolled OS cache; source just prepared/reused; never claimed cold",
+    "compiler": "MSVC 19.51.36260.0",
+    "configuration": "Release",
+    "cpu": "Intel64 Family 6 Model 158 Stepping 9, GenuineIntel",
+    "cpuDefinition": "GetProcessTimes kernel+user delta in 100ns ticks; build-only",
+    "device": "\\\\?\\Volume{db953991-9984-4193-8397-491f2c9afecb}\\",
+    "executableSha256": "b03421949c323917fb86ec265e95340053f0e87a65920fd793512b6bc9be47bb",
+    "fileSystem": "NTFS",
+    "gitStatus": "M CMakeLists.txt\n M README.md\n M docs/README.md\n M docs/algorithms.md\n M docs/architecture.md\n M docs/implementation-plan.md\n M src/density/density_storage.cpp\n M src/density/density_storage.h\n M tests/CMakeLists.txt\n?? docs/benchmarks/density063a/\n?? docs/reports/task-06/density-builder.md\n?? src/density/density_builder.cpp\n?? src/density/density_builder.h\n?? tests/density_builder_tests.cpp\n?? tools/density_builder_benchmark/",
+    "head": "20a74277f3b077a8e52348264d876d266908af04",
+    "mediaModel": "not detected by harness; see accompanying environment evidence",
+    "memoryDefinition": "working-set snapshots before/after build; Windows peak is process-lifetime and includes preparation/oracle",
+    "msvcFullVersion": "195136260",
+    "os": "Windows 10 Version 22H2",
+    "physicalRamBytes": "17135476736",
+    "processIoDefinition": "GetProcessIoCounters build-only logical transfer/operation deltas; not physical disk I/O",
+    "qt": "6.12.0",
+    "scratchParent": "D:/ZherlitsynEE/CADContour2D/build",
+    "utc": "2026-11-05T09:55:31.307Z",
+    "volume": "D:/"
+  },
+  "CPU": {
+    "Name": "Intel(R) Core(TM) i5-7500 CPU @ 3.40GHz",
+    "NumberOfCores": 4,
+    "NumberOfLogicalProcessors": 4
+  },
+  "OS": {
+    "Caption": "Майкрософт Windows 10 Pro",
+    "Version": "10.0.19045",
+    "BuildNumber": "19045",
+    "OSArchitecture": "64-разрядная"
+  },
+  "RAM": {
+    "TotalPhysicalMemory": 17135476736
+  },
+  "measuredVolume": {
+    "Number": 1,
+    "FriendlyName": "Hitachi HDS721050CLA362",
+    "BusType": "SATA",
+    "Size": 500107862016
+  },
+  "cmakeVersion": "3.30.5",
+  "ninjaVersion": "1.12.1",
+  "compileContract": "C++20; Release preset; target /W4 /permissive- /fp:strict /utf-8; production Raster Mapping /fp:strict unchanged",
+  "sourceSha256": {
+    "src/density/density_builder.cpp": "70c930dc0ad527454c685eeee07196dde4f67d154d695b746b22cd3b4e724d26",
+    "src/density/density_builder.h": "501ce8bb55f94f47eed07979912d2ab40b306fcb3786a75b85baef56105c5cab",
+    "src/density/density_storage.cpp": "656ab218c0e2c20061b77027c4b08e78a6a201f4da9cc139399938dceeff6a55",
+    "src/density/density_storage.h": "34f317adc26ceb878072bed12f52515fceb490e9d529bd14a97a16c57d1c5649",
+    "src/core/raster_mapping.cpp": "6f5639c0a53b2588ae6bf3546387de312bbf4faf53d49d06faec8f57330d1e00",
+    "src/cache/cache_reader.cpp": "3b54dd1fe1a553218338a29122a8eecff614c607711e4b2a8c5a4dd5af294900",
+    "CMakeLists.txt": "a6fedbffcbfc0d28eca231bd1b4c36b1e7b49dad7ff98f1259360be3d2db0875",
+    "tools/density_builder_benchmark/main.cpp": "0d44d06a3a06bcbed61dfd278c725d2082eb8235abbb99512de455d13bc605d6",
+    "tools/density_builder_benchmark/CMakeLists.txt": "ed389d70a0822feb2bc668c00a79f6dee428f18604e5b63e6220c74835c1d509",
+    "tools/density_builder_benchmark/audit.py": "f7f68b6df0a056fd4458f381a5ed747a5b0dafde2f21119134162aab21817e27"
+  },
+  "executableSha256": "b03421949c323917fb86ec265e95340053f0e87a65920fd793512b6bc9be47bb",
+  "evidenceSha256": "2d793c03a71b9724afb32bfdb3775effaba1ef52e36ad5c464b093070f087563",
+  "finalMeasuredRunPath": "build/density063a-release-final.json",
+  "priorPassEvidence": [
+    {
+      "path": "build/density063a-evidence/release-before-snapshot.json",
+      "status": "PASS",
+      "sha256": "9cc72108274d4849b48db94a98b22f739d07c12ae82a5b107bb925d3abe3b9b9"
+    },
+    {
+      "path": "build/density063a-evidence/environment-before-snapshot.json",
+      "status": "PASS measurement environment",
+      "sha256": "797ef3de89892a100c34002b10b3ede0fd546619cf439980ecf351dc1f714226"
+    }
+  ],
+  "priorSmoke": {
+    "path": "build/density063a-smoke-final.json",
+    "status": "PASS, before final selective source snapshot fix",
+    "sha256": "ec9f21034bacd2348ce66625d71a4d7c6bab713faf977c2db00891a787a4cd9b",
+    "executableSha256": "cc38bb12d68bf3f620974a18eb985ba8d0ffae5f0b769f8e1f9726e527e8c1a8",
+    "runRevision": "20a74277f3b077a8e52348264d876d266908af04",
+    "sourceHashCollection": "Not separately captured at smoke time; archived before-snapshot environment contains source hashes for the prior 1M matrix using the identical executable SHA-256"
+  },
+  "initialSmokeSha256": "8ae0564462a1ab0ee37fe3f107072c542950c3e8634a943343b66a2d59ffa797",
+  "limitations": [
+    "No physical disk I/O monitor",
+    "OS cache uncontrolled; never claimed cold",
+    "Windows peak working set is process-lifetime, includes preparation and oracle",
+    "No real scans, UNC, physical disk faults or 42M pipeline trial"
+  ]
+}

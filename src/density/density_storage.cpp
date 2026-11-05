@@ -126,6 +126,7 @@ struct Context {
         for (std::size_t done = 0; done < bytes.size();) {
             check(); auto n = std::min<std::size_t>(bytes.size() - done, ioChunk);
             cacheStatus(cache::file::readExact(device, bytes.subspan(done, n)), phase);
+            stats.readOperations = add(stats.readOperations, 1);
             stats.readBytes = add(stats.readBytes, n); done += n;
         }
     }
@@ -137,6 +138,7 @@ struct Context {
         for (std::size_t done = 0; done < bytes.size();) {
             check(); auto n = std::min<std::size_t>(bytes.size() - done, ioChunk);
             cacheStatus(cache::file::writeExact(device, bytes.subspan(done, n)), phase);
+            stats.writeOperations = add(stats.writeOperations, 1);
             stats.writtenBytes = add(stats.writtenBytes, n); done += n;
         }
     }
@@ -357,14 +359,18 @@ Result<Shape> tileShape(U64 width, U64 height, std::uint32_t side, TileKey key)
 {
     return attempt<Shape>(Phase::Metadata, [&] { return shape(width, height, side, key); });
 }
-PendingDataset::PendingDataset(cache::PublishedFile file, Metadata metadata, Diagnostic diagnostic, void *context)
-    : file_(std::move(file)), metadata_(std::move(metadata)), diagnostic_(diagnostic), diagnosticContext_(context) {}
+PendingDataset::PendingDataset(cache::PublishedFile file, Metadata metadata, Diagnostic diagnostic, void *context,
+    std::shared_ptr<void> diagnosticRetention)
+    : file_(std::move(file)), metadata_(std::move(metadata)), diagnostic_(diagnostic), diagnosticContext_(context),
+      diagnosticRetention_(std::move(diagnosticRetention)) {}
 PendingDataset::PendingDataset(PendingDataset &&other) noexcept
-    : file_(std::move(other.file_)), metadata_(std::move(other.metadata_)), diagnostic_(other.diagnostic_), diagnosticContext_(other.diagnosticContext_) {}
+    : file_(std::move(other.file_)), metadata_(std::move(other.metadata_)), diagnostic_(other.diagnostic_),
+      diagnosticContext_(other.diagnosticContext_), diagnosticRetention_(std::move(other.diagnosticRetention_)) {}
 PendingDataset &PendingDataset::operator=(PendingDataset &&other) noexcept
 {
     if (this != &other) { discard(); file_ = std::move(other.file_); metadata_ = std::move(other.metadata_);
-        diagnostic_ = other.diagnostic_; diagnosticContext_ = other.diagnosticContext_; }
+        diagnostic_ = other.diagnostic_; diagnosticContext_ = other.diagnosticContext_;
+        diagnosticRetention_ = std::move(other.diagnosticRetention_); }
     return *this;
 }
 PendingDataset::~PendingDataset() { discard(); }
@@ -401,6 +407,7 @@ struct Reader::Impl {
     {
         c.phase = Phase::Open; c.check(); budget(1, c.policy.openFiles, c.phase, "Reader handle budget");
         if (!file.open(QIODevice::ReadOnly)) deviceFailure(file, c.phase);
+        c.stats.openOperations = add(c.stats.openOperations, 1);
         const auto actualSize = cache::file::size(file);
         if (!actualSize) cacheStatus(actualSize.error(), c.phase);
         need(actualSize.value() >= headerSize + footerSize, ErrorCode::IncompleteDataset, c.phase, "Truncated density envelope");
@@ -534,8 +541,10 @@ struct Writer::Impl {
     std::atomic<bool> active = false;
     Diagnostic diagnostic;
     void *diagnosticContext;
-    Impl(Metadata m, ResourcePolicy policy, CancelCheck cancel, void *context, Diagnostic d, void *dc)
-        : c{policy}, metadata(std::move(m)), diagnostic(d), diagnosticContext(dc)
+    std::shared_ptr<void> diagnosticRetention;
+    Impl(Metadata m, ResourcePolicy policy, CancelCheck cancel, void *context, Diagnostic d, void *dc,
+         std::shared_ptr<void> retention)
+        : c{policy}, metadata(std::move(m)), diagnostic(d), diagnosticContext(dc), diagnosticRetention(std::move(retention))
     { c.cancel = cancel; c.cancelContext = context; }
     ~Impl() { cleanup(); }
     void cleanup() noexcept
@@ -568,7 +577,9 @@ struct Writer::Impl {
         const U64 end = add(candidatePosition, b.size()); reserve(3, std::max(sizes[3], end));
         for (std::size_t done = 0; done < b.size();) {
             c.check(); auto n = std::min<std::size_t>(ioChunk, b.size() - done);
-            cacheStatus(staged->write(b.subspan(done, n)), c.phase); c.stats.writtenBytes = add(c.stats.writtenBytes, n); done += n;
+            cacheStatus(staged->write(b.subspan(done, n)), c.phase);
+            c.stats.writeOperations = add(c.stats.writeOperations, 1);
+            c.stats.writtenBytes = add(c.stats.writtenBytes, n); done += n;
         }
         candidatePosition = end;
     }
@@ -594,9 +605,11 @@ struct Writer::Impl {
         auto file = cache::StagedFile::create(path);
         if (!file) cacheStatus(file.error(), Phase::Open);
         staged = std::move(file.value());
+        c.stats.openOperations = add(c.stats.openOperations, 1);
         for (auto &scratchFile : scratch) {
             c.check(); scratchFile = std::make_unique<QTemporaryFile>(QDir(parent).filePath(QStringLiteral(".pc2d-density-XXXXXX.tmp")));
             if (!scratchFile->open()) deviceFailure(*scratchFile, Phase::Open);
+            c.stats.openOperations = add(c.stats.openOperations, 1);
         }
         c.check();
     }
@@ -729,7 +742,8 @@ struct Writer::Impl {
             auto opened = Reader::openReader(staged->temporaryPath(), policy, c.cancel, c.cancelContext);
             if (!opened) throw Failure{opened.error()};
             auto reader = std::move(opened.value());
-            const auto openWork = reader->statistics().workUnits;
+            const auto openStatistics = reader->statistics();
+            const auto openWork = openStatistics.workUnits;
             budget(add(c.stats.workUnits, openWork), c.policy.workUnits, c.phase, "Readback open work budget"); c.stats.workUnits += openWork;
             const auto remaining = c.policy.workUnits - c.stats.workUnits;
             // Reader's per-operation budget is the remaining writer work budget.
@@ -738,6 +752,8 @@ struct Writer::Impl {
             if (!checked) throw Failure{checked.error()};
             c.stats.workUnits = add(c.stats.workUnits, reader->statistics().workUnits);
             c.stats.readBytes = add(c.stats.readBytes, reader->statistics().readBytes);
+            c.stats.readOperations = add(c.stats.readOperations, reader->statistics().readOperations);
+            c.stats.openOperations = add(c.stats.openOperations, openStatistics.openOperations);
             c.stats.codecPeak = std::max(c.stats.codecPeak, reader->statistics().codecPeak);
             c.stats.mappingNanoseconds = add(c.stats.mappingNanoseconds, reader->statistics().mappingNanoseconds);
             c.stats.readbackNanoseconds = static_cast<U64>(timer.nsecsElapsed());
@@ -754,10 +770,12 @@ const Statistics &Writer::statistics() const noexcept { return impl_->c.stats; }
 void Writer::setFaultHook(Status (*hook)(Phase, void *) noexcept, void *context)
 { impl_->c.hook = hook; impl_->c.hookContext = context; }
 Result<std::unique_ptr<Writer>> Writer::create(const QString &path, Metadata metadata, ResourcePolicy policy,
-    const QString &parent, CancelCheck cancel, void *context, Diagnostic diagnostic, void *diagnosticContext)
+    const QString &parent, CancelCheck cancel, void *context, Diagnostic diagnostic, void *diagnosticContext,
+    std::shared_ptr<void> diagnosticRetention)
 {
     return attempt<std::unique_ptr<Writer>>(Phase::Metadata, [&] {
-        auto impl = std::make_unique<Impl>(std::move(metadata), policy, cancel, context, diagnostic, diagnosticContext);
+        auto impl = std::make_unique<Impl>(std::move(metadata), policy, cancel, context, diagnostic, diagnosticContext,
+                                         std::move(diagnosticRetention));
         impl->initialize(path, parent); return std::unique_ptr<Writer>(new Writer(std::move(impl)));
     });
 }
@@ -785,7 +803,8 @@ Result<PendingDataset> Writer::finish()
                 cacheStatus(published.error(), Phase::Publish);
             }
             impl_->staged.reset();
-            PendingDataset pending(std::move(published.value()), impl_->metadata, impl_->diagnostic, impl_->diagnosticContext);
+            PendingDataset pending(std::move(published.value()), impl_->metadata, impl_->diagnostic,
+                                   impl_->diagnosticContext, impl_->diagnosticRetention);
             impl_->c.phase = Phase::Publish; impl_->c.check();
             impl_->cleanup(); return pending;
         });

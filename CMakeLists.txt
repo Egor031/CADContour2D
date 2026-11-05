@@ -44,7 +44,8 @@ set_target_properties(cadcontour_cache PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_cache PUBLIC cadcontour_core Qt6::Core)
 target_compile_options(cadcontour_cache PRIVATE /W4 /permissive- /fp:precise /utf-8)
 
-add_library(cadcontour_density STATIC src/density/density_storage.h src/density/density_storage.cpp)
+add_library(cadcontour_density STATIC src/density/density_storage.h src/density/density_storage.cpp
+    src/density/density_builder.h src/density/density_builder.cpp)
 set_target_properties(cadcontour_density PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(cadcontour_density PUBLIC cadcontour_cache PRIVATE ZLIB::ZLIB)
 target_compile_options(cadcontour_density PRIVATE /W4 /permissive- /fp:precise /utf-8)
@@ -103,6 +104,7 @@ target_link_libraries(CADContour2D PRIVATE cadcontour_ui cadcontour_uiplugin Qt6
 include(CTest)
 option(CADCONTOUR2D_BUILD_TOOLS "Build development/test tools" OFF)
 if(CADCONTOUR2D_BUILD_TOOLS)
+    add_subdirectory(tools/density_builder_benchmark)
     add_executable(density_storage_benchmark tools/density_storage_benchmark.cpp)
     set_target_properties(density_storage_benchmark PROPERTIES AUTOMOC OFF AUTOUIC OFF)
     target_link_libraries(density_storage_benchmark PRIVATE cadcontour_density ZLIB::ZLIB Psapi)

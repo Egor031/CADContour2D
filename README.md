@@ -186,6 +186,13 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ### Configure / Build / Tests
 
+Headless builder 06.3A: target `density_builder_tests` проверяет полный
+Point Cache → C1 → D через независимый spatial oracle, а
+`density_builder_benchmark` (opt-in `CADCONTOUR2D_BUILD_TOOLS=ON`) измеряет этот
+production pipeline. Это отдельные targets от исторического D/E и C1/C2 стенда.
+[Фактические команды, результаты Debug/Release и ограничения](docs/reports/task-06/density-builder.md#e-проверки),
+[benchmark и воспроизведение](tools/density_builder_benchmark/README.md).
+
 Хранилище D v1 (06.2): в том же MSVC-окружении проверены Debug/Release:
 
 ```bat
@@ -537,6 +544,25 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.3A — Headless Density Builder: READY FOR INDEPENDENT REVIEW.**
+Синхронный C++ entry point по immutable request/retained Point Cache делает ровно
+один scanAll, bounded event grouping и occupied-only checked accumulation,
+использует production mapping 06.1 и штатный D Writer, возвращает move-only
+завершённый PendingDataset. Общая policy ограничивает phase RAM, metadata,
+scratch/output/combined disk, files/handles и work; failure/cancel очищают только
+свои файлы. Diagnostic context удерживается до позднего discard результата.
+Независимый spatial oracle тестов и отдельный full-pipeline benchmark проверяют
+counts, shapes, keys и implicit zeros. [Результаты и статус](docs/reports/task-06/density-builder.md),
+[evidence](docs/benchmarks/density063a/README.md).
+Финальная headless regression Debug/Release: **782 PASS / 0 FAIL / 1 SKIP** из 783
+в каждой конфигурации, включая 84 builder, 115 storage и 14 mapping tests.
+SKIP — только Windows symlink privilege 1314. Полная synthetic matrix 9×1 млн
+и независимый audit — PASS; representative64 median 1.705 s, owned working
+reservation около 12.7 MiB. Это измерение указанного профиля, не норматив скорости.
+Это не принятие 06.3 целиком. OperationRunner/application publication — 06.3B,
+каталог версий/выбор/Undo — 06.4; они не реализованы. Форматы Point Cache/D/manifest
+и принятые 06.1/06.2/Recovery P3 сохранены.
+
 **06.2 D v1 — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
 Независимый вердикт на `8d622e0129ccdfa6de6f0ad75eba0845da9de1e3` —
 **READY WITH LIMITATIONS**, подтверждённых замечаний P0–P3 к D и storage-блокеров
@@ -575,17 +601,18 @@ scanAll с bounded events и обработкой только occupied groups. 
 независимого 06.0D — **INCONCLUSIVE**, выявлен P1; последующее закрытие P1 учитывается
 отдельно. Отчёты/evidence сохраняют исходные рекомендации и ограничения.
 
-**Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1
-и headless D storage 06.2. Полный builder/интеграция Density Map, Canvas и ROI
-не реализованы; **06.3–06.8 не начаты**. Следующий шаг — спецификация **06.3A**
-для C1 builder; реализация не начиналась.
+**Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1,
+headless D storage 06.2 и реализован самостоятельный builder 06.3A.
+Application-интеграция **06.3B** и **06.4–06.8 не начаты**; версии, Canvas и ROI
+ещё не реализованы. Собственные проверки 06.3A не заменяют независимого принятия.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).
-Storage side 256/512 поддержаны в D v1; group 512×512 — инженерный кандидат; экспериментальный D layout
-и occupied guard 1M не являются production format/лимитами. Полный Point Cache →
-C1 → D, CPU сжатия, physical cold-HDD I/O и representative real scans ещё не проверены;
-их оценка входит в 06.3/06.8. Исторический boundary/nextafter evidence 06.0
+Storage side 256/512 поддержаны в D v1; group 512×512 — начальный инженерный профиль;
+экспериментальный D layout и occupied guard 1M не являются production format/лимитами.
+Full-pipeline synthetic evidence относится к 06.3A; physical cold-HDD/UNC,
+representative real scans и отдельное время Deflate не подтверждены. Качество Rough
+этими проверками не оценивается. Исторический boundary/nextafter evidence 06.0
 дополнен отдельными production-проверками 06.1 выше.
 
 Ниже — исторические итоги экспериментов и принятых задач, а не новые проверки Close.

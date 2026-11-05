@@ -76,6 +76,7 @@ struct Tile { TileKey key; Shape shape; std::vector<U64> counts; };
 struct Statistics {
     U64 physicalTiles = 0, submissions = 0, total = 0;
     U64 readBytes = 0, writtenBytes = 0, decodedTiles = 0, indexReads = 0;
+    U64 readOperations = 0, writeOperations = 0, openOperations = 0;
     U64 workUnits = 0, bufferReserve = 0, codecPeak = 0, sortReserve = 0;
     U64 scratchPeak = 0, combinedDiskPeak = 0, outputBytes = 0, mergePasses = 0;
     U64 mappingNanoseconds = 0, sortNanoseconds = 0, copyNanoseconds = 0, readbackNanoseconds = 0;
@@ -95,12 +96,14 @@ public:
     QString releaseToOwner() noexcept;
 private:
     friend class Writer;
-    PendingDataset(cache::PublishedFile file, Metadata metadata, Diagnostic diagnostic, void *context);
+    PendingDataset(cache::PublishedFile file, Metadata metadata, Diagnostic diagnostic, void *context,
+                   std::shared_ptr<void> diagnosticRetention);
     void discard() noexcept;
     std::optional<cache::PublishedFile> file_;
     Metadata metadata_;
     Diagnostic diagnostic_;
     void *diagnosticContext_;
+    std::shared_ptr<void> diagnosticRetention_;
 };
 
 // Single-use, single-threaded owner; reentrant calls are rejected. Inputs borrowed
@@ -109,7 +112,8 @@ class Writer {
 public:
     static Result<std::unique_ptr<Writer>> create(const QString &finalPath, Metadata metadata,
         ResourcePolicy policy, const QString &scratchParent, CancelCheck cancel = nullptr,
-        void *context = nullptr, Diagnostic diagnostic = nullptr, void *diagnosticContext = nullptr);
+        void *context = nullptr, Diagnostic diagnostic = nullptr, void *diagnosticContext = nullptr,
+        std::shared_ptr<void> diagnosticRetention = {});
     ~Writer();
     Writer(const Writer &) = delete;
     Writer &operator=(const Writer &) = delete;
@@ -118,6 +122,7 @@ public:
     const Statistics &statistics() const noexcept;
 private:
     friend class DensityStorageTestAccess;
+    friend class DensityBuilder;
     struct Impl;
     explicit Writer(std::unique_ptr<Impl> impl);
     void setFaultHook(Status (*hook)(Phase, void *) noexcept, void *context);

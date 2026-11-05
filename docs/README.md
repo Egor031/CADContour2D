@@ -31,8 +31,9 @@ Canvas/display LOD. Raster Foundation 06.1 — `ACCEPTED WITH LIMITATIONS`
 Headless D v1 **06.2 — ACCEPTED WITH LIMITATIONS** пользователем 2026-10-29;
 независимый вердикт **READY WITH LIMITATIONS**, Recovery P3 отдельно **FIXED AND VERIFIED**.
 [Принятие, результаты по источникам и tracked evidence](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
-Зависимость для проектирования/реализации 06.3 выполнена; следующий шаг — спецификация 06.3A.
-Полный builder/интеграция Density Map, Canvas и ROI не реализованы, 06.3–06.8 не начаты.
+В 06.3A реализован самостоятельный синхронный headless builder Point Cache → C1 → D:
+[API, собственные проверки, измерения и ограничения](reports/task-06/density-builder.md).
+Это не независимое принятие. Application-интеграция 06.3B и 06.4–06.8 не начаты.
 Задача 06 целиком остаётся **IN PROGRESS**.
 [Архитектура](architecture.md#15-density-map),
 [численные условия и ограничения](algorithms.md#6-построение-density-map),
@@ -104,6 +105,7 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [06.0D/P1: sparse scaling C1](reports/task-06/density-construction-p1.md) — P1 закрыт с ограничениями.
 - [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; ACCEPTED WITH LIMITATIONS после независимого ревью и решения пользователя.
 - [06.2: Density storage](reports/task-06/density-storage.md#независимое-ревью-и-принятие) — **ACCEPTED WITH LIMITATIONS**, независимое ревью D `8d622e0` — **READY WITH LIMITATIONS**, storage-блокеров 06.3 нет; отдельный Recovery P3 `085a5f1` — **FIXED AND VERIFIED**. Исходный отчёт ревью и summary/hashes сохранены рядом с отчётом реализации.
+- [06.3A: Headless Density Builder](reports/task-06/density-builder.md) — production C1→D, независимый spatial oracle тестов, ресурсы/lifecycle и full-pipeline measurements; application publication остаётся 06.3B.
 
 Отчёты сохраняют результаты своих этапов; согласованное направление Close задано нормативными
 документами выше, а не ретроспективной правкой результатов экспериментов.
@@ -115,6 +117,7 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [Density 06.0B](benchmarks/density06b/README.md) — D/E, raw JSON/CSV и audit.
 - [Density 06.0C](benchmarks/density06c/README.md) — C1/C2, exact streams и audit.
 - [Density 06.0D/P1](benchmarks/density-p1/README.md) — occupied traversal, refusals и independent oracle.
+- [Density 06.3A](benchmarks/density063a/README.md) — production full-pipeline benchmark/test evidence и ограничения измерений.
 
 ## Размещение будущих документов
 

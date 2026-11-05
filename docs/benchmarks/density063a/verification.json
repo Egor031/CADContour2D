@@ -1,0 +1,339 @@
+{
+  "schema": "density063a-verification-v1",
+  "date": "2026-11-05",
+  "baseline": {
+    "checkout": "D:\\ZherlitsynEE\\CADContour2D",
+    "branch": "main",
+    "head": "20a74277f3b077a8e52348264d876d266908af04",
+    "initialStatus": "clean"
+  },
+  "status": "READY FOR INDEPENDENT REVIEW; 06.3 as a whole not accepted",
+  "finalSourceSha256": {
+    "CMakeLists.txt": "a6fedbffcbfc0d28eca231bd1b4c36b1e7b49dad7ff98f1259360be3d2db0875",
+    "tests/CMakeLists.txt": "ff985fdc2af708446c208d811d62affc70db43913ba8ef58fae55ebf8571386a",
+    "src/density/density_builder.h": "501ce8bb55f94f47eed07979912d2ab40b306fcb3786a75b85baef56105c5cab",
+    "src/density/density_builder.cpp": "70c930dc0ad527454c685eeee07196dde4f67d154d695b746b22cd3b4e724d26",
+    "src/density/density_storage.h": "34f317adc26ceb878072bed12f52515fceb490e9d529bd14a97a16c57d1c5649",
+    "src/density/density_storage.cpp": "656ab218c0e2c20061b77027c4b08e78a6a201f4da9cc139399938dceeff6a55",
+    "tests/density_builder_tests.cpp": "b3154954b4f56187b31c8910ffbad9b8d84541657027a600c0d52e7b3225d3e6",
+    "tools/density_builder_benchmark/main.cpp": "0d44d06a3a06bcbed61dfd278c725d2082eb8235abbb99512de455d13bc605d6",
+    "tools/density_builder_benchmark/CMakeLists.txt": "ed389d70a0822feb2bc668c00a79f6dee428f18604e5b63e6220c74835c1d509",
+    "tools/density_builder_benchmark/audit.py": "f7f68b6df0a056fd4458f381a5ed747a5b0dafde2f21119134162aab21817e27"
+  },
+  "buildLogs": {
+    "build-debug-second.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-debug-second.log",
+      "sha256": "8e78aad02bb8e301bc8b11142d8b2b33e2a9f775adbfcf59f3db88f4d62e8073"
+    },
+    "build-debug-third.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-debug-third.log",
+      "sha256": "71fc6bd225fb33c83e4ada981114c5ff415ebdc4e0b2584444c7749ba4854f0b"
+    },
+    "build-debug-complete.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-debug-complete.log",
+      "sha256": "217061f4ac4ac2bce7611af427aa1b0f528fbfb330a744d8e29a1b39bc5fbd55"
+    },
+    "build-release-complete.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-release-complete.log",
+      "sha256": "226d9123ff424abf6cb426f0d208201fe6997a2fa042641987b94e2cba1ac6c7"
+    },
+    "build-debug-scope-guard.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-debug-scope-guard.log",
+      "sha256": "50a28efdf5c391cd4ea28cb701bf02992bcd4be31650ec05b5bc437366fa378d"
+    },
+    "build-debug-tests-final.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-debug-tests-final.log",
+      "sha256": "217061f4ac4ac2bce7611af427aa1b0f528fbfb330a744d8e29a1b39bc5fbd55"
+    },
+    "build-release-tests-final.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-release-tests-final.log",
+      "sha256": "7a83e3ee82b9b385495e9a52839d5bac398590a482e0bee0e4e68a940bd60074"
+    },
+    "build-debug-verified.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-debug-verified.log",
+      "sha256": "50a28efdf5c391cd4ea28cb701bf02992bcd4be31650ec05b5bc437366fa378d"
+    },
+    "build-release-verified.log": {
+      "status": "PASS",
+      "localPath": "build/density063a-evidence/build-release-verified.log",
+      "sha256": "6cb11064268df8ed0fd67d2bc7d5aa143d74edd5d4f572feb9c175c1890d866e"
+    }
+  },
+  "runs": [
+    {
+      "tests": 197,
+      "passed": 197,
+      "failed": 0,
+      "skipped": 0,
+      "failureNames": [],
+      "skipNames": [],
+      "sha256": "e48625c302433344ac9a17b6bf07c11fbb57627ec08307e5d3c0f587a830be61",
+      "subsets": {
+        "DensityBuilder.": 68,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 0
+      },
+      "stage": "initial pre-transfer targeted",
+      "localPath": "build/density063a-evidence/targeted-debug.xml"
+    },
+    {
+      "tests": 78,
+      "passed": 78,
+      "failed": 0,
+      "skipped": 0,
+      "failureNames": [],
+      "skipNames": [],
+      "sha256": "158348adf4de93598cfb12f858d15a5ce98f50a956da8f9e37297c7447ace631",
+      "subsets": {
+        "DensityBuilder.": 0,
+        "DensityStorage.": 0,
+        "RasterMapping.": 0,
+        "RecoveryApplication.": 0
+      },
+      "stage": "78-case direct builder before last tests",
+      "localPath": "build/density063a-evidence/builder-debug-final.xml"
+    },
+    {
+      "tests": 767,
+      "passed": 766,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "sha256": "e6ebf8a93b377ffb3d34376e3433fd9f476fc2284f392d99fad8f7350748d202",
+      "subsets": {
+        "DensityBuilder.": 68,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "stage": "initial 767-case headless",
+      "localPath": "build/density063a-evidence/headless-debug.xml"
+    },
+    {
+      "tests": 779,
+      "passed": 778,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "sha256": "4707dada32e7ff6234910b539d5dbb05065a4ec8fa91d4fb346b0aaa0f344b47",
+      "subsets": {
+        "DensityBuilder.": 80,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "stage": "779-case pre-scope-guard",
+      "localPath": "build/density063a-evidence/headless-debug-final.xml"
+    },
+    {
+      "tests": 783,
+      "passed": 782,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "sha256": "b94fc9de6598565241cda7e516d7a06dc059bb82cd44b10133cd338d08772ffa",
+      "subsets": {
+        "DensityBuilder.": 84,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "stage": "783-case before selective source snapshot",
+      "localPath": "build/density063a-evidence/headless-debug-complete.xml"
+    },
+    {
+      "tests": 783,
+      "passed": 782,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "sha256": "29593c1912a500d30642b021245f4eb90e7d8a122616332070940b73dba25ba3",
+      "subsets": {
+        "DensityBuilder.": 84,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "stage": "final production Debug",
+      "localPath": "build/density063a-evidence/headless-debug-verified.xml",
+      "archive": {
+        "path": "tests/headless-debug-verified.xml.gz",
+        "sha256": "b5b0ddcbcc548f0e10ebe53b128e5cc73a3b92d2273c795ad1123bd6d37e0b7d",
+        "uncompressedSha256": "29593c1912a500d30642b021245f4eb90e7d8a122616332070940b73dba25ba3"
+      }
+    },
+    {
+      "tests": 783,
+      "passed": 782,
+      "failed": 0,
+      "skipped": 1,
+      "failureNames": [],
+      "skipNames": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "sha256": "b3b9e3c210f209afd3ae2498eb9eae8f595e9fdaaf4a0110992c419e669af247",
+      "subsets": {
+        "DensityBuilder.": 84,
+        "DensityStorage.": 115,
+        "RasterMapping.": 14,
+        "RecoveryApplication.": 68
+      },
+      "stage": "final production Release",
+      "localPath": "build/density063a-evidence/headless-release-verified.xml",
+      "archive": {
+        "path": "tests/headless-release-verified.xml.gz",
+        "sha256": "e974cb400acaaf0b98f19d43918662bd1eaaca915538657dc04c36e2f843784a",
+        "uncompressedSha256": "b3b9e3c210f209afd3ae2498eb9eae8f595e9fdaaf4a0110992c419e669af247"
+      }
+    }
+  ],
+  "inventory": {
+    "debug": {
+      "entries": 1170,
+      "caseSensitiveUnique": 1170,
+      "duplicateNames": [],
+      "selectedEntries": 783,
+      "selectedUnique": 783,
+      "inventorySha256": "d13914b8db94ba9fb3c7d8311b75592fda5743f70e770b24bfb6f74b38de1402",
+      "selectedSha256": "20b52a3b5b885986031c5c6e5280d133a82a904517b09cc2b0f41687214676f5",
+      "distinctCaseVariants": [
+        "MalformedOrOutOfRange/InvalidCellText.PreservesRedoAndDoesNotSynchronizeDraft/\"nan\"",
+        "MalformedOrOutOfRange/InvalidCellText.PreservesRedoAndDoesNotSynchronizeDraft/\"NaN\""
+      ]
+    },
+    "release": {
+      "entries": 1170,
+      "caseSensitiveUnique": 1170,
+      "duplicateNames": [],
+      "selectedEntries": 783,
+      "selectedUnique": 783,
+      "inventorySha256": "227d32d80411470618655a27e1017b4938b471fcf05433da8f306229f05932ee",
+      "selectedSha256": "20b52a3b5b885986031c5c6e5280d133a82a904517b09cc2b0f41687214676f5",
+      "distinctCaseVariants": [
+        "MalformedOrOutOfRange/InvalidCellText.PreservesRedoAndDoesNotSynchronizeDraft/\"nan\"",
+        "MalformedOrOutOfRange/InvalidCellText.PreservesRedoAndDoesNotSynchronizeDraft/\"NaN\""
+      ]
+    }
+  },
+  "selectedNamesArchive": {
+    "path": "tests/headless-tests.txt.gz",
+    "sha256": "5be37e4c6346d7d9bfc99282df411a6904cb8660f8464e0dcce00a3ba8f7cf1e",
+    "uncompressedSha256": "20b52a3b5b885986031c5c6e5280d133a82a904517b09cc2b0f41687214676f5"
+  },
+  "selection": {
+    "executables": [
+      "density_builder_tests",
+      "density_storage_tests",
+      "raster_mapping_tests",
+      "project_tests",
+      "cache_tests",
+      "persistence_tests",
+      "asc_xyz_tests",
+      "operation_tests",
+      "import_application_tests",
+      "nonzero_z_confirmation_tests",
+      "save_tests",
+      "open_tests",
+      "recovery_tests",
+      "dependency_smoke"
+    ],
+    "label": "production",
+    "discovery": "Debug then Release, sequential; later PRE_TEST discovery also sequential",
+    "configurationNamesEqual": true
+  },
+  "history": {
+    "initialBuildFailure": {
+      "path": "tests/build-debug-initial-failure.log.gz",
+      "sha256": "899ffb722b7001182d0308a2e35ac937dd7326cf9e445be3cc6f7b18a02583fc",
+      "reason": "Qt emit macro collision; volatile test vector value; fixed without warning suppression",
+      "uncompressedSha256": "655c3008198dd85e434101d5421f1ef8ead555cee2c9fcdb64a6f280da8e49c4"
+    },
+    "preCtestShellFailure": {
+      "command": "cmd /c build\\task02-env.cmd ctest --preset windows-debug -R \"^(DensityBuilder\\.|DensityStorage\\.|RasterMapping\\.)\" --output-on-failure",
+      "result": "COMMAND FAILED before CTest: CMD parsed the unescaped pipe; no tests executed",
+      "diagnostic": "'DensityStorage\\.' is not recognized as an internal or external command, operable program or batch file.",
+      "resolution": "Used unique selected test names with --tests-from-file; successful targeted run saved separately."
+    },
+    "inventoryObservationCorrection": {
+      "original": "PowerShell Group-Object name reported 1170 entries / 1169 unique; previously called an existing GUI duplicate",
+      "cause": "Default case-insensitive PowerShell grouping merged distinct CTest names ending in nan and NaN",
+      "verification": "Python JSON parser and exact string set confirm 1170 / 1170 unique; no tests renamed or changed",
+      "failedPackagingAssertion": "Initial packaging asserted false 1169 expectation, stopped before writing verification.json; corrected to exact case-sensitive inventory"
+    },
+    "otherReadOnlyCommandFailure": "Unsupported Select-String -First in diagnostic read; corrected to Select-Object -First; no build/test affected",
+    "testFailures": [],
+    "skipsPreserved": "Each production run skipped only Persistence.StoragePath.FileSymlinkEscape, Windows privilege 1314; no Recovery exception",
+    "initialDiffCheck": {
+      "status": "FAIL before final packaging",
+      "reason": "Unmodified compiler log had original trailing spaces at lines 29,32,56,90,95,105",
+      "resolution": "Stored exact original bytes in .log.gz; no evidence text edited; final diff check repeated"
+    }
+  },
+  "benchmark": {
+    "status": "PASS",
+    "builds": 9,
+    "pointsPerProfile": 1000000,
+    "rawSha256": "2d793c03a71b9724afb32bfdb3775effaba1ef52e36ad5c464b093070f087563",
+    "environmentSha256": "858d91fb7d501c164b9b21fa6796c8aae5efb3f8f91aa986a5805a5b1d5357ba",
+    "spatialVerification": "every physical key/shape/count plus known omitted zero tiles",
+    "auditCommand": "python tools/density_builder_benchmark/audit.py docs/benchmarks/density063a/release.json"
+  },
+  "commands": {
+    "build": [
+      "cmake --build --preset windows-debug --target density_builder_tests density_storage_tests raster_mapping_tests project_tests cache_tests persistence_tests asc_xyz_tests operation_tests import_application_tests nonzero_z_confirmation_tests save_tests open_tests recovery_tests dependency_smoke --parallel 4",
+      "cmake --build --preset windows-release --target density_builder_tests density_storage_tests raster_mapping_tests project_tests cache_tests persistence_tests asc_xyz_tests operation_tests import_application_tests nonzero_z_confirmation_tests save_tests open_tests recovery_tests dependency_smoke density_builder_benchmark --parallel 4"
+    ],
+    "finalRelink": [
+      "cmake --build --preset windows-debug --target density_builder_tests density_storage_tests raster_mapping_tests --parallel 4",
+      "cmake --build --preset windows-release --target density_builder_tests density_storage_tests raster_mapping_tests density_builder_benchmark --parallel 4"
+    ],
+    "finalCtest": [
+      "ctest --preset windows-debug -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-evidence/headless-debug-complete-tests.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-evidence/headless-debug-verified.xml",
+      "ctest --preset windows-release -L production --tests-from-file D:/ZherlitsynEE/CADContour2D/build/density063a-evidence/headless-release-complete-tests.txt --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063a-evidence/headless-release-verified.xml"
+    ],
+    "environment": "cmd /d /c build\\task02-env.cmd <command>; process-local MSVC/Qt paths"
+  },
+  "notRun": [
+    "GUI/lint",
+    "large separately-labelled cache integration",
+    "42M full pipeline",
+    "representative real scans",
+    "physical cold-HDD",
+    "UNC",
+    "physical disk-full/flush faults",
+    "power-loss",
+    "hostile filesystem audit"
+  ],
+  "limits": [
+    "Disk peaks conservatively reserve all 4*N event bytes until finish",
+    "Working reservations do not bound OS/process memory",
+    "06.3B/06.4 application/version integration is outside this stage"
+  ],
+  "finalReview": {
+    "worktreeDiffCheck": "PASS",
+    "stagedDiffCheck": "PASS after lossless log compression",
+    "scope": "27 task files; no clouds, density outputs or scratch files staged",
+    "releaseBenchmarkExecutableSha256": "b03421949c323917fb86ec265e95340053f0e87a65920fd793512b6bc9be47bb"
+  }
+}
