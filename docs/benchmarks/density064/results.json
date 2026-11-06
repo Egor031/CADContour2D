@@ -1,0 +1,87 @@
+{
+  "production_debug": {
+    "total": 1171,
+    "passed": 1170,
+    "failed": 0,
+    "skipped": 1,
+    "failures": [],
+    "skips": [
+      "Persistence.StoragePath.FileSymlinkEscape"
+    ],
+    "unique_names": 1171,
+    "exact_inventory_match": true
+  },
+  "versions_debug": {
+    "tests": 47,
+    "failures": 0,
+    "disabled": 0,
+    "errors": 0
+  },
+  "recovery_regression_debug": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "failures": [],
+    "skips": [],
+    "unique_names": 3
+  },
+  "production_release": {
+    "total": 1171,
+    "passed": 1170,
+    "failed": 0,
+    "skipped": 1,
+    "failures": [],
+    "skips": [
+      "Persistence.StoragePath.FileSymlinkEscape"
+    ],
+    "unique_names": 1171,
+    "exact_inventory_match": true
+  },
+  "versions_release": {
+    "tests": 47,
+    "failures": 0,
+    "disabled": 0,
+    "errors": 0
+  },
+  "recovery_regression_release": {
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "failures": [],
+    "skips": [],
+    "unique_names": 3
+  },
+  "production_debug_before_v1_fix": {
+    "total": 1171,
+    "passed": 1167,
+    "failed": 3,
+    "skipped": 1,
+    "failures": [
+      "RecoveryGui.MissingCorruptUnsupported/PartialRecovery.UnavailableCacheRestoresMetadataAndOnlyExplicitRecheckEnablesCommands/0",
+      "RecoveryGui.MissingCorruptUnsupported/PartialRecovery.UnavailableCacheRestoresMetadataAndOnlyExplicitRecheckEnablesCommands/1",
+      "RecoveryGui.MissingCorruptUnsupported/PartialRecovery.UnavailableCacheRestoresMetadataAndOnlyExplicitRecheckEnablesCommands/2"
+    ],
+    "skips": [
+      "Persistence.StoragePath.FileSymlinkEscape"
+    ],
+    "unique_names": 1171,
+    "exact_inventory_match": true
+  },
+  "versions_debug_initial": {
+    "tests": 40,
+    "failures": 1,
+    "disabled": 0,
+    "errors": 0
+  },
+  "subsets_overlap": true,
+  "post_production_comment_check": {
+    "build_all_and_qmllint_debug": "PASS",
+    "build_all_and_qmllint_release": "PASS",
+    "standalone_debug_passed": 47,
+    "standalone_release_passed": 47,
+    "full_production_repeated": false,
+    "full_production_provenance": "provenance-before-final-comment.json"
+  }
+}

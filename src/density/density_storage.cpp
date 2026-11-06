@@ -348,7 +348,6 @@ void cleanupFile(std::unique_ptr<QTemporaryFile> &file, Diagnostic diagnostic, v
 } // namespace
 
 DatasetId DatasetId::create() { return {cache::CacheId::create().bytes}; }
-bool DatasetId::isNull() const noexcept { return std::all_of(bytes.begin(), bytes.end(), [](auto b) { return b == std::byte{}; }); }
 ResourcePolicy initialResourcePolicy() noexcept
 {
     return {8 * 1024 * 1024, 1024 * 1024, 1024 * 1024,

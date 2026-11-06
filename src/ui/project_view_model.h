@@ -55,6 +55,7 @@ class ProjectViewModel : public QObject {
     Q_PROPERTY(bool dirty READ dirty NOTIFY stateChanged)
     Q_PROPERTY(bool cacheAvailable READ cacheAvailable NOTIFY stateChanged)
     Q_PROPERTY(QString cacheStatusText READ cacheStatusText NOTIFY stateChanged)
+    Q_PROPERTY(QString saveStatusText READ saveStatusText NOTIFY stateChanged)
     Q_PROPERTY(bool canSave READ canSave NOTIFY workflowChanged)
     Q_PROPERTY(bool canRecheck READ canRecheck NOTIFY workflowChanged)
     Q_PROPERTY(bool canEditCell READ canEditCell NOTIFY operationChanged)
@@ -112,6 +113,7 @@ public:
     bool dirty() const noexcept { return controller_.isDirty(); }
     bool cacheAvailable() const noexcept;
     QString cacheStatusText() const;
+    QString saveStatusText() const;
     bool canSave() const noexcept;
     bool canRecheck() const noexcept;
     bool canEditCell() const noexcept;

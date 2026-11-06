@@ -1,7 +1,6 @@
 #include "project_controller.h"
 #include "operation_diagnostics.h"
 
-#include <QUndoCommand>
 #include <QDir>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -17,29 +16,6 @@ namespace cadcontour {
 namespace {
 
 WorkerOutcome recoveryFailure(const persistence::Error &error);
-
-class SetCellCommand final : public QUndoCommand {
-public:
-    SetCellCommand(ProjectState &state, double value)
-        : state_(state), before_(state.cell()), after_(value)
-    {}
-
-    void undo() override { apply(before_); }
-    void redo() override { apply(after_); }
-
-private:
-    void apply(double value) noexcept
-    {
-        // Controller preflights every push/undo/redo before moving the stack.
-        const auto result = state_.changeCell(value);
-        assert(result.outcome == CommandOutcome::Applied);
-        (void)result;
-    }
-
-    ProjectState &state_;
-    double before_;
-    double after_;
-};
 
 } // namespace
 
@@ -228,6 +204,8 @@ CommandResult ProjectController::startSave(SaveRequest request, bool saveAs)
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected) return entry;
     if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (!persistence::isV1Representable(session_->state))
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::PersistenceVersionsUnsupported);
     if (preemptAutosave()) return CommandResult::rejected(CommandError::Busy);
     if (!cacheAvailable()) return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
     if (session_->unconfirmed) return CommandResult::rejected(CommandError::UnsafeState);
@@ -332,24 +310,134 @@ CommandResult ProjectController::closeProject(bool discardConfirmed)
 CommandResult ProjectController::setCell(double value)
 {
     const auto entry = checkEntry();
-    if (entry.outcome == CommandOutcome::Rejected)
-        return entry;
-    if (!session_)
-        return CommandResult::rejected(CommandError::NoProject);
-    if (!cacheAvailable())
-        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
-    const auto result = session_->state.checkCellChange(value);
-    if (result.outcome != CommandOutcome::Applied)
-        return result;
-    if (session_->history.index() == std::numeric_limits<int>::max())
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (!cacheAvailable()) return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
+    auto owner = session_;
+    const auto result = owner->state.checkCellChange(value);
+    if (result.outcome != CommandOutcome::Applied) return result;
+    if (!owner->history.canAppend())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::HistoryExhausted);
-    auto command = std::make_unique<SetCellCommand>(session_->state, value);
-    CommandScope guard(*this);
-    if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave
-        && operation_.kind != OperationKind::DensityBuild) invalidateOperation();
-    session_->history.push(command.release()); // QUndoStack owns the command and calls redo().
-    emit stateChanged();
-    return result;
+    try {
+        auto history = owner->history.prepare({ProjectCommandKind::SetCell, owner->state.cell(), value, {}, {}});
+        CommandScope guard(*this);
+        if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave
+            && operation_.kind != OperationKind::DensityBuild) invalidateOperation();
+        owner->state.changeCell(value);
+        owner->history.publish(history);
+        emit stateChanged();
+        return result;
+    } catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
+}
+
+CommandResult ProjectController::setPreciseResetHandler(
+    std::function<PreciseResetDecision(const PreciseResetRequest &)> handler)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    preciseResetHandler_ = std::move(handler);
+    return CommandResult::applied();
+}
+
+PreciseResetRequest ProjectController::densityTransition(DensityTransitionKind action,
+    std::optional<VersionId> target) const noexcept
+{
+    return {action, session_->state.projectId(), session_->state.runtimeIdentity(), contextEpoch_,
+        session_->state.activeDensityVersion(), target, session_->preciseGeneration, session_->history.generation(),
+        session_->densityChoiceGeneration, session_->state.activeDensityVersion()
+            ? session_->state.densityVersion(*session_->state.activeDensityVersion())->rough().revision() : 0};
+}
+
+bool ProjectController::transitionApplicable(const PreciseResetRequest &r, bool checkHistory) const noexcept
+{
+    return shutdown_ == ShutdownState::Open && session_ && contextEpoch_ == r.sessionEpoch
+        && session_->state.projectId() == r.projectId && session_->state.runtimeIdentity() == r.runtimeIdentity
+        && session_->state.activeDensityVersion() == r.before
+        && session_->preciseGeneration == r.preciseGeneration && session_->densityChoiceGeneration == r.choiceGeneration
+        && (!checkHistory || session_->history.generation() == r.historyGeneration)
+        && (!r.before || session_->state.densityVersion(*r.before)->rough().revision() == r.roughRevision);
+}
+
+CommandResult ProjectController::preparePreciseReset(const PreciseResetRequest &request, bool &reset)
+{
+    reset = false;
+    if (!transitionApplicable(request, request.action != DensityTransitionKind::Build))
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::StaleConfirmation);
+    if (request.before != request.target
+        && session_->densityChoiceGeneration == std::numeric_limits<std::uint64_t>::max())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
+    if (request.before == request.target || !session_->preciseResetRequired) return CommandResult::applied();
+    if (session_->preciseGeneration == std::numeric_limits<std::uint64_t>::max())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
+    auto handler = preciseResetHandler_; // callback may replace its registration
+    PreciseResetDecision answer;
+    try { answer = handler ? handler(request) : PreciseResetDecision::NeedsConfirmation; }
+    catch (const std::bad_alloc &) { throw; }
+    catch (...) {
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::PreciseResetPolicyFailed);
+    }
+    if (!transitionApplicable(request, request.action != DensityTransitionKind::Build)
+        || answer == PreciseResetDecision::Stale)
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::StaleConfirmation);
+    if (answer != PreciseResetDecision::Confirm)
+        return CommandResult::rejected(CommandError::UnsafeState,
+            answer == PreciseResetDecision::Cancel ? ErrorDetail::PreciseResetCancelled
+                                                    : ErrorDetail::PreciseResetNeedsConfirmation);
+    reset = true;
+    return CommandResult::applied();
+}
+
+void ProjectController::commitPreciseReset(bool reset) noexcept
+{
+    if (reset) {
+        // 06.4 owns only the transition authority. No Precise pipeline or payload
+        // exists yet; future stage owners must prepare their retired data before
+        // this gate and must never put it in a selection history entry.
+        session_->preciseResetRequired = false;
+        ++session_->preciseGeneration;
+    }
+}
+
+CommandResult ProjectController::selectDensityVersion(VersionId id)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (id.isNull()) return CommandResult::rejected(CommandError::InvalidValue, ErrorDetail::InvalidDensityVersion);
+    auto owner = session_;
+    const auto checked = owner->state.checkDensitySelection(id);
+    if (checked.outcome != CommandOutcome::Applied) return checked;
+    if (owner->densityChoiceGeneration == std::numeric_limits<std::uint64_t>::max())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
+    try {
+        if (prepareHistoryHook_) prepareHistoryHook_();
+        if (session_ != owner || shutdown_ != ShutdownState::Open)
+            return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::StaleConfirmation);
+        const auto request = densityTransition(DensityTransitionKind::Select, id);
+        if (!owner->history.canAppend())
+            return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::HistoryExhausted);
+        auto history = owner->history.prepare({ProjectCommandKind::DensitySelection, 0, 0, request.before, id});
+        bool reset = false;
+        const auto guardResult = preparePreciseReset(request, reset);
+        if (guardResult.outcome == CommandOutcome::Rejected) return guardResult;
+        const auto finalCheck = owner->state.checkDensitySelection(id);
+        if (!transitionApplicable(request))
+            return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::StaleConfirmation);
+        if (finalCheck.outcome != CommandOutcome::Applied) return finalCheck;
+        CommandScope guard(*this);
+        if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave
+            && operation_.kind != OperationKind::DensityBuild) invalidateOperation();
+        commitPreciseReset(reset);
+        owner->state.selectDensityVersion(id);
+        ++owner->densityChoiceGeneration;
+        owner->history.publish(history);
+        emit stateChanged();
+        return CommandResult::applied();
+    } catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
 }
 
 CommandResult ProjectController::undo() { return moveHistory(true); }
@@ -358,26 +446,49 @@ CommandResult ProjectController::redo() { return moveHistory(false); }
 CommandResult ProjectController::moveHistory(bool undo)
 {
     const auto entry = checkEntry();
-    if (entry.outcome == CommandOutcome::Rejected)
-        return entry;
-    if (!session_)
-        return CommandResult::rejected(CommandError::NoProject);
-    if (!cacheAvailable())
-        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
-    if (!(undo ? session_->history.canUndo() : session_->history.canRedo()))
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    auto owner = session_;
+    if (!(undo ? owner->history.canUndo() : owner->history.canRedo())) {
+        if (!cacheAvailable())
+            return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
         return CommandResult::noChange();
-    if (session_->state.inputRevision() == std::numeric_limits<std::uint64_t>::max())
-        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
+    }
+    if (!owner->history.canAdvance())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::HistoryExhausted);
+    const auto command = owner->history.command(owner->history.index() - (undo ? 1 : 0));
+    const bool selection = command.kind == ProjectCommandKind::DensitySelection;
+    if (!selection && !cacheAvailable())
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::DatasetUnavailable);
+    const auto target = undo ? command.beforeVersion : command.afterVersion;
+    const auto result = selection ? owner->state.checkDensitySelection(target)
+                                 : owner->state.checkCellChange(undo ? command.beforeCell : command.afterCell);
+    if (result.outcome == CommandOutcome::Rejected) return result;
+    bool reset = false;
+    if (selection) {
+        if (owner->densityChoiceGeneration == std::numeric_limits<std::uint64_t>::max())
+            return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
+        try {
+            const auto request = densityTransition(undo ? DensityTransitionKind::Undo : DensityTransitionKind::Redo, target);
+            const auto checked = preparePreciseReset(request, reset);
+            if (checked.outcome == CommandOutcome::Rejected) return checked;
+            if (!transitionApplicable(request))
+                return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::StaleConfirmation);
+            const auto finalCheck = owner->state.checkDensitySelection(target);
+            if (finalCheck.outcome == CommandOutcome::Rejected) return finalCheck;
+        } catch (const std::bad_alloc &) {
+            return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+        }
+    }
     CommandScope guard(*this);
-    // The Density exception is limited to the actual SetCell command being moved.
-    const auto *command = session_->history.command(session_->history.index() - (undo ? 1 : 0));
+    // Only these two typed commands are independent of the captured Build inputs.
     if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave
         && !(operation_.kind == OperationKind::DensityBuild
-             && dynamic_cast<const SetCellCommand *>(command))) invalidateOperation();
-    if (undo)
-        session_->history.undo();
-    else
-        session_->history.redo();
+             && (selection || command.kind == ProjectCommandKind::SetCell))) invalidateOperation();
+    commitPreciseReset(reset);
+    if (selection) { owner->state.selectDensityVersion(target); ++owner->densityChoiceGeneration; }
+    else owner->state.changeCell(undo ? command.beforeCell : command.afterCell);
+    owner->history.move(undo);
     emit stateChanged();
     return CommandResult::applied();
 }
@@ -396,10 +507,185 @@ CommandResult ProjectController::importAscXyz(ImportRequest request)
     return startImport(std::move(request), {});
 }
 
+namespace {
+DensityVersionDescriptor densityDescriptor(const DensityReadyProduct &ready, VersionId id)
+{
+    const auto &snapshot = *ready.snapshot;
+    DensityBuildMetadata build;
+    build.tileSide = ready.metadata.tileSide;
+    build.groupSide = snapshot.groupSide;
+    build.eventCapacity = snapshot.eventCapacity;
+    build.resources.workingBytes = snapshot.resources.workingBytes;
+    build.resources.metadataBytes = snapshot.resources.metadataBytes;
+    build.resources.readerBytes = snapshot.resources.readerBytes;
+    build.resources.scratchBytes = snapshot.resources.scratchBytes;
+    build.resources.outputBytes = snapshot.resources.outputBytes;
+    build.resources.combinedDiskBytes = snapshot.resources.combinedDiskBytes;
+    build.resources.files = snapshot.resources.files;
+    build.resources.handles = snapshot.resources.handles;
+    build.resources.workUnits = snapshot.resources.workUnits;
+    build.resources.mappingBoundaryChecks = snapshot.resources.mapping.maxBoundaryChecks;
+    build.resources.densityBufferBytes = snapshot.resources.densityBufferBytes;
+    build.resources.densityCodecBytes = snapshot.resources.densityCodecBytes;
+    build.resources.densitySortBytes = snapshot.resources.densitySortBytes;
+    build.statistics.scanned = ready.statistics.scanned;
+    build.statistics.eventsWritten = ready.statistics.eventsWritten;
+    build.statistics.eventsRead = ready.statistics.eventsRead;
+    build.statistics.accumulated = ready.statistics.accumulated;
+    build.statistics.tileTotal = ready.statistics.tileTotal;
+    build.statistics.scanAllCalls = ready.statistics.scanAllCalls;
+    build.statistics.spatialQueries = ready.statistics.spatialQueries;
+    build.statistics.occupiedGroups = ready.statistics.occupiedGroups;
+    build.statistics.visitedGroups = ready.statistics.visitedGroups;
+    build.statistics.tiles = ready.statistics.tiles;
+    build.statistics.eventBytesWritten = ready.statistics.eventBytesWritten;
+    build.statistics.eventBytesRead = ready.statistics.eventBytesRead;
+    build.statistics.eventWrites = ready.statistics.eventWrites;
+    build.statistics.eventReads = ready.statistics.eventReads;
+    build.statistics.eventOpens = ready.statistics.eventOpens;
+    build.statistics.workingPeak = ready.statistics.workingPeak;
+    build.statistics.metadataPeak = ready.statistics.metadataPeak;
+    build.statistics.scratchPeak = ready.statistics.scratchPeak;
+    build.statistics.combinedDiskPeak = ready.statistics.combinedDiskPeak;
+    build.statistics.filesPeak = ready.statistics.filesPeak;
+    build.statistics.handlesPeak = ready.statistics.handlesPeak;
+    build.statistics.workUnits = ready.statistics.workUnits;
+    build.statistics.mappingNanoseconds = ready.statistics.mappingNanoseconds;
+    build.statistics.sourceOpenNanoseconds = ready.statistics.sourceOpenNanoseconds;
+    build.statistics.scanNanoseconds = ready.statistics.scanNanoseconds;
+    build.statistics.groupingNanoseconds = ready.statistics.groupingNanoseconds;
+    build.statistics.eventSortNanoseconds = ready.statistics.eventSortNanoseconds;
+    build.statistics.eventIONanoseconds = ready.statistics.eventIONanoseconds;
+    build.statistics.accumulationNanoseconds = ready.statistics.accumulationNanoseconds;
+    build.statistics.tileCopyNanoseconds = ready.statistics.tileCopyNanoseconds;
+    build.statistics.densityIngestNanoseconds = ready.statistics.densityIngestNanoseconds;
+    build.statistics.finishNanoseconds = ready.statistics.finishNanoseconds;
+    build.statistics.sourceRead.indexPages = ready.statistics.sourceRead.indexPages;
+    build.statistics.sourceRead.pointPages = ready.statistics.sourceRead.pointPages;
+    build.statistics.sourceRead.readBytes = ready.statistics.sourceRead.readBytes;
+    build.statistics.sourceRead.readOperations = ready.statistics.sourceRead.readOperations;
+    build.statistics.sourceRead.seekOperations = ready.statistics.sourceRead.seekOperations;
+    build.statistics.sourceRead.returnedRecords = ready.statistics.sourceRead.returnedRecords;
+    build.statistics.sourceRead.bufferBytes = ready.statistics.sourceRead.bufferBytes;
+    build.statistics.sourceRead.traversalFrames = ready.statistics.sourceRead.traversalFrames;
+    build.statistics.density.physicalTiles = ready.statistics.density.physicalTiles;
+    build.statistics.density.submissions = ready.statistics.density.submissions;
+    build.statistics.density.total = ready.statistics.density.total;
+    build.statistics.density.readBytes = ready.statistics.density.readBytes;
+    build.statistics.density.writtenBytes = ready.statistics.density.writtenBytes;
+    build.statistics.density.decodedTiles = ready.statistics.density.decodedTiles;
+    build.statistics.density.indexReads = ready.statistics.density.indexReads;
+    build.statistics.density.readOperations = ready.statistics.density.readOperations;
+    build.statistics.density.writeOperations = ready.statistics.density.writeOperations;
+    build.statistics.density.openOperations = ready.statistics.density.openOperations;
+    build.statistics.density.workUnits = ready.statistics.density.workUnits;
+    build.statistics.density.bufferReserve = ready.statistics.density.bufferReserve;
+    build.statistics.density.codecPeak = ready.statistics.density.codecPeak;
+    build.statistics.density.sortReserve = ready.statistics.density.sortReserve;
+    build.statistics.density.scratchPeak = ready.statistics.density.scratchPeak;
+    build.statistics.density.combinedDiskPeak = ready.statistics.density.combinedDiskPeak;
+    build.statistics.density.outputBytes = ready.statistics.density.outputBytes;
+    build.statistics.density.mergePasses = ready.statistics.density.mergePasses;
+    build.statistics.density.mappingNanoseconds = ready.statistics.density.mappingNanoseconds;
+    build.statistics.density.sortNanoseconds = ready.statistics.density.sortNanoseconds;
+    build.statistics.density.copyNanoseconds = ready.statistics.density.copyNanoseconds;
+    build.statistics.density.readbackNanoseconds = ready.statistics.density.readbackNanoseconds;
+    return {id, {ready.metadata.id, std::make_shared<const DensityDatasetLocation>(
+        DensityDatasetLocation{std::filesystem::path(ready.completedPath.toStdWString())})},
+        ready.metadata.source, ready.metadata.sourceMeasurements, ready.metadata.mapping, build};
+}
+} // namespace
+
+class ProjectController::VersionCandidate final : public DensityPublicationCandidate {
+public:
+    VersionCandidate(ProjectController &controller, std::shared_ptr<ProjectSession> owner,
+        std::shared_ptr<const DensityReadyProduct> ready, ProjectState::PreparedDensityAppend append,
+        ProjectHistory history, PreciseResetRequest request, bool reset,
+        std::shared_ptr<const DensityVersion> version)
+        : controller_(&controller), owner_(std::move(owner)), ready_(std::move(ready)),
+          append_(std::move(append)), history_(std::move(history)), request_(request), reset_(reset), appendVersion_(std::move(version)) {}
+    const std::shared_ptr<const DensityReadyProduct> &ready() const noexcept override { return ready_; }
+    bool applicable() const noexcept override
+    {
+        return controller_ && controller_->session_ == owner_ && controller_->transitionApplicable(request_)
+            && owner_->state.densityAppendApplicable(append_);
+    }
+    void commit() noexcept override
+    {
+        assert(controller_ && controller_->session_ == owner_);
+        controller_->commitPreciseReset(reset_);
+        owner_->state.commitDensityAppend(append_);
+        ++owner_->densityChoiceGeneration;
+        owner_->history.publish(history_);
+    }
+private:
+    friend class VersionReceiver;
+    QPointer<ProjectController> controller_;
+    std::shared_ptr<ProjectSession> owner_;
+    std::shared_ptr<const DensityReadyProduct> ready_;
+    ProjectState::PreparedDensityAppend append_;
+    ProjectHistory history_;
+    PreciseResetRequest request_;
+    bool reset_;
+    std::shared_ptr<const DensityVersion> appendVersion_;
+};
+
+class ProjectController::VersionReceiver final : public DensityPublicationReceiver {
+public:
+    VersionReceiver(ProjectController &controller, const std::shared_ptr<ProjectSession> &owner)
+        : controller_(&controller), owner_(owner) {}
+    std::unique_ptr<DensityPublicationCandidate> prepare(std::shared_ptr<const DensityReadyProduct> ready) override
+    {
+        auto owner = owner_.lock();
+        if (!controller_ || !owner || controller_->session_ != owner) return {};
+        auto &c = *controller_;
+        // Fault/reentry seams are outside both the command guard and decision gate.
+        if (c.prepareDensityHook_) c.prepareDensityHook_();
+        VersionId id;
+        if (c.versionIdFactory_) id = c.versionIdFactory_();
+        else {
+            const auto uuid = QUuid::createUuid().toRfc4122();
+            std::memcpy(id.bytes.data(), uuid.constData(), id.bytes.size());
+        }
+        if (c.prepareHistoryHook_) c.prepareHistoryHook_();
+        if (c.session_ != owner || !c.densityApplicable(c.operation_.id)) return {};
+        if (!owner->history.canAppend()) throw std::overflow_error("project history exhausted");
+        if (owner->densityChoiceGeneration == std::numeric_limits<std::uint64_t>::max())
+            throw std::overflow_error("Density choice generation exhausted");
+        auto version = std::make_shared<const DensityVersion>(densityDescriptor(*ready, id));
+        const auto checked = owner->state.checkDensityAppend(*version);
+        if (checked.outcome != CommandOutcome::Applied) throw std::invalid_argument("invalid Density version identity or descriptor");
+        const auto request = c.densityTransition(DensityTransitionKind::Build, id);
+        auto append = owner->state.prepareDensityAppend(version);
+        auto history = owner->history.prepare({ProjectCommandKind::DensitySelection, 0, 0, request.before, id});
+        // Allocate the final owner before asking about destruction. Confirm alone
+        // never destroys Precise or changes current state.
+        auto candidate = std::make_unique<VersionCandidate>(c, owner, std::move(ready),
+            std::move(append), std::move(history), request, false, std::move(version));
+        bool reset = false;
+        if (c.preparePreciseReset(request, reset).outcome == CommandOutcome::Rejected) return {};
+        if (!c.transitionApplicable(request, false) || !c.densityApplicable(c.operation_.id)) return {};
+        if (owner->history.generation() != request.historyGeneration) {
+            // Future-cell commands do not revoke this Build or its confirmation.
+            // Rebase prepared owners before any destructive reset.
+            candidate->append_ = owner->state.prepareDensityAppend(candidate->appendVersion_);
+            candidate->history_ = owner->history.prepare(
+                {ProjectCommandKind::DensitySelection, 0, 0, request.before, id});
+            candidate->request_.historyGeneration = owner->history.generation();
+        }
+        candidate->reset_ = reset;
+        return candidate;
+    }
+private:
+    QPointer<ProjectController> controller_;
+    std::weak_ptr<ProjectSession> owner_;
+};
+
 CommandResult ProjectController::setDensityReceiver(std::shared_ptr<DensityPublicationReceiver> receiver)
 {
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected) return entry;
+    densityReceiverOverridden_ = true;
     if (receiver == densityReceiver_) return CommandResult::noChange();
     CommandScope guard(*this);
     if (operation_.kind == OperationKind::DensityBuild) invalidateOperation();
@@ -413,6 +699,15 @@ CommandResult ProjectController::buildDensity(DensityBuildRequest request)
     if (entry.outcome == CommandOutcome::Rejected) return entry;
     if (preemptAutosave()) return CommandResult::rejected(CommandError::Busy);
     if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (!densityReceiverOverridden_) {
+        try {
+            if (!session_->densityReceiver)
+                session_->densityReceiver = std::make_shared<VersionReceiver>(*this, session_);
+            densityReceiver_ = session_->densityReceiver;
+        } catch (const std::bad_alloc &) {
+            return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+        }
+    }
     if (!densityReceiver_ || !cacheAvailable() || !session_->state.dataset())
         return CommandResult::rejected(CommandError::UnsafeState);
     try {
@@ -650,7 +945,7 @@ bool ProjectController::densityApplicable(OperationId id) const noexcept
         && same(current->maximum.x, captured.maximum.x) && same(current->maximum.y, captured.maximum.y);
 }
 
-std::unique_ptr<ProjectController::ProjectSession>
+std::shared_ptr<ProjectController::ProjectSession>
 ProjectController::prepareImport(const ImportReadyProduct &product)
 {
     const auto &m = product.metadata;
@@ -684,7 +979,7 @@ ProjectController::prepareImport(const ImportReadyProduct &product)
     ProjectId projectId;
     const auto uuid = QUuid::createUuid().toRfc4122();
     std::memcpy(projectId.bytes.data(), uuid.constData(), projectId.bytes.size());
-    auto candidate = std::make_unique<ProjectSession>(
+    auto candidate = std::make_shared<ProjectSession>(
         ProjectState(lastIdentity_ + 1, projectId, std::move(dataset)));
     if (prepareImportHook_)
         prepareImportHook_();
@@ -751,12 +1046,12 @@ void ProjectController::processReady(OperationId id)
                     || outcome.product || outcome.imported || outcome.save)
                     throw std::invalid_argument("expected loaded project metadata");
                 const auto &loaded = *loadedPointer;
-                std::unique_ptr<ProjectSession> candidate;
+                std::shared_ptr<ProjectSession> candidate;
                 if (operation_.kind != OperationKind::RecheckCache) {
                     if (lastIdentity_ == std::numeric_limits<std::uint64_t>::max()
                         || contextEpoch_ == std::numeric_limits<std::uint64_t>::max())
                         throw std::overflow_error("project identity/context exhausted");
-                    candidate = std::make_unique<ProjectSession>(ProjectState(lastIdentity_ + 1,
+                    candidate = std::make_shared<ProjectSession>(ProjectState(lastIdentity_ + 1,
                         loaded.saved->snapshot.projectId, loaded.saved->content, loaded.saved->snapshot.cell));
                     candidate->saved = outcome.restored ? outcome.restored->baseline : loaded.saved;
                     candidate->availability = loaded.availability;
@@ -772,7 +1067,7 @@ void ProjectController::processReady(OperationId id)
                 if (applicable(id)) {
                     struct Commit {
                         ProjectController &controller;
-                        std::unique_ptr<ProjectSession> &candidate;
+                        std::shared_ptr<ProjectSession> &candidate;
                         const persistence::LoadedProject &loaded;
                     } commit{*this, candidate, loaded};
                     committed = lease.accept(&commit, [](void *data) noexcept {
@@ -803,7 +1098,7 @@ void ProjectController::processReady(OperationId id)
                 if (applicable(id)) {
                     struct Commit {
                         ProjectController &controller;
-                        std::unique_ptr<ProjectSession> &candidate;
+                        std::shared_ptr<ProjectSession> &candidate;
                     } commit{*this, candidate};
                     committed = lease.accept(&commit, [](void *data) noexcept {
                         auto &c = *static_cast<Commit *>(data);
@@ -911,7 +1206,7 @@ void ProjectController::processDensityReady(OperationId id, ReadyProductLease &l
             if (candidate && candidate->ready() != outcome.density)
                 throw InvalidDensityProduct("density candidate changed its descriptor");
             CommandScope guard(*this);
-            if (candidate && densityApplicable(id)) {
+            if (candidate && densityApplicable(id) && candidate->applicable()) {
                 struct Commit { DensityPublicationCandidate &candidate; OperationState &operation; }
                     commit{*candidate, operation_};
                 // No callbacks or event delivery between the final gate and this mutex gate.
@@ -1068,6 +1363,8 @@ CommandResult ProjectController::autosave()
     if (entry.outcome == CommandOutcome::Rejected) return entry;
     if (runner_.busy()) return CommandResult::rejected(CommandError::Busy);
     if (!session_ || !session_->state.dataset() || recoveryClosing_) return CommandResult::noChange();
+    if (!persistence::isV1Representable(session_->state))
+        return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::PersistenceVersionsUnsupported);
     const auto &s = *session_;
     const auto baseline = s.recoveryConflict ? s.recovery->baseline : s.saved;
     if (s.recovery && persistence::matchesSavedContent(s.state, *s.recovery->state)

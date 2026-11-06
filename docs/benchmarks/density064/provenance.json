@@ -1,0 +1,384 @@
+{
+  "baseline_head": "03541ca8f9ce9aa39b54ba7b9bf81940ff3ed531",
+  "branch": "main",
+  "generated_at_utc": "2026-11-06T12:31:20.550525+00:00",
+  "source_aggregate_sha256": "db4143415571b3fc69ff31f08dfa9f0acb190ae550e0914431a7f6a34f6db88d",
+  "source_sha256": {
+    "CMakeLists.txt": "1e28ab5618f8d74510e68da90d1a1801cde96fcd18b23015821ee8bca552eace",
+    "CMakePresets.json": "9f732141177a4875bfcf2bcc2b9eaebb091599dd41d56febb37df14516be0771",
+    "qml/Main.qml": "619cba76121781baaa1ff0bf78ce5a7f0e9b1188ef7e7eadf2583027cb746b95",
+    "src/application/density_build_types.h": "2d94e327cbf6018d4019c3fb95c52717f8509d60e50351d3a5deecadcac783e3",
+    "src/application/density_operation.cpp": "00d5f8b3ed38f6f222177a8bf3bf26dbae09b5ef04d46d026e3304b85558932e",
+    "src/application/density_operation.h": "c009287512c28a23eb0d9778adfaf7b466665e2c06728ae132b9a51b0fa8c3b0",
+    "src/application/import_operation.cpp": "5f6cd50bdaf62d59aa3c744418d20aedc134faa27e66272cdabd86d80e66e029",
+    "src/application/import_operation.h": "fe36df28a60474fe539e7d10b2908ac90e6ff88f739d90f01d897a0fd80b0b1a",
+    "src/application/native_thread_completion.cpp": "acc99f211e312c6e5f2a51c02cd16efb374f70103a1c1c0aa2193aa89a63e182",
+    "src/application/native_thread_completion.h": "7ce9b71458f33d9ecf507de4f2a1a0c7327bf28f1e0c11da25d0a7711cabc6e6",
+    "src/application/operation_diagnostics.cpp": "750a90544a99abb8a6e49ed95427b1ff642f91e6ff906f08d8f7db0b2f594441",
+    "src/application/operation_diagnostics.h": "d4f43b7d5d943ceda2bb87cdb500bac236652d56539c8f09f62a9885efbe745e",
+    "src/application/operation_runner.cpp": "f5b528259ddaf9b15ad16048dbf62d771ff975647bb4b0f2b2e24a0bed63ae9e",
+    "src/application/operation_runner.h": "660ec5ecc1fa1902e2e60a19771b43b5e5af63266e2a3f11d4d58b575216fd80",
+    "src/application/operation_types.cpp": "c4d03e3d88d49d865229bd76233c64eb235a6cf04dc60d3120bece015b6e7549",
+    "src/application/operation_types.h": "a12d9a3606dd197f413a666be05e395d6536cc201a7379f76f2b05e571ea001f",
+    "src/application/project_controller.cpp": "bf51cf8172a03e939dae9681db221296c93d3c3e8cc22dee182613e0415d884a",
+    "src/application/project_controller.h": "3ce1414dfc90177c345d7f589bba0844182b3f1eea488deaf6972b92ea04507b",
+    "src/application/project_history.h": "f3169cdc90bf5cab4895458cbaf5b31b142ac81f2cfbe0e81cef3885908c59aa",
+    "src/cache/binary_codec.cpp": "e93064cea83e235a58713a32c02f20ea51faacf881018cdbc4b47161de311c5c",
+    "src/cache/binary_codec.h": "eae9e2b0814a428235c4650d2f29b673d7373d388d7f2e302150866327cc70d0",
+    "src/cache/cache_file.cpp": "4f8ad3f11825bde17dc14da322aaa8f72cf3aa9ccda44dc920f09d5b5d232fbb",
+    "src/cache/cache_file.h": "9fa4ea5fbb71bc37f1905d7762267ea0ddacefb1e4a7418f356ac2c83d95779d",
+    "src/cache/cache_reader.cpp": "3b54dd1fe1a553218338a29122a8eecff614c607711e4b2a8c5a4dd5af294900",
+    "src/cache/cache_reader.h": "4bd2170915ebc074819b8ff6b07112dc3f1ef3ece336ea0ffb6fe005643bc7ad",
+    "src/cache/cache_types.cpp": "004a68c5f03c664a98f8da7841cdd999c071aea2e95076519098ba5284ade4f7",
+    "src/cache/cache_types.h": "bfe07b331ee4556f9e8e6bc6bcb3d2e4fc313cc2f7fe187795518e60c171374a",
+    "src/cache/cache_writer.cpp": "b39b8012652107b2710107291f36b1f382dd5b7e930aa06dd5d3d9dbcbf6c77d",
+    "src/cache/cache_writer.h": "4fe144b52e03526ec52b7494cb3c9ab023530ac6c274186ead45c8d26ef4a95b",
+    "src/cache/point_cache_format.cpp": "f30dbaa8c392df192e07aa9877623a295007610808fc74a43572e3a627aeb7fa",
+    "src/cache/point_cache_format.h": "71b37ca60c896817982c5e274dedf5543845aa039f8437cbc319a767e4a24dd1",
+    "src/cache/point_stream_sort.cpp": "abe28873ca116ecc503d098f38d21194d4c56657f3c1cfd9167b6194ed1570e6",
+    "src/cache/point_stream_sort.h": "598416a03b06e4588885ce601c92e84b742521500adfe6027c2f479fe8aaf435",
+    "src/core/cache_id.h": "7c1c765b59f9f291dfe262342fa494c24206a71cb23887fc16858430f5941b4c",
+    "src/core/command_result.h": "421f47d2f860352451dfe7bde950bdd03f125c870db4a72e26b03dcfc2bbb92c",
+    "src/core/coordinates.cpp": "15879ae71dca713fade609b43af34360b2fed4f204469f860dba9c46f8da46c8",
+    "src/core/coordinates.h": "47f0f5d4bd3a106a25dfd3f8189e45c50a8692e728def91c44ea2b87e14b0152",
+    "src/core/density_dataset_id.h": "fe5de6b26e220884e094189488640894bb19e6640b7b7ae12e073cb99255c9c9",
+    "src/core/density_version.h": "872bafe4dd2ae8c523bfc8634aae10a9435afe9d5e5382b2608ebdb968b78dc8",
+    "src/core/imported_dataset.h": "ddb6a8eb8815683834b51fd9222e3b1362e4f61eaa4a331f08ad2976dae59c61",
+    "src/core/project_id.h": "decd5a12d652b4b0f2b6e370dc584982bfe5eb409157427327503e4811d56099",
+    "src/core/project_state.cpp": "d8b0c3ba61de09d7448ccb8fcfb3f1f2d85051fbc52228ac277601bfc35d6ff3",
+    "src/core/project_state.h": "db58a7e8abaaf2a6e89225bdcee25e634e84074e7316cc352fc16ee8022ef6d3",
+    "src/core/raster_mapping.cpp": "6f5639c0a53b2588ae6bf3546387de312bbf4faf53d49d06faec8f57330d1e00",
+    "src/core/raster_mapping.h": "67228b1ba1bcfa5b963af451427a5ebbece47565d9876c1c355fe34dcdace4dc",
+    "src/core/version_id.h": "7ec6f8a64fd29a7f0472ac2842bd34928cb512a03ecadb1b7bed1aee382cf329",
+    "src/density/density_builder.cpp": "511146ef5670ea2580dae4d74d9dc1a0ca7698f5b5ad9771c666655e436500d3",
+    "src/density/density_builder.h": "7ad81b54b2b8390ce3b0a126c6bbb62c4b61730d850f493fa3b9b36615bbedcf",
+    "src/density/density_storage.cpp": "01988e4d663b117eb7c8f0b9504cb9f572ed53dc24cb6e4d36d74595f12cb8c7",
+    "src/density/density_storage.h": "ab811e14518e3afaff3f3e848486ead42ce96c27d4d6fd7648b83bd411919568",
+    "src/io/asc_xyz_importer.cpp": "d7c65c99c70d1f89ff0d267d22b1512956daea6f50a80ba3d44ea8749971338c",
+    "src/io/asc_xyz_importer.h": "dbce640b4cb507f27b46b8b6171288e82422b519bef6eb1197badf2f03ecb397",
+    "src/io/asc_xyz_parser.cpp": "e164cdb269ec4a014fe3642bd80806a59bacf1603c7abce89db7d4b4e56c58ba",
+    "src/io/asc_xyz_parser.h": "b96405857d5070be8f73688ef1782f77b56e34c513243831d16f7735ac6d859f",
+    "src/main.cpp": "63c5f6bed6bfb216db0d40e48cfb2cf0fd9fc29c591b7b2a9d9eadc012ab11f5",
+    "src/persistence/project_manifest.cpp": "2098de419559095141b0c15e3ea96d0b50575fe4826343716c51133a8b49b3a5",
+    "src/persistence/project_manifest.h": "77be36c56fb40e85ea5b3fe87a962d104a1a4cd697bb5a401982cdef528e760b",
+    "src/persistence/project_open.cpp": "605aee6fba5b1450336b153aab4de2794addff7b7601d8d6b6bd12807fffad24",
+    "src/persistence/project_open.h": "024d37addfc8f2b7422fca94b03fc308507dfe786bc257d5b74b516f6fd90c0c",
+    "src/persistence/project_storage.cpp": "9cdb3cd141c1036563a2d3437fbb01140954d72f2a4ecf59dfd819ebd5ef18ef",
+    "src/persistence/project_storage.h": "e5cd27296bdb7ad3fe6b82255d0b0ce280f048047e86e9f390b06fa8f13d585c",
+    "src/persistence/recovery_store.cpp": "024b5e6f711b0e9e463b1ce3e32a61a83710972887fd5689bd88cf4c2920f31d",
+    "src/persistence/recovery_store.h": "5d4f9e9e90cb5168529d44719e115f6c84fe4d6588f14feef54e26b4ceff3c37",
+    "src/persistence/save_transaction.cpp": "09e36dcbfc59297ad7f8793c45358ba6d49b3896d63a61d1d09be5fd3bf1a276",
+    "src/persistence/save_transaction.h": "340e8805cef85dadfdd926099da94894bd891d6af8ba98f5945c37459eccd749",
+    "src/ui/application_shutdown.cpp": "351e47f25a6121e80e774b1875901912dbd9295c868b85f09370dd47b7ef198e",
+    "src/ui/application_shutdown.h": "54b9666ea1226f9d2e3f10062395715d9cc85a5f3156e48331fb0dc35edeeacd",
+    "src/ui/project_file_workflow.cpp": "4e7d4f3fae8f337751c1d4129287ce7e9636e127f798d9c18eda397aac8f28dc",
+    "src/ui/project_view_model.cpp": "ebfbc1f280cfb37bbbb61dd23c28a82a23ed88019eef527c349c6abfefd29429",
+    "src/ui/project_view_model.h": "23b97e6e3925331b5a248000d212fc564fc2739e705d4a260f8330687e6ae562",
+    "tests/CMakeLists.txt": "f51cb68345ea942c97440248c631860d115b64d113e4b5d0b44a477210aaec59",
+    "tests/ProbeWindow.qml": "67d25abcdc2a4d2510e7e8dfd3dfc4085a0826e0a1af8dbe146d42b5adcd1261",
+    "tests/asc_xyz_importer_tests.cpp": "04a55b439397360065b5c4f9769f79efaadf058dc83c56d55feeef849edd2895",
+    "tests/asc_xyz_parser_tests.cpp": "1242e6b90b76a52dea7d4f5982d87bc1787c4a64c024081590ec9e9f3d07920a",
+    "tests/cache_benchmark_tests.cpp": "dcc42270b3f48681bbe6795e73b3122ad304a137908e3e474309770e662f6e17",
+    "tests/cache_codec_tests.cpp": "04e1ae09516056ea1c9d7bd50defc154ea2c136acb859584547dd581f6dcde47",
+    "tests/cache_crash_probe.cpp": "49afd8f5db6093b76627a336ce02630c5b97e7f2366ab21ccb7aeaa932bf6708",
+    "tests/cache_file_test_access.h": "68dfb6b2a69d0521645e1e00ac4c6c6983682c3f1523d213cd485ff1e2e4509f",
+    "tests/cache_file_tests.cpp": "c7d196778f9dec7ca338171f4b567953b765d7cdca71733f296d6c5e8bdf91d5",
+    "tests/cache_format_tests.cpp": "99cb45e4f1f06b2a5f4a9a1ee6d2a49f6e7619b9d86218b207fefac48ec64324",
+    "tests/cache_reader_tests.cpp": "61ffd39fe506ba47071128284ffc2debdd19d1aabe687bda81cec5bb4da7292a",
+    "tests/cache_reliability_tests.cpp": "94690bf16d9dce9cd2c2197ade4d4e199be982f605850ca7ae42cab50a969b02",
+    "tests/cache_stream_sort_tests.cpp": "cdcceb12387c0ac5c09c56a384c0178f2cc227bbde46d0fbb929e9a83279a7b5",
+    "tests/cache_writer_tests.cpp": "255c031556950079005e44a2dfd193e0dba33491e473940c374e78331a185085",
+    "tests/coordinate_tests.cpp": "0af03466b9f596705d37a38882d0c3901261e444953708ff44f23628f7d488d9",
+    "tests/density_benchmark_tests.cpp": "0213070dde1fffeb93125e67a59bbd12e2b97863a0c87c325667eb553090b874",
+    "tests/density_builder_tests.cpp": "1b5a09e028220337a061d498451429c57c9b626d5d42f4f6b89e2e1c1776df3d",
+    "tests/density_operation_tests.cpp": "50b50ac259b739f785584d44dfd0c518139698ddb68433b3fdfb28c76414a23c",
+    "tests/density_storage_tests.cpp": "57e149b893bff008403beea3effbb28ed58015af64e2855da6aa86a1de4ed2b5",
+    "tests/density_version_domain_tests.cpp": "31f8db24725f32798574d175e68c24ba65317c17496bfd13c7ee7af73da76436",
+    "tests/density_version_tests.cpp": "c9a60e63b3ed5ef3a5a1bce3493601ccbbff2dc92a7c61b5396ac105e9d510aa",
+    "tests/dependency_smoke.cpp": "c10f58a238591d114c3be1cf0e8a0165d17bd0e43205ddfe7e28166ac321adbe",
+    "tests/fixtures/import/binary64_golden.h": "30d98f7f023821c96cf039d13b2435de9cdaca640e1f94768af2f93066a0adbb",
+    "tests/fixtures/import/generate_binary64_golden.py": "f7d3d935dc458dbd8189d4d8e402fc010b2928dbfb4a7a862dbcf9f0362c02a7",
+    "tests/fixtures/raster/generate_boundaries.py": "9ee14c51f78a509fd5e9fcd4fe0f0749527e668b9c722790a90d006b2828e4af",
+    "tests/fixtures/raster/raster_boundaries.inc": "a3ab4f2a77f5c5d161aaea68f55d239556c56b4756584071bef314ce0a592705",
+    "tests/fixtures/synthetic/README.md": "850d9c17a1195116474733b0c2d19c678f9773aaa3534e05544bdc43c06a59ff",
+    "tests/fixtures/synthetic/clean-output-hashes.json": "6eedb2a3ba8c9815a21643d608ce897a3c3e00a9877cdf7a8931d904639f7b34",
+    "tests/fixtures/synthetic/geometry/circle.json": "602cb843fcf684f5db67f206b42147d303f672e57b94fb949b1bcdc666bfc56f",
+    "tests/fixtures/synthetic/geometry/complex_part.json": "0d03c2b8778603fe027824679a91352ead9b6b483f71715a4adb74b427036c78",
+    "tests/fixtures/synthetic/geometry/line_arc_part.json": "1cf996b0138ed5b569fe476114d1ccdfe6d153434d049e0066bdb7543e77728e",
+    "tests/fixtures/synthetic/geometry/rectangle.json": "f0f372e7eda1e23d8350cedfeb60cc0a856b306bf2473f63b714ad44a5e9c268",
+    "tests/fixtures/synthetic/geometry/rectangle_cutout.json": "9ab1de7912c3720aa303123bf27f635097ce1f8fb75e966bc5eab00b0e9d8e94",
+    "tests/fixtures/synthetic/geometry/rectangle_multiple_circles.json": "d49227c961f756d2d7d4fbf9ea437f26e002436c2db743feaccd7fd3bd9118b4",
+    "tests/fixtures/synthetic/geometry/rectangle_one_circle.json": "c414ae4ecfa4bdc323da8af6e22159f03e566585f64c1bd6817bca463dffbfb3",
+    "tests/fixtures/synthetic/geometry/triangle.json": "27636dcbf839b9efd5dbf4ca8e60b53495265a54078fb12dd687643229a4c71a",
+    "tests/fixtures/synthetic/performance/clean_horizontal.scan.json": "a6cbb3f7f8c7cc41be3273c8afe7a6f6037ad2721e3425d788d01424abe17158",
+    "tests/fixtures/synthetic/performance/large_plate.geometry.json": "18aa6ebd093d21676fd3c4fab7121b65e9b8648c2a1fbcfcf8858c40525ad2d1",
+    "tests/fixtures/synthetic/scans/clean_horizontal.json": "9fdd71477969afbdca23f8b61a78111c0b063e539946e820bdfeb369b32d334a",
+    "tests/fixtures/synthetic/scans/clean_horizontal_vertical.json": "86a38ad69d4da33ac42ff61a87725b13dc38b475543b4845134a726c340695e9",
+    "tests/fixtures/synthetic/scans/clean_vertical.json": "8cf81e023454a0d2eb778dc55afa38c47dc5215c2b8dec3a067fb0e1e3c88e15",
+    "tests/fixtures/synthetic/scans/double_scan.json": "5fb68ed6dfaec581e0d927dd292abe5c7ed7ff4f8f55afb266998fd0fdb29b0f",
+    "tests/fixtures/synthetic/scans/extra_table_fragment.json": "7183adead68fc0c230145404383292f08593b7aa7b67bb81d6f1a9254ef355a9",
+    "tests/fixtures/synthetic/scans/jagged_boundary.json": "d315411b9204832f805127d849ad175404e139e4f801255f080f8d6d8ea0e292",
+    "tests/fixtures/synthetic/scans/missing_points.json": "5049ea2a2efabf6bc9f0787bd4482c28e5a960f156d02eb2c84572b1d7be9408",
+    "tests/fixtures/synthetic/scans/mixed_artifacts.json": "f3fcb23d93c1da31ce3f16f31aee07a1e965ba7899ca3e3cff08e0155d6d61b5",
+    "tests/fixtures/synthetic/scans/outside_grid_cloud.json": "5a692204b61b576b603ab3a16e1783160bf23d3ed7ce35602e063c25a1550381",
+    "tests/fixtures/synthetic/scans/overlapping_passes.json": "9ddcdedea90aecf3787cf4e9f4fa9c1772ce4b2c4b46dbeb72f655543224af2b",
+    "tests/fixtures/synthetic/scans/shifted_passes.json": "a920c7f1a71bbe3eb43a04d14f78a68f397ea03c5c7dbccda98b324d83a05c5f",
+    "tests/fixtures/synthetic/scans/short_segments_horizontal.json": "989703633b22d2cf65166ed9aa07161d582cd541f34539a984686dc392a6ae20",
+    "tests/gui_file_tests.cpp": "f1312d6eee01f92984a0ef89c9dd577063719ea2f2499a970cf2bb3a14acf08d",
+    "tests/gui_import_tests.cpp": "f2deec874be9e2f0d90239c1597d37ffb79da44fc1786e9f8624f6411e42dcc2",
+    "tests/gui_lifecycle_tests.cpp": "f2e9483117cf79522acac2bf9e24c84fefe0abfdb5ae5fcc625368c3708db337",
+    "tests/gui_recovery_tests.cpp": "8f25cc2d8920cec55e10853d1374ffd2e141db192dc2fc02456dccfeb26b1a2b",
+    "tests/import_application_tests.cpp": "7a9676325c1810bf8082416a03a2b031a03f3ab5f59a4c250ab2e1bc429b4c5e",
+    "tests/nonzero_z_confirmation_tests.cpp": "73decd1570d3d7522946d0211db30c006c668d9a0a30df9460eccb8c6e01c009",
+    "tests/open_tests.cpp": "feea37b95e32b5b5835805dbf6732c8e02ae48bd535bb4ec0b2a5fea92de7f42",
+    "tests/operation_probe.cpp": "32559fe2413272c973f9b1724821086099f41212181bd0abca06d4a9bd806057",
+    "tests/operation_probe.h": "f1d5eab1f0f88664f30c41477d1af2b31dc6e1b486b2e68a4b29ed015deeb6cb",
+    "tests/operation_probe_main.cpp": "0d6d9a018b538af76cb99897f28ff4c104e842097600560c6a5446a46eda4fab",
+    "tests/operation_test_access.h": "b21cc567c3d3d0b759df064a0238c62cd68804a0cc3e11b94323748dac93d7e4",
+    "tests/operation_test_main.cpp": "dd81ba441c3e769917bbc7f895bb0b5b222f6d92bf0c4e75370e434b8f82ba00",
+    "tests/operation_test_support.h": "26b4424cc022f3c4fff880e4910c03722670b70d24d27859a89c84970e26aaee",
+    "tests/operation_tests.cpp": "de5f85007b04f1e543b28adfc41bbca1ab8a6807252b2cf579191c11c72ca75f",
+    "tests/persistence_density_guard_tests.cpp": "a46e402eea88b224d4f67dc23c093a4502d09b1eaff65047ea81840e36284e90",
+    "tests/persistence_tests.cpp": "1f8d8555d5d3778c670c38f60690a942379bc6ef1825e99781b4ca97f4fce01a",
+    "tests/point_stream_sort_test_access.h": "048f5ea433ef9eba8663fc5eea29a2364812625b6c4bc956b176cdbbb1c9d151",
+    "tests/project_test_access.h": "59fa6e9dc8676e63e51e5e8b485f907256d1c08dc838aede841e06dc97b96b73",
+    "tests/project_tests.cpp": "0edf4bde301fb270e7a204bb43f7c6f60a5b1546932a4f7ff352e6b22e9a678d",
+    "tests/qml_integration_tests.cpp": "3d8d69b11b3b2aab4fef5f70a634fa98eba59a05b1ed3e2eb2ad27f0d1dbc03b",
+    "tests/qml_test_main.cpp": "384c2e964520e785053f6c7486a67d6624b5945d302e9a2df56db65df6f53c94",
+    "tests/raster_mapping_tests.cpp": "8093fa978ebf394d0922efec7188126e8389c25710f07b2a61426d15b14194cb",
+    "tests/recovery_crash_probe.cpp": "9b2bd02b8f227e7fb201f77bc8d8a5a1513f0a00b214c321d38d5f2d9a4a5b08",
+    "tests/recovery_test_access.h": "70dd668e019f9784505bf1e486223e9fcbeb76ca98dbb0d716b76e67a61cae9b",
+    "tests/recovery_tests.cpp": "4dc017042e9f34131708c1c8a6cb1ab7b2f6e472ffa8080ee0647d1efe5ad54a",
+    "tests/save_crash_probe.cpp": "0dadd15e428115138aae4a2bf71ca05437032b77c246a2ccf7a5bfcdded10868",
+    "tests/save_test_access.h": "922bd30f902617af6a24f3d4db8fcd5147c7e3ce4869df43a221bd7828bf0721",
+    "tests/save_tests.cpp": "c0ca7fee72688295731064ff3a70b2e3437e3effd6832e01038fd9559b8a66b7",
+    "tests/synthetic_generator_tests.cpp": "f13724d7f5af66132d017feebb2949784f0df197f9a3782d186893f736c0d5e2",
+    "tests/view_model_tests.cpp": "8ba8ae7d9041744de27630c04f3214a1039e801ab230a80c8724c16aab926236",
+    "vcpkg-configuration.json": "ce283bb01f412da6da3e5a4f89aa4cad65cac99494a6575cbe66eff76de6b571",
+    "vcpkg.json": "3dee01a53f3dc6d5fa6fd97b466eb8c35f932e4518fb536079d0733c74c1ebfd"
+  },
+  "binaries": {
+    "debug": {
+      "CADContour2D.exe": {
+        "sha256": "fea75efa8fc2f77227b146642a716e88b9cdbe6a332bd3ebf60bf457b9be1d4e",
+        "bytes": 4723200
+      },
+      "asc_xyz_tests.exe": {
+        "sha256": "613240dee9a74d23bf0f6b414384d59959cfc4dba645956122fbe7934c308867",
+        "bytes": 2029056
+      },
+      "cache_crash_probe.exe": {
+        "sha256": "3ef8abda327062a23bd73fac9c5cc6b267261ecdff38ab3963dafdf05ba5744f",
+        "bytes": 518656
+      },
+      "cache_tests.exe": {
+        "sha256": "168c951b4867e84658124b52fe215fd029745c9a4eeff07c8d9929a37b038a12",
+        "bytes": 4071424
+      },
+      "density_builder_tests.exe": {
+        "sha256": "a9e373dcb278bfe4279c3778e21c85098869924129aedc7bcb248d10a7928796",
+        "bytes": 3039744
+      },
+      "density_operation_tests.exe": {
+        "sha256": "b70a54fd9e31348305ae1e0df03bda9b90035a9b8e75f35e2d18e9183dfc45df",
+        "bytes": 5046272
+      },
+      "density_storage_tests.exe": {
+        "sha256": "dc508bdbc54ef385d2d296152143ae0bc4bb345dbb8af1964518afdb8c541485",
+        "bytes": 2128384
+      },
+      "density_version_tests.exe": {
+        "sha256": "c1913843d670141630e953577d1b6a2e1d50e740ce3301f82762b57ab909b0fa",
+        "bytes": 5544448
+      },
+      "dependency_smoke.exe": {
+        "sha256": "f011c731373db544b99789cb313db4690306c7be05ed47e4c140961640dc926a",
+        "bytes": 875520
+      },
+      "gui_file_tests.exe": {
+        "sha256": "593d7c6cd440c52c023930445c47bf20029d6b655e679e1a9597a82d67df49eb",
+        "bytes": 6024192
+      },
+      "gui_import_tests.exe": {
+        "sha256": "dfaeb608751341467db78409192c0257e333e4cb3206d0c7c302f9c7a6a76fe7",
+        "bytes": 6146048
+      },
+      "gui_recovery_tests.exe": {
+        "sha256": "e7c617b0d1a289e721c9f514195a87f154dc7530aa26361ca3bbd450c23fff99",
+        "bytes": 5896192
+      },
+      "import_application_tests.exe": {
+        "sha256": "581e45c12c6919be6b84c2eb918c56710197978b54df9ae269b1319d5f4a399f",
+        "bytes": 4566528
+      },
+      "nonzero_z_confirmation_tests.exe": {
+        "sha256": "76ac4577bc829a091ee9cbee5223c04e7e843612b561fcb22a3af15e92170fca",
+        "bytes": 4638720
+      },
+      "open_tests.exe": {
+        "sha256": "3e2b24cb00cea09d5e9f70948cfb3f858a9327a285743aec345c5706dd84d4b0",
+        "bytes": 5179904
+      },
+      "operation_probe.exe": {
+        "sha256": "53b37ed3d97536cf463958b0ce0a0df49f41a3738219b31fc55900c434716b64",
+        "bytes": 4757504
+      },
+      "operation_tests.exe": {
+        "sha256": "06f9a2065b434a7b91c9c094243e24dd4a4b3b43d84a7b14b8e5d40ba9ffc0c9",
+        "bytes": 5136384
+      },
+      "persistence_tests.exe": {
+        "sha256": "d9bfb9f6db09ecc755d3af3e3bd41cbca007216c6a62024c53e40f3660204a37",
+        "bytes": 1781760
+      },
+      "project_tests.exe": {
+        "sha256": "8fad793bf00acad8732a0e78495a8de0ab7f553587d91778ca466da978f0ef6c",
+        "bytes": 4510720
+      },
+      "qml_integration_tests.exe": {
+        "sha256": "8ea537dee75fbad82523e784728992253e3120c50b3a7256d409ea1788e22b97",
+        "bytes": 5071360
+      },
+      "raster_mapping_tests.exe": {
+        "sha256": "8e12d588768b4e9dbb18499bfb2ee0560c3995baafe515b4006c6675e547fcac",
+        "bytes": 407040
+      },
+      "recovery_crash_probe.exe": {
+        "sha256": "a4ab1afeb4fb3f760d59dac3c19656b8a234a0e2f6a2d8a86c52c89e8d71bd2c",
+        "bytes": 4062208
+      },
+      "recovery_tests.exe": {
+        "sha256": "bd8d11f32e259d22b0a5710a4c32211e1e8deedd8adf0b6eb7e6c381a3c5c9c5",
+        "bytes": 5367296
+      },
+      "save_crash_probe.exe": {
+        "sha256": "a8e9ba78ecd15ca4bd025d01edd4a76d83d06852c75254d1479dc9c98801809d",
+        "bytes": 4057088
+      },
+      "save_tests.exe": {
+        "sha256": "d8101177e63fb5677de936812fcb33af37d19449bbee61348455bc2aa90bd75e",
+        "bytes": 4900864
+      },
+      "view_model_tests.exe": {
+        "sha256": "69683ce34ba34c691bd0b674eee1ad91537eecefc71613d4ce394decef8f5038",
+        "bytes": 4949504
+      }
+    },
+    "release": {
+      "CADContour2D.exe": {
+        "sha256": "73a762f77801e2c25273b5ab0c347c2545e052133d04ca7353ef8de1ea637acd",
+        "bytes": 1082368
+      },
+      "asc_xyz_tests.exe": {
+        "sha256": "fc6788d6869fc806e670c0f33443c2c8a89455f14f234eae2bbc426821d4d33a",
+        "bytes": 394752
+      },
+      "cache_crash_probe.exe": {
+        "sha256": "1cd098667d9b10955e6a07c2ab5e7f2617dde37be2bb798014bc8f8a62d9767d",
+        "bytes": 124928
+      },
+      "cache_tests.exe": {
+        "sha256": "edb2602c72211d64d0b50b40b60d3d67b3ffe3cef3486f1cae8c01343e72ab10",
+        "bytes": 1036288
+      },
+      "density_builder_tests.exe": {
+        "sha256": "60379be081926623d746efc6751a75131e9b96a99a0182d0217532fa4b1af4e3",
+        "bytes": 606720
+      },
+      "density_operation_tests.exe": {
+        "sha256": "1cf618ce16be15b70f6e00a6e493b7124fd4254295f8a0faf5cf565aef6f37f8",
+        "bytes": 1237504
+      },
+      "density_storage_tests.exe": {
+        "sha256": "ced910b3c251744f77abf49ce9cfbf85ec10829e53e4952faae3b77e2aa43af2",
+        "bytes": 423936
+      },
+      "density_version_tests.exe": {
+        "sha256": "1a4d24c4101ce9ff32982f1a619ccf0542a3bad29643ff4476bbae37d601923a",
+        "bytes": 1490944
+      },
+      "dependency_smoke.exe": {
+        "sha256": "a50ddd2868ce05df68422ee2d5d1f6429fc5b36ba916e8c1bd62e1ad5c39a9cd",
+        "bytes": 53760
+      },
+      "gui_file_tests.exe": {
+        "sha256": "b42af629cc43e494c7dec8392d57ff656344485830424a9c162e0363d6eea489",
+        "bytes": 1424896
+      },
+      "gui_import_tests.exe": {
+        "sha256": "9130944fa7c4925c3c19a0a6d17dcc0e31ebe2b035fecd21291807dc881ea749",
+        "bytes": 1439232
+      },
+      "gui_recovery_tests.exe": {
+        "sha256": "eeeb78ee991acd38981b65cfb46bb91c0e7704cd63e93de34af078cffb4b1554",
+        "bytes": 1371136
+      },
+      "import_application_tests.exe": {
+        "sha256": "a54037cc618073baadb95e3eac48c86dbe7b250bd98a0a810323552199b40b82",
+        "bytes": 942592
+      },
+      "nonzero_z_confirmation_tests.exe": {
+        "sha256": "ac68023bd9fd87620f746ca8f980d288eb0d46409c83b63bba9b1ffa747cbd67",
+        "bytes": 940032
+      },
+      "open_tests.exe": {
+        "sha256": "8c804111b96d56bef01d32be9ae95f6cc9665a7704dbacc26b745b065bc188ee",
+        "bytes": 1115648
+      },
+      "operation_probe.exe": {
+        "sha256": "cd2ef0b2a660cdee20d25689cea2e392f9b0dc00732de130b983cce5c42bd711",
+        "bytes": 1092608
+      },
+      "operation_tests.exe": {
+        "sha256": "4f8a64e003d7abcd2bb6e9bcc2aa61117d94222371bf3a45d77a527078178f35",
+        "bytes": 915456
+      },
+      "persistence_tests.exe": {
+        "sha256": "1cc917e3a91ee37d0e77322a32ad73cc75f276c46a2cea34d0fa7fc6819c5be5",
+        "bytes": 397824
+      },
+      "project_tests.exe": {
+        "sha256": "1c902442c9f5f84974d54cc795ca5f0dd37591a229f124766fffd6208c073cce",
+        "bytes": 740864
+      },
+      "qml_integration_tests.exe": {
+        "sha256": "1ced14ba64c8d7804dc02812d2942503bf8f23f33d0732621c7b9b23abef68c2",
+        "bytes": 1200128
+      },
+      "raster_mapping_tests.exe": {
+        "sha256": "e9cabbe83924d77a1207f6cd5f0073e00686e669f131c0cac3bd88d6eb8a64df",
+        "bytes": 126976
+      },
+      "recovery_crash_probe.exe": {
+        "sha256": "58b54f8aaa0c043e8ebde3833514120db4d836634fa0e844a6d627faa285a689",
+        "bytes": 799744
+      },
+      "recovery_tests.exe": {
+        "sha256": "cd244518f449668f3729077ab08490b53ad621b0400e3373a16fb781b788ecbc",
+        "bytes": 1200128
+      },
+      "save_crash_probe.exe": {
+        "sha256": "475144c88111810370e74fde8cde74f005c9e6930d84c2d557c625b1102662ab",
+        "bytes": 753664
+      },
+      "save_tests.exe": {
+        "sha256": "95d2f5bdce1fdf4659f21c891422a9d5e33ce5afb069508e147878d0db6ac2d5",
+        "bytes": 1041408
+      },
+      "view_model_tests.exe": {
+        "sha256": "9103843041cdd762367dcfff3f4a05e70508011fe4d0d96ea22bac72b01305d7",
+        "bytes": 1142784
+      }
+    }
+  },
+  "build_environment": "build/task02-env.cmd: MSVC 19.51.36260, Qt 6.12.0 msvc2022_64, CMake 3.30.5, Ninja 1.12.1; all/all_qmllint in both presets; final rebuild after comment-only receiver API clarification",
+  "build_environment_script": {
+    "path": "build/task02-env.cmd",
+    "sha256": "3346cc50ec28b17d7b7e750ca2ca2df1a15283e3aeccfe36169046a28a3851e6"
+  },
+  "verification_scope": {
+    "full_production_provenance": "provenance-before-final-comment.json",
+    "post_production_change": "Only the receiver API comment in src/application/project_controller.h changed; no code tokens or test definitions changed.",
+    "post_change_checks": "Debug/Release all + all_qmllint and all 47 density_version_tests cases passed; full production was not repeated after the comment."
+  }
+}

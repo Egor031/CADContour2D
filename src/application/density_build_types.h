@@ -36,6 +36,9 @@ class DensityPublicationCandidate {
 public:
     virtual ~DensityPublicationCandidate() = default;
     virtual const std::shared_ptr<const DensityReadyProduct> &ready() const noexcept = 0;
+    // Rechecks application preparation context after callbacks/reentry and before
+    // the decision gate. Legacy receivers without mutable context need no check.
+    virtual bool applicable() const noexcept { return true; }
     // Prepare reserves all storage and retention. Commit adds the new descriptor
     // and selects it, preserving previous versions and their edits. No I/O,
     // allocation, callbacks or substantial destruction are allowed here.

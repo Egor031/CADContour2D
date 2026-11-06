@@ -10,7 +10,9 @@ enum class ErrorDetail { CellMustBeFiniteAndPositive, RevisionExhausted,
                          IdentityExhausted, HistoryExhausted, ReentrantCommand,
                          WrongThread, ShuttingDown, OperationIdExhausted,
                          ImportRequired, ReplacementNotConfirmed, ContextEpochExhausted, OutOfMemory,
-                         DatasetUnavailable };
+                         DatasetUnavailable, InvalidDensityVersion, DuplicateDensityVersion,
+                         PreciseResetNeedsConfirmation, PreciseResetCancelled, StaleConfirmation, PreciseResetPolicyFailed,
+                         PersistenceVersionsUnsupported };
 
 struct CommandFailure {
     CommandError category;

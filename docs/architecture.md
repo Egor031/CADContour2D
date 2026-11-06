@@ -441,13 +441,15 @@ Project
 Пустые domain fixtures доступны только через friend test access, включая dev probe.
 Принятие задачи 01 этим не пересматривается.
 
-`ProjectSession` объединяет `ProjectState`, storage reference и `QUndoStack`.
-Новая пара state/history готовится заранее, commit меняет единственный unique owner.
-История объявлена после state и уничтожается раньше него. `ImportedDataset` в core
+`ProjectSession` объединяет `ProjectState`, storage reference и типизированную историю
+малых команд SetCell/Density selection. Новый сеанс готовится заранее; controller
+меняет единственного текущего владельца, а publication candidate удерживает shared lease
+исходного сеанса на время reentrant preparation. История объявлена после state.
+`ImportedDataset` в core
 хранит CacheId, source summary, count/bounds/Z и пути; массив точек и файловые
 QObject guards в нём отсутствуют. Core не зависит от cache writer или Qt.
 
-Runtime identity нового экземпляра выдаётся монотонно в течение жизни controller и не используется как сохраняемый project ID или ID версии Density Map. Ревизия входов увеличивается при фактическом изменении, включая Undo/Redo; восстановление прежнего значения параметра не восстанавливает применимость прежнего operation stamp. Исчерпание счётчика проверяется до изменения состояния и истории. Замена или закрытие проекта сначала очищает историю, затем уничтожает прежнее состояние.
+Runtime identity нового экземпляра выдаётся монотонно в течение жизни controller и не используется как сохраняемый project ID или ID версии Density Map. Ревизия входов увеличивается при фактическом изменении, включая Undo/Redo; восстановление прежнего значения параметра не восстанавливает применимость прежнего operation stamp. Исчерпание счётчика проверяется до изменения состояния и истории. Замена или закрытие проекта выводит прежний сеанс из текущего состояния; временный publication lease не даёт уничтожить его до завершения preparation/notification.
 
 Project владеет набором версий и выбором активной версии. Immutable counts, `cell`, origin/mapping и source/build metadata принадлежат версии, её редактируемое Rough-состояние отделено от других версий. Precise Stage остаётся текущим состоянием проекта, а не автоматически восстанавливаемой частью каждой версии.
 
@@ -552,7 +554,8 @@ O(1) RAM и явный work budget; превышение возвращает `R
 Полный численный контракт, MSVC/environment requirements и правила представимости —
 [algorithms.md, §6](algorithms.md#raster-foundation-061-численный-контракт).
 Foundation используется headless D reader/writer (06.2), builder (06.3A) и
-application adapter (06.3B); каталог/Project State/persistence остаются 06.4–06.8.
+application adapter (06.3B) и domain descriptors каталога 06.4; persistence и
+Canvas/ROI остаются 06.5–06.8.
 Проверки и ограничения Foundation —
 [отчёт 06.1](reports/task-06/raster-foundation.md).
 
@@ -766,8 +769,8 @@ source-order pages и тем же BBox index, в том числе на HDD, п�
 пользователя от 2026-11-06: [06.3A на `bc28195`](reports/task-06/density-builder.md#i-независимое-принятие),
 [06.3B на `42147bb`](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие).
 B1/P1 и B2/P2 независимо закрыты; новых P0–P3 и блокеров нет.
-Согласованный объём 06.3 завершён; следующий шаг — проектирование 06.4. Каталог/GUI/persistence
-06.4–06.8 не реализованы, задача 06 целиком остаётся IN PROGRESS.
+Согласованный объём 06.3 завершён; production-каталог/выбор/история добавлены в 06.4
+(§15.3). GUI/persistence 06.5–06.8 не реализованы, задача 06 целиком остаётся IN PROGRESS.
 Исторические отчёты не меняются; основания и пределы —
 [algorithms.md, §6](algorithms.md#6-построение-density-map), этапы —
 [implementation-plan.md, задача 06](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -871,7 +874,7 @@ checkpoint предшествует возврату. Форматы D/Point Cac
 06.3B связывает immutable request → PendingDataset с существующим OperationRunner
 и typed application gate (§§24–26). Отдельный receiver готовит candidate для добавления
 и выбора новой карты; без receiver admission отклоняется до запуска worker. Каталог
-версий и выбор/Undo подключаются к этому seam в 06.4, persistence D — в 06.5.
+версий и выбор/Undo подключены к этому seam в 06.4, persistence D остаётся в 06.5.
 Synthetic full-pipeline проверки не подтверждают Rough detection;
 physical cold-HDD/UNC, representative real scans и power-loss остаются непроверенными.
 Benchmarks не задают нормативов времени, размеров карты или числа occupied files.
@@ -898,7 +901,31 @@ Publication Build проверяет исходный проект, snapshot и 
 предыдущие версии/правки сохраняются. Failure/Cancel/Discard не меняют выбор.
 `cell` и его SetCell Undo/Redo во время Build относятся только к следующему запуску,
 сохраняют inputRevision/history/dirty и не отзывают этот Build. Остальные relevant
-invalidation/Close/Open/Shutdown необратимо отзывают публикацию. Undo/Redo версий — 06.4.
+invalidation/Close/Open/Shutdown необратимо отзывают публикацию. Прямой выбор и Undo/Redo
+именно выбора также не отзывают Build; исключение не распространяется на будущие
+Rough-команды или другие виды истории.
+
+В 06.4 `ProjectState` — единственный владелец каталога: ordered shared references
+на версии, optional active `VersionId`, поиск по стабильному UUID. UUID не выводится
+из индекса/cell/пути и проверяется на null/коллизию до мутации. Каждая версия удерживает
+immutable domain descriptor: отдельный DatasetId и physical binding без открытого
+handle, source CacheId/count, точную копию Ready Mapping, C1/D/profile/resources/statistics.
+Core не зависит от Qt, builder/storage или ReadyProduct. Rough owner отдельный и пока
+пустой; Precise принадлежит сеансу проекта. Counts/points не копируются в каталог/историю.
+Accepted D не удаляются при смене выбора, очистке истории, Close/Import или разрушении
+controller. GC отсутствует; непринятый D очищает прежний worker protocol.
+
+Каждый Build добавляет версию и одну history-команду смены выбора непосредственно
+перед Accept. Undo не убирает версию: возвращает предыдущий ID или null у первой карты;
+Redo выбирает тот же ID без вычислений. Добавленный каталог остаётся dirty при null active.
+Выбор участвует в persistent content; v1 saved baseline не представляет ни одной карты.
+Для будущего Precise существует единый application policy guard Select/Undo/Redo/Build:
+NeedsConfirmation/Cancel/Confirm/Stale, с project/session/старым и новым ID,
+history generation, отдельной choice generation, Rough revision и Precise generation.
+Choice generation монотонна: выбор A→B→A не восстанавливает действие прежнего
+подтверждения. Ответ проверяется повторно до commit; отказ сохраняет cursor/state.
+Confirm потребляет необходимость reset без сохранения восстанавливаемого Precise в
+history. Реальный Precise pipeline и GUI предупреждения о несуществующих данных не добавлены.
 
 ---
 
@@ -1185,7 +1212,8 @@ Admission фиксирует immutable Density snapshot с cell/profile/resource
 Ready содержит typed immutable descriptor с уже validated Mapping, metadata,
 provenance, completed path и statistics. GUI gate не создаёт Mapping и не читает D.
 Без подключённого DensityPublicationReceiver Build не запускается; 06.4 подключает
-production catalogue к этому seam, временной currentDensity в ProjectState нет.
+production catalogue текущего ProjectSession к этому seam по умолчанию. Явный detach
+по-прежнему запрещает admission; временной currentDensity в ProjectState нет.
 
 Initial gate предшествует fallible receiver.prepare с borrowed lease вне decision
 mutex. Candidate заранее удерживает descriptor/retention и готовит добавление и
@@ -1197,6 +1225,22 @@ callbacks или тяжёлого destruction в commit. Notifications и осв
 владельца идут после mutex. Reentrant Close/Shutdown/detach во время prepare
 отзывают старую публикацию; receiver удерживается, lease не даёт worker удалить D.
 GUI не ждёт worker под lease. Замена receiver не перенаправляет старый результат.
+
+Production candidate 06.4 вне decision mutex подготавливает новую версию, Rough owner,
+копию небольших catalogue references и новую typed history с обрезанной redo-веткой.
+После ранних test callbacks снимаются актуальные active/revision/history/reset context;
+поздние SetCell/selection не заменяются старым snapshot. Во время Build-confirmation
+изменения только future cell, включая Undo/Redo SetCell, сохраняют подтверждение;
+после callback prepared catalogue/history заново готовятся относительно актуальных
+state/history до commit. Изменение выбора/Rough/Precise/session делает ответ stale,
+включая ABA. Direct Select/Undo/Redo дополнительно требуют прежнюю history generation;
+callback не может сдвинуть иной cursor старым подтверждением. Final applicability проверяет
+также подготовленный контекст candidate. В decision gate выполняются только noexcept
+обмен заранее подготовленного catalogue/history storage, присваивание active/revisions
+и Accept. `QUndoStack::push` в этом протоколе не используется. Старые vectors/owners
+освобождаются после gate, уведомление видит state/dirty/Undo/Redo согласованно.
+Цена preparation зависит от количества descriptors/команд, а не точек или ячеек;
+отдельный произвольный production RAM-limit каталога не вводится.
 
 При Accept worker удерживает собственный scope и вызывает PendingDataset.releaseToOwner
 после освобождения lease; accepted files сохраняются даже при Close/Shutdown до
@@ -1289,7 +1333,8 @@ Terminal completion согласует operation state и shutdown readiness д�
 - фиксация/разрешение автоматического изменения;
 - замена существующего результата повторной автоматической операцией.
 
-Допускается использование Qt Undo Framework.
+В текущей реализации используется типизированная C++ история небольших SetCell и
+Density selection records; она обеспечивает fallible preparation до noexcept publication.
 
 Undo-команда должна изменять domain/project state, а не только визуальное состояние QML.
 
@@ -1487,7 +1532,7 @@ resolver сохраняют его категории: FileIO, Missing при `e
 
 Ready переносит только immutable LoadedProject metadata, без файловых guards.
 Owner готовит ProjectState с точным saved cell через constructor (revision = 0),
-новой runtime identity, прежним ProjectId и новым пустым QUndoStack. Все allocations
+новой runtime identity, прежним ProjectId и новой пустой историей. Все allocations
 выполняются до final applicability check; noexcept gate обменивает единственного
 владельца ProjectSession и фиксирует Accept. Context epoch растёт, verification
 products инвалидируются; notification видит согласованные state/history/baseline.
@@ -1582,6 +1627,14 @@ Native Windows GUI-приёмка и независимые проверки з�
 05.1–05.5B. Manifest v1 и Recovery задачи 05 остаются действующими в своей области.
 Новые dataset kinds и семантические поля требуют versioned manifest/codec extension;
 экспериментальный D layout не становится production schema автоматически.
+
+Временный guard 06.4 запрещает Save/Save As/Autosave и прямой snapshot capture при
+непустом каталоге или другом непредставимом v1 domain state. Причина структурирована
+отдельно от FileIO; отказ происходит до worker/публикации, не меняет dirty, baseline,
+manifest/recovery bytes или dataset references. Null active после Undo не обходит guard.
+GUI объясняет недоступность сохранения; Save failure в Close/New/Open/Exit оставляет
+проект открытым, Cancel и явный Discard сохраняются. Autosave пропускает запись без
+диалогов. Проекты без карт продолжают действующий v1 workflow без sidecar/partial save.
 
 Save/Open/Autosave/Recovery должны согласованно сохранять несколько immutable D,
 постоянные identities, `cell`, origin/mapping, source/build metadata, active version
@@ -2087,8 +2140,8 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** 06.1, D v1 06.2, builder 06.3A и application adapter 06.3B — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); согласованный объём 06.3 завершён. Далее проектирование каталога/выбора 06.4, persistence D — 06.5, real-scan/эксплуатационная приёмка — 06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным профилем без универсальных production limits.
-- **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
+- **Density production details:** 06.1, D v1 06.2, builder 06.3A и application adapter 06.3B — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); согласованный объём 06.3 завершён. Каталог/выбор 06.4 реализованы (§15.3); persistence D — 06.5, real-scan/эксплуатационная приёмка — 06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным профилем без универсальных production limits.
+- **Density versions/persistence:** VersionId, domain descriptors и выбор определены в 06.4 (§15.3); versioned persistence layout и dataset availability остаются 06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.
 - **Reduced Cloud Storage:** RAM, project-owned dataset или восстановление из cache (§18), обязательно с сохранением ручных удалений.

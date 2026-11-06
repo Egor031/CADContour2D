@@ -73,6 +73,7 @@ bool equivalent(const QString &a, const QString &b) { return a.compare(b, Qt::Ca
 
 bool matchesSavedContent(const ProjectState &state, const SavedProject &saved) noexcept
 {
+    if (!isV1Representable(state)) return false;
     const auto *a = state.dataset();
     const auto &b = saved.content;
     return a && state.projectId() == saved.snapshot.projectId && same(state.cell(), saved.snapshot.cell)

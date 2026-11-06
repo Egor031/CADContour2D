@@ -1,0 +1,33 @@
+{
+  "debug": {
+    "all": 1310,
+    "unique": 1310,
+    "production": 1171,
+    "new": 47
+  },
+  "release": {
+    "all": 1310,
+    "unique": 1310,
+    "production": 1171,
+    "new": 47
+  },
+  "raw_name_differences": {
+    "debug_only": [
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <3B-4C C2-E5 F7-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <3D-31 C2-E5 F7-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <3D-AF C1-E5 F7-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <58-57 C2-E5 F7-7F 00-00>"
+    ],
+    "release_only": [
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <00-58 21-08 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <20-5B 21-08 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <30-55 21-08 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <60-57 21-08 F6-7F 00-00>"
+    ]
+  },
+  "production_commands_equal_after_build_directory_substitution": true,
+  "command_differences": {
+    "debug": [],
+    "release": []
+  }
+}

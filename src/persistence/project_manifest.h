@@ -14,7 +14,8 @@ namespace cadcontour::persistence {
 
 enum class ErrorCode {
     InvalidJson, UnsupportedVersion, UnsupportedFormat, MissingField, InvalidType,
-    NumericRange, InvalidValue, InconsistentState, InvalidReference, ResourceExhausted, FileIO
+    NumericRange, InvalidValue, InconsistentState, InvalidReference, ResourceExhausted, FileIO,
+    UnrepresentableState
 };
 struct Error {
     ErrorCode code;
@@ -62,6 +63,9 @@ struct ProjectSnapshot {
 
 // Metadata-only projection for a prospective destination. Does not save, copy, read a
 // dataset, establish a save baseline or assert the destination files are available.
+// v1 cannot project Density versions/Rough/selection; the guard precedes any capture.
+bool isV1Representable(const ProjectState &state) noexcept;
+Status checkV1Representable(const ProjectState &state);
 Result<ProjectSnapshot> captureSnapshot(const ProjectState &state, QUuid storageId, QUuid snapshotId);
 Result<QByteArray> encodeManifest(const ProjectSnapshot &snapshot, ManifestLimits limits);
 Result<ProjectSnapshot> decodeManifest(const QByteArray &utf8, ManifestLimits limits);

@@ -2,6 +2,7 @@
 
 #include "cache/cache_file.h"
 #include "core/raster_mapping.h"
+#include "core/density_dataset_id.h"
 
 #include <atomic>
 #include <vector>
@@ -9,12 +10,6 @@
 namespace cadcontour::density {
 
 using U64 = std::uint64_t;
-struct DatasetId {
-    std::array<std::byte, 16> bytes{};
-    static DatasetId create();
-    bool isNull() const noexcept;
-    bool operator==(const DatasetId &) const = default;
-};
 struct TileKey {
     U64 x = 0, y = 0;
     bool operator==(const TileKey &) const = default;

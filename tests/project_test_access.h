@@ -24,7 +24,7 @@ public:
             return entry;
         if (controller.lastIdentity_ == std::numeric_limits<std::uint64_t>::max())
             return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::IdentityExhausted);
-        auto candidate = std::make_unique<ProjectController::ProjectSession>(
+        auto candidate = std::make_shared<ProjectController::ProjectSession>(
             ProjectState(controller.lastIdentity_ + 1));
         controller.executing_ = true;
         controller.invalidateOperation();

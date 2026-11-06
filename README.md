@@ -186,6 +186,22 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 
 ### Configure / Build / Tests
 
+Density versions 06.4: target `density_version_tests` использует production
+ProjectController/receiver/ProjectState, реальный C1/D и независимый Reader.
+В описанной MSVC-среде проверены `all all_qmllint` и полный `-L production`
+Debug/Release: **1170 PASS / 0 FAIL / 1 SKIP** из 1171 в каждой конфигурации.
+SKIP — прежний Windows file-symlink без privilege 1314. Новый набор входит в production;
+его отдельный фактический запуск в каждой конфигурации дал **47/47 PASS**:
+
+```bat
+build\windows-debug\density_version_tests.exe --gtest_output=xml:build/density064/versions-debug-final.xml
+build\windows-release\density_version_tests.exe --gtest_output=xml:build/density064/versions-release-final.xml
+```
+
+[Отчёт 06.4](docs/reports/task-06/density-versions.md) содержит команды, первоначальные
+failures, итоговые XML/logs/provenance и ограничения. GUI Build/Canvas и versioned
+persistence не добавлены; v1 сохранение при каталоге безопасно отклоняется.
+
 Density Build Operation 06.3B: `density_operation_tests` использует реальные
 ProjectController/OperationRunner, Point Cache → C1 → D и typed fixture receiver.
 В MSVC CMD-среде выше проверены `all all_qmllint` Debug/Release; в среде с Qt `bin`
@@ -199,8 +215,10 @@ build\windows-release\density_operation_tests.exe --gtest_output=xml:build/densi
 **47/47 PASS** в каждой конфигурации. Широкие production результаты, команды,
 первоначальные failures, inventories и ограничения — в
 [отчёте 06.3B](docs/reports/task-06/density-build-operation.md) и
-[evidence](docs/benchmarks/density063b/README.md). Production catalogue — 06.4;
-без receiver Build отклоняется до worker, GUI Build не добавлен.
+[evidence](docs/benchmarks/density063b/README.md). Это результаты принятой 06.3B.
+Production catalogue 06.4 и его проверки описаны отдельно
+[в отчёте версий](docs/reports/task-06/density-versions.md). Без receiver Build по-прежнему
+отклоняется до worker; production receiver теперь подключён по умолчанию. GUI Build не добавлен.
 
 Headless builder 06.3A: target `density_builder_tests` проверяет полный
 Point Cache → C1 → D через независимый spatial oracle, а
@@ -560,6 +578,19 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
+**06.4 — версии Density Map и Project State: READY FOR INDEPENDENT REVIEW.**
+Production C++ `buildDensity()` добавляет и выбирает новую постоянную версию через
+существующий runner и typed receiver; `selectDensityVersion(VersionId)`, Undo/Redo
+выбирают по UUID без чтения D/Point Cache и пересчёта. Каждый Build сохраняет собственные
+mapping/cell/metadata/statistics и пустой независимый Rough owner. Undo выбора сохраняет
+все версии и файлы; future cell остаётся отдельным параметром. Каталог/history готовятся
+до gate и публикуются noexcept swaps вместе с Accept; общий Precise reset policy
+подготовлен без фиктивного Precise pipeline. До 06.5 Save/Save As/Autosave и прямой v1
+capture явно запрещены при каталоге, включая null active после Undo; dirty и прежнее
+сохранение не меняются. GUI показывает причину, отказ Save не закрывает проект.
+Build GUI/Canvas/LOD/ROI ещё отсутствуют. Фактические проверки и ограничения текущего
+изменения — [отчёт 06.4](docs/reports/task-06/density-versions.md).
+
 **06.3B — Density Build Operation: ACCEPTED WITH LIMITATIONS.**
 Принята пользователем 2026-11-06 на проверенном
 `42147bb3c10df8008e1f8485255d8370bd02a7bf`; новых P0–P3 и блокеров нет.
@@ -603,8 +634,8 @@ SKIP — только Windows symlink privilege 1314. Свежий smoke 9×100k
 историческая matrix 9×1 млн на `03fd6e2` остаётся отдельным evidence исходной реализации.
 Согласованный объём **06.3 завершён — ACCEPTED WITH LIMITATIONS**:
 headless builder и OperationRunner/application publication приняты.
-Следующий шаг — проектирование 06.4; production-каталог версий/выбор/Undo
-и persistence карт (06.5) ещё не реализованы. Форматы Point Cache/D/manifest
+Production-каталог версий/выбор/Undo добавлены последующим этапом 06.4 выше;
+persistence карт (06.5) ещё не реализован. Форматы Point Cache/D/manifest
 и принятые 06.1/06.2/Recovery P3 сохранены.
 
 **06.2 D v1 — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
@@ -647,9 +678,10 @@ scanAll с bounded events и обработкой только occupied groups. 
 
 **Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1,
 headless D storage 06.2; **06.3A и 06.3B — ACCEPTED WITH LIMITATIONS**,
-согласованный объём 06.3 завершён. Следующий шаг — **проектирование 06.4**;
-**06.4–06.8 не начаты**. Production-каталог, persistence карт, Canvas/ROI
-и полный пользовательский workflow ещё не готовы.
+согласованный объём 06.3 завершён. Production-каталог и selection history 06.4
+реализованы; результаты текущей проверки приведены выше отдельно от принятия.
+**06.5–06.8 не начаты**: persistence карт, Canvas/ROI и полный пользовательский
+workflow ещё не готовы.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).

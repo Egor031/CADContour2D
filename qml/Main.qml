@@ -577,6 +577,13 @@ ApplicationWindow {
                         wrapMode: Text.Wrap
                         Layout.fillWidth: true
                     }
+                    Label {
+                        objectName: "saveStatusLabel"
+                        text: window.project.saveStatusText
+                        visible: text.length > 0
+                        wrapMode: Text.Wrap
+                        Layout.fillWidth: true
+                    }
                     Button {
                         objectName: "recheckCacheButton"
                         text: "Повторить ограниченную проверку кэша"

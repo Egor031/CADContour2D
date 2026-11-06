@@ -308,9 +308,23 @@ QJsonObject json(const ProjectSnapshot &s)
 }
 } // namespace
 
+bool isV1Representable(const ProjectState &state) noexcept
+{
+    return !state.hasUnpersistableV1State();
+}
+
+Status checkV1Representable(const ProjectState &state)
+{
+    if (!isV1Representable(state))
+        return Error{ErrorCode::UnrepresentableState, QStringLiteral("state.densityVersions"),
+            QStringLiteral("Density Map versions cannot be saved before the project format is extended (06.5)")};
+    return std::monostate{};
+}
+
 Result<ProjectSnapshot> captureSnapshot(const ProjectState &state, QUuid storageId, QUuid snapshotId)
 {
     try {
+        if (auto supported = checkV1Representable(state); !supported) return supported.error();
         if (!state.dataset()) return Error{ErrorCode::InconsistentState, {}, QStringLiteral("No imported dataset")};
         const auto &d = *state.dataset();
         ProjectSnapshot s{state.projectId(), storageId, snapshotId, state.cell(),

@@ -17,6 +17,7 @@ qt_standard_project_setup(REQUIRES 6.12)
 
 add_library(cadcontour_core STATIC
     src/core/project_state.h src/core/project_state.cpp
+    src/core/version_id.h src/core/density_dataset_id.h src/core/density_version.h
     src/core/imported_dataset.h src/core/cache_id.h src/core/project_id.h
     src/core/command_result.h src/core/coordinates.h src/core/coordinates.cpp
     src/core/raster_mapping.h src/core/raster_mapping.cpp
@@ -76,7 +77,7 @@ add_library(cadcontour_application STATIC
     src/application/native_thread_completion.h src/application/native_thread_completion.cpp
     src/application/operation_diagnostics.h src/application/operation_diagnostics.cpp
     src/application/import_operation.h src/application/import_operation.cpp
-    src/application/density_build_types.h
+    src/application/density_build_types.h src/application/project_history.h
     src/application/density_operation.h src/application/density_operation.cpp
 )
 target_link_libraries(cadcontour_application PUBLIC cadcontour_core cadcontour_io cadcontour_persistence cadcontour_density Qt6::Core Qt6::Gui)

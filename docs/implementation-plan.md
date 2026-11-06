@@ -378,8 +378,9 @@ metadata/state потребуется расширить версиониров�
 с ограничениями (2026-10-29). Headless storage D v1 06.2 — **ACCEPTED WITH LIMITATIONS**
 (2026-10-29). **06.3A и 06.3B — ACCEPTED WITH LIMITATIONS** по решению пользователя
 от 2026-11-06; согласованный объём headless builder и application-интеграции 06.3
-завершён. Следующий шаг — **проектирование 06.4**; версии, persistence карт,
-Canvas/ROI и полный пользовательский workflow ещё не реализованы.
+завершён. В 06.4 реализованы production-каталог, выбор/Undo и временный guard v1;
+результаты текущей проверки — [отчёт 06.4](reports/task-06/density-versions.md).
+Persistence карт, Canvas/ROI и полный пользовательский workflow ещё не реализованы.
 Пользователь согласовал **D + C1** как архитектурную основу дальнейшей разработки.
 Это закрывает исследование 06.0, сохраняя раздельно исторический вердикт независимого
 06.0D `INCONCLUSIVE` и последующее `P1 CLOSED WITH LIMITATIONS`.
@@ -396,7 +397,7 @@ Canvas/ROI и полный пользовательский workflow ещё не
 | 06.3 | Построение через C1 и безопасная публикация | Завершён в согласованном объёме; `ACCEPTED WITH LIMITATIONS` |
 | 06.3A | Самостоятельный headless builder Point Cache → C1 → D | `ACCEPTED WITH LIMITATIONS` на `bc28195`; [принятие](reports/task-06/density-builder.md#i-независимое-принятие) |
 | 06.3B | OperationRunner и application publication Build | `ACCEPTED WITH LIMITATIONS` на `42147bb`; [принятие](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие) |
-| 06.4 | Версии и Project State | Не начат |
+| 06.4 | Версии и Project State | `READY FOR INDEPENDENT REVIEW`; проверки и ограничения — [отчёт](reports/task-06/density-versions.md) |
 | 06.5 | Save/Open/Recovery | Не начат |
 | 06.6 | Engineering Canvas и отображение | Не начат |
 | 06.7 | Rectangle/Lasso ROI | Не начат |
@@ -518,11 +519,22 @@ LOD и необязательный PNG-export разделены по
   При документальном закрытии сборки и тесты повторно не запускались.
   Symlink 1314 — SKIP; исторический Open Closing/Ready не назван исправленным.
   Real scans, physical faults и cold-HDD/UNC остаются непроверенными.
-  Следующий шаг — проектирование 06.4; реализация 06.4–06.8 не начата,
+  Последующая реализация 06.4 описана ниже отдельно от исторической приёмки 06.3;
   задача 06 целиком остаётся IN PROGRESS.
 
 #### 06.4. Версии и Project State
 
+- **Фактическая реализация:** Qt-free `ProjectState` хранит ordered версии с постоянным
+  UUID `VersionId`, immutable D reference, точным Ready mapping и C1/D/resource statistics,
+  отдельным пустым Rough owner и optional active. Production receiver подключён к
+  ProjectSession. Prepare вне gate готовит descriptor/catalogue/history; final gate
+  выполняет noexcept swaps и Accept. История содержит typed SetCell/selection records,
+  без `QUndoStack::push` после Accept. Build добавляет одну команду выбора, Undo сохраняет
+  каталог/D и возвращает предыдущий выбор; Redo не строит карту. Общий policy guard
+  Select/Undo/Redo/Build проверяет Precise context до изменения. Реального Precise нет.
+  Save/Save As/Autosave и прямой v1 capture отклонены при каталоге до расширения 06.5;
+  предыдущие manifest/recovery не заменяются. C++ API доступен, GUI Build/Canvas не добавлен.
+  [Команды, результаты, ownership/lifecycle evidence и ограничения](reports/task-06/density-versions.md).
 - **Цель/результат:** постоянные identities, собственные immutable datasets,
   `cell`/origin/mapping/source/build metadata и независимый Rough-state каждой версии.
 - **Зависимости:** 06.3.
@@ -809,7 +821,7 @@ LOD и необязательный PNG-export разделены по
 ### Какие решения действительно блокируют этапы
 
 - Cache layout и index construction — решены в принятой задаче 03; v1 описан в [point-cache-format.md](point-cache-format.md).
-- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1, headless D v1 06.2, builder 06.3A и application adapter 06.3B — ACCEPTED WITH LIMITATIONS; согласованный объём 06.3 завершён. Проверки и ограничения — в отдельных отчётах. Следующий шаг — проектирование версий/Project State 06.4, затем persistence 06.5; real-scan и эксплуатационная приёмка остаются 06.8.
+- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1, headless D v1 06.2, builder 06.3A и application adapter 06.3B — ACCEPTED WITH LIMITATIONS; согласованный объём 06.3 завершён. Версии/Project State 06.4 реализованы; проверки и ограничения — в отдельных отчётах. Далее persistence 06.5; real-scan и эксплуатационная приёмка остаются 06.8.
 - Intensity/mask/threshold/morphology — решения 07–10 до принятия rough detection; необязательный PNG-export не блокирует построение 06.
 - Reference boundary и one-sided validator — блокируют принятие automatic precise geometry.
 - Representative real scans — блокируют подтверждение алгоритмов, **но не** разработку storage/UI и экспериментальных prototypes.
@@ -878,5 +890,5 @@ Headless C1 builder [06.3A](reports/task-06/density-builder.md#i-независ�
 и application-интеграция [06.3B](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие)
 приняты пользователем 2026-11-06 как ACCEPTED WITH LIMITATIONS на `bc28195` и `42147bb`.
 Независимые отчёты и история FAIL/SKIP сохранены; согласованный объём 06.3 завершён.
-Следующий шаг — проектирование 06.4. 06.4–06.8 ещё не начаты,
-задача 06 целиком остаётся IN PROGRESS.
+Версии/Project State 06.4 реализованы; независимое принятие отдельно от 06.3.
+06.5–06.8 ещё не начаты, задача 06 целиком остаётся IN PROGRESS.

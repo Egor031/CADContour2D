@@ -118,9 +118,18 @@ QString ProjectViewModel::cacheStatusText() const
                                   "Изменение cell, Undo/Redo и сохранение запрещены до восстановления доступности.");
 }
 
+QString ProjectViewModel::saveStatusText() const
+{
+    return hasProject() && !persistence::isV1Representable(*controller_.project())
+        ? QStringLiteral("Сохранение и автосохранение версий Density Map недоступны: текущий формат проекта их не поддерживает. "
+                         "Принятые файлы карт сохраняются на диске.")
+        : QString{};
+}
+
 bool ProjectViewModel::canSave() const noexcept
 {
     return actionsEnabled() && hasDataset() && cacheAvailable() && !controller_.unconfirmedSave()
+        && persistence::isV1Representable(*controller_.project())
         && !workflowPending() && !selectionContext_
         && (!operationActive() || controller_.operation().kind == OperationKind::Autosave);
 }
@@ -379,6 +388,11 @@ void ProjectViewModel::advanceWorkflow()
             || intent_ == Intent::Close || intent_ == Intent::Exit || intent_ == Intent::RestoreRecovery;
         if (replacing && dirty() && !discardApproved_ && !saveRequested_) { promptWorkflow(QStringLiteral("dirty")); return; }
         if (saveRequested_) {
+            if (hasProject() && !persistence::isV1Representable(*controller_.project())) {
+                fileMessage_ = QStringLiteral("Сохранение версий Density Map недоступно в текущем формате проекта. "
+                                              "Проект остаётся открытым; для закрытия можно явно отказаться от сохранения.");
+                endWorkflow(); return;
+            }
             if (!cacheAvailable() || controller_.unconfirmedSave()) {
                 fileMessage_ = QStringLiteral("Сохранение недоступно. Проверьте Point Cache или откройте manifest после неопределённого Save.");
                 endWorkflow(); return;

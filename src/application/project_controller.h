@@ -4,15 +4,26 @@
 #include "operation_runner.h"
 #include "import_operation.h"
 #include "density_operation.h"
+#include "project_history.h"
 
 #include <QObject>
-#include <QUndoStack>
 #include <QElapsedTimer>
 #include <QPointer>
 
 #include <optional>
 
 namespace cadcontour {
+
+enum class DensityTransitionKind { Select, Undo, Redo, Build };
+enum class PreciseResetDecision { NeedsConfirmation, Cancel, Confirm, Stale };
+struct PreciseResetRequest {
+    DensityTransitionKind action;
+    ProjectId projectId;
+    std::uint64_t runtimeIdentity, sessionEpoch;
+    std::optional<VersionId> before, target;
+    std::uint64_t preciseGeneration, historyGeneration, choiceGeneration, roughRevision;
+    bool operator==(const PreciseResetRequest &) const = default;
+};
 
 struct SaveRequest {
     QString manifestPath; // first Save and Save As require an absolute path
@@ -55,9 +66,13 @@ public:
 
     CommandResult newProject();
     CommandResult importAscXyz(ImportRequest request);
-    // No default owner: 06.4 supplies the version catalogue through this typed seam.
+    // Explicit override/detach seam; otherwise the session supplies its production receiver.
     CommandResult setDensityReceiver(std::shared_ptr<DensityPublicationReceiver> receiver);
     CommandResult buildDensity(DensityBuildRequest request = {});
+    CommandResult selectDensityVersion(VersionId id);
+    // No Precise data exist in 06.4. This policy boundary is shared by direct
+    // selection, history traversal and Build, ready for the future stage owner.
+    CommandResult setPreciseResetHandler(std::function<PreciseResetDecision(const PreciseResetRequest &)> handler);
     CommandResult saveProject(SaveRequest request = {});
     CommandResult saveProjectAs(SaveRequest request);
     CommandResult openProject(OpenRequest request);
@@ -103,13 +118,20 @@ private:
     friend class OpenTestAccess;
     friend class RecoveryTestAccess;
     friend class DensityOperationTestAccess;
+    friend class DensityVersionTestAccess;
     class CommandScope;
+    class VersionReceiver;
+    class VersionCandidate;
     // Reverse destruction order: undo commands disappear before their referenced state.
     // DatasetLocation retains accepted files across session/controller destruction.
     struct ProjectSession {
         explicit ProjectSession(ProjectState value) : state(std::move(value)) {}
         ProjectState state;
-        QUndoStack history;
+        ProjectHistory history;
+        std::shared_ptr<DensityPublicationReceiver> densityReceiver;
+        bool preciseResetRequired = false;
+        std::uint64_t preciseGeneration = 0;
+        std::uint64_t densityChoiceGeneration = 0;
         std::shared_ptr<const persistence::SavedProject> saved;
         std::shared_ptr<const persistence::SavedProject> unconfirmed;
         std::shared_ptr<const persistence::CacheAvailability> availability =
@@ -127,6 +149,10 @@ private:
     };
     CommandResult checkEntry() const noexcept;
     CommandResult moveHistory(bool undo);
+    PreciseResetRequest densityTransition(DensityTransitionKind action, std::optional<VersionId> target) const noexcept;
+    CommandResult preparePreciseReset(const PreciseResetRequest &request, bool &reset);
+    bool transitionApplicable(const PreciseResetRequest &request, bool checkHistory = true) const noexcept;
+    void commitPreciseReset(bool reset) noexcept;
     CommandResult startOperation(OperationWork work,
                                 std::function<void(VerificationState &)> finalize = {});
     CommandResult startWork(OperationWork work, OperationKind kind, bool replacementConfirmed = false,
@@ -137,7 +163,7 @@ private:
     bool cacheAvailable() const noexcept;
     void processSaveReceipt(OperationId id, std::shared_ptr<const persistence::SavedProject> prepared,
                             persistence::SaveCommitResult receipt);
-    std::unique_ptr<ProjectSession> prepareImport(const ImportReadyProduct &product);
+    std::shared_ptr<ProjectSession> prepareImport(const ImportReadyProduct &product);
     void invalidateOperation();
     bool applicable(OperationId id) const noexcept;
     void processReady(OperationId id);
@@ -152,7 +178,7 @@ private:
     void finishRecoverySessions();
     bool preemptAutosave();
 
-    std::unique_ptr<ProjectSession> session_;
+    std::shared_ptr<ProjectSession> session_;
     QString storageRoot_;
     QString recoveryRoot_;
     QTimer autosaveTimer_;
@@ -171,6 +197,11 @@ private:
         persistence::RecoveryLimits, std::function<bool()>)> recoveryPrepare_;
     QString importSourcePath_;
     std::shared_ptr<DensityPublicationReceiver> densityReceiver_;
+    bool densityReceiverOverridden_ = false;
+    std::function<VersionId()> versionIdFactory_;
+    std::function<void()> prepareDensityHook_;
+    std::function<void()> prepareHistoryHook_;
+    std::function<PreciseResetDecision(const PreciseResetRequest &)> preciseResetHandler_;
     OperationSnapshot snapshot_;
     std::uint64_t contextEpoch_ = 0;
     // Internal fault seam; tests can cancel/invalidate or fail during preparation.

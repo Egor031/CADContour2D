@@ -168,8 +168,14 @@ QString ProjectViewModel::inputRevision() const
 
 QString ProjectViewModel::densityMapStatusText() const
 {
-    return hasProject() ? QStringLiteral("Карта плотности отсутствует")
-                        : QStringLiteral("Нет открытого проекта");
+    if (!hasProject()) return QStringLiteral("Нет открытого проекта");
+    const auto &state = *controller_.project();
+    if (state.densityVersions().empty()) return QStringLiteral("Карта плотности отсутствует");
+    const auto active = state.activeDensityVersion();
+    const auto prefix = QStringLiteral("Версий карты плотности: %1 · ").arg(state.densityVersions().size());
+    if (!active) return prefix + QStringLiteral("Рабочая карта не выбрана");
+    return prefix + QStringLiteral("Активная карта: cell %1 мм").arg(
+        QString::number(state.densityVersion(*active)->descriptor().mapping.cell(), 'g', QLocale::FloatingPointShortest));
 }
 
 void ProjectViewModel::applyCell(const QString &text)
@@ -467,6 +473,8 @@ void ProjectViewModel::handleResult(const CommandResult &result)
             setErrorMessage(QStringLiteral("Команда вызвана из недопустимого потока."));
         else if (failure.detail == ErrorDetail::DatasetUnavailable)
             setErrorMessage(QStringLiteral("Point Cache недоступен. Восстановите файл и повторите ограниченную проверку."));
+        else if (failure.detail == ErrorDetail::PersistenceVersionsUnsupported)
+            setErrorMessage(QStringLiteral("Сохранение версий Density Map недоступно в текущем формате проекта."));
         else
             setErrorMessage(failure.detail == ErrorDetail::ReentrantCommand
                 ? QStringLiteral("Предыдущая команда ещё не завершена.")
