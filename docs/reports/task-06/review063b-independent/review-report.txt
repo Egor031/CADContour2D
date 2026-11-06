@@ -1,0 +1,297 @@
+Независимое ревью 06.3B — Density Build Operation
+2026-11-06, CADContour2D
+
+A. BASELINE, СРЕДА И ПРОИСХОЖДЕНИЕ BINARIES
+
+Checkout: D:/ZherlitsynEE/CADContour2D, branch main.
+Baseline: bc28195971ddbe43ef36a12f38b5d49453bd85d6.
+Проверенный HEAD: 42147bb3c10df8008e1f8485255d8370bd02a7bf
+(implement density build operation with typed publication).
+Это один commit после baseline. Полный diff: stage.diff, 74 файла,
+3529 insertions / 72 deletions; в нём 13 production/build/test файлов,
+остальное — инструкции, документация и evidence реализации.
+Начальный и конечный git status --porcelain пусты. Более новый checkout
+не откатывался. git ls-remote origin refs/heads/main до проверок и после них
+вернул тот же полный HEAD: push независимо подтверждён на уровне remote ref.
+Fetch, checkout, reset, production edits, commit и push не выполнялись.
+
+Прочитаны действующие инструкции, README, requirements §§7–8,
+architecture §15, §§24–26 и связанные persistence/lifecycle контракты,
+algorithms §6, implementation-plan 06.3–06.5, density-build-operation.md,
+builder/D API и формат, полный source diff этапа и относящиеся tests.
+Независимая проверка разделена на controller/runner, worker/ownership и
+адресные full-pipeline probes; результаты сведены и evidence перепроверен.
+Исторические PASS исполнителя не использованы вместо новых запусков.
+
+Фактическая среда: Windows 10 x64 10.0.19045, MSVC 19.51.36260.0
+(toolchain 14.51.36231), C++20, Windows SDK 10.0.26100.0,
+Qt 6.12.0 msvc2022_64, CMake 3.30.5, Ninja 1.12.1.
+Установленные зависимости переиспользованы из штатных vcpkg_installed:
+zlib 1.3.2, GoogleTest 1.17.0, OpenCV 4.12.0 и другие зависимости manifest.
+VCPKG_MANIFEST_INSTALL=OFF: новых установок и изменений глобальной среды нет.
+
+Root Debug/Release собраны в новых отдельных build-debug/build-release
+под текущим review-каталогом из исходного checkout. В каждой сборке выполнены
+все 229 Ninja actions, включая компиляцию production libraries, tests, GUI
+и all_qmllint. Это свежие сборки, а не incremental «no work».
+Own probes отдельно компилируют те же production sources; 2-action rebuild
+самого расширенного probe прямо обозначен как targeted, не clean rebuild.
+provenance.json содержит SHA256 tracked sources, всех root EXE/LIB,
+CMakeCache/build.ninja/.ninja_log; subdirectories имеют отдельный provenance.
+Все 13 hashes source-файлов из отчёта исполнителя совпали с проверенным
+checkout. Сборочные логи и чистый status связывают binaries с этим HEAD.
+Новые binaries не обязаны побайтово совпадать с прежними из-за build paths,
+PDB и linker metadata; они действительно пересобраны.
+
+B. ЗАМЕЧАНИЯ P0–P3
+
+Новых подтверждённых замечаний P0–P3 не обнаружено.
+Блокирующих непроверенных инвариантов в согласованной области 06.3B
+после совокупности code tracing, собственных probes и регрессии не осталось.
+Это не доказательство отсутствия любых возможных дефектов вне рассмотренных
+контрактов и порядков исполнения.
+
+Baseline observation, не новый дефект этапа:
+tests/open_tests.cpp:575–590 в OpenLifecycle после finish(controller)
+проверяет ShutdownState::Ready, хотя отсутствие активной операции само по
+себе не доказывает завершение retired recovery sessions. Историческое
+Closing/Ready observation не объявляется исправленным. В текущих первых
+Debug/Release production прогонах соответствующие Open cases прошли;
+нового evidence FAIL или основания приписать проблему diff 06.3B нет.
+Rerun-until-pass не применялся; оба полных production запуска выполнены
+по одному разу, первый evidence сохранён.
+
+Ограничения принятия, не P0–P3:
+- Реального production-каталога/VersionId/Undo карт ещё нет. Fixture receiver
+  проверяет typed seam и обязанность добавлять/выбирать новую карту;
+  его нельзя считать готовым каталогом 06.4.
+- D ещё не сохраняется в manifest/Autosave/Recovery (06.5). Форматы задачи 05
+  и source cache не менялись. Принятый D удерживается как постоянный файл,
+  это не означает завершённый сохраняемый пользовательский workflow.
+- Build GUI/Canvas/ROI/Rough вне объёма. Отсутствие GUI Build не дефект 06.3B.
+- Windows file-symlink privilege 1314 остаётся SKIP. Реальные scans,
+  power-loss/device faults и cold-HDD/UNC performance здесь не подтверждены.
+
+C. ФАКТИЧЕСКИЕ ПРОВЕРКИ, КОМАНДЫ И EVIDENCE
+
+Все пути ниже относительны D:/ZherlitsynEE/CADContour2D-review-063b-20261106.
+Штатные production/tests/docs не изменены. Собственные sources, fixtures,
+коррупция/Windows sharing locks и cleanup injection изолированы здесь.
+
+Основные команды (полные аргументы configure — в build-debug.cmd и
+build-release.cmd; точные test commands/cwd/exit/time — commands.ndjson):
+
+  git status --short
+  git branch --show-current
+  git rev-parse HEAD
+  git diff --binary bc28195971ddbe43ef36a12f38b5d49453bd85d6 HEAD
+  git ls-remote origin refs/heads/main
+
+  build/task02-env.cmd cmake -S D:/ZherlitsynEE/CADContour2D
+    -B <review>/build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+    -DCMAKE_TOOLCHAIN_FILE=<installed-vcpkg>/scripts/buildsystems/vcpkg.cmake
+    -DCMAKE_PREFIX_PATH=D:/Qt/6.12.0/msvc2022_64
+    -DVCPKG_TARGET_TRIPLET=x64-windows
+    -DVCPKG_INSTALLED_DIR=<checkout>/build/windows-debug/vcpkg_installed
+    -DVCPKG_MANIFEST_INSTALL=OFF -DBUILD_TESTING=ON
+    -DCADCONTOUR2D_BUILD_TOOLS=ON
+  build/task02-env.cmd cmake --build <review>/build-debug
+    --target all all_qmllint --parallel 4
+  (для Release те же действия с Release/build-release/windows-release)
+
+  <review>/build-debug/density_operation_tests.exe
+    --gtest_output=xml:<review>/adapter-debug-preinventory.xml
+  <review>/build-release/density_operation_tests.exe
+    --gtest_output=xml:<review>/adapter-release.xml
+  ctest --test-dir <review>/build-debug --show-only=json-v1
+  ctest --test-dir <review>/build-release --show-only=json-v1
+  ctest --test-dir <review>/build-debug -L production -j 1
+    --output-on-failure --output-junit <review>/production-debug.xml
+  ctest --test-dir <review>/build-release -L production -j 1
+    --output-on-failure --output-junit <review>/production-release.xml
+
+<review> и <installed-vcpkg> выше — сокращения для чтения, не команды для
+копирования; буквальные пути находятся в cmd scripts и commands.ndjson.
+Тесты запускаются с Qt bin в process-local PATH; Qt GUI regressions используют
+штатный offscreen/software/Basic backend. Это automated UI, не ручная native
+приёмка отсутствующего Build UI. Discovery выполнен последовательно Debug,
+потом Release. Сами production прогоны частично пересекались по времени,
+каждый внутри своей конфигурации выполнялся последовательно (-j1).
+
+Результаты                              Debug                    Release
+Fresh all + all_qmllint                 PASS                     PASS
+Adapter executable                     47 PASS / 0 FAIL         47 PASS / 0 FAIL
+Production 1124                        1123 PASS/0 FAIL/1 SKIP   1123 PASS/0 FAIL/1 SKIP
+Headless внутри production,876          875 PASS/0 FAIL/1 SKIP    875 PASS/0 FAIL/1 SKIP
+Automated UI subset внутри production   248 PASS                 248 PASS
+Builder / storage / Mapping             128/115/14 PASS          128/115/14 PASS
+Operations / Import / nonzero-Z          53/25/30 PASS             53/25/30 PASS
+Save / Open / Recovery                  45/84/68 PASS             45/84/68 PASS
+Own pipeline groups                     16 PASS / 0 FAIL         16 PASS / 0 FAIL
+Own gate cases                          7 PASS / 0 FAIL          7 PASS / 0 FAIL
+Own worker ownership tests              5 PASS / 0 FAIL          5 PASS / 0 FAIL
+
+Поднаборы production пересекаются и не суммируются. Own группы — собственные
+единицы harness, не дополнительные CTest cases. Final pipeline содержит
+32 варианта внутри 16 групп; initial 14 и final 16 также не суммируются.
+Суммарно три независимых harness дают 28 групп/cases на конфигурацию.
+Единственный SKIP: Persistence.StoragePath.FileSymlinkEscape, error 1314;
+его точная диагностика есть в XML и Testing log. Junction cases прошли.
+
+Inventory: 1263 exact case-sensitive unique names в каждой конфигурации,
+production 1124, headless 876, UI 248. Exact headless names совпадают.
+Full/production exact names НЕ равны: четыре labels StateNotificationDeletion
+различаются байтами member-function pointers. Raw различия сохранены в
+inventory-debug.json, inventory-release.json и inventory-summary.json,
+имена не нормализованы и тесты не исключены. Проверены все команды/фильтры
+с заменой только абсолютного пути build-directory; их multiset совпадает.
+tests/gui_lifecycle_tests.cpp:294–311 независимо связывает /0,/1,/2,/3 с
+errorMessageChanged/stateChanged/cellInputSyncRequested/operationChanged.
+Все четыре distinct filters присутствуют и реально выполнены в обоих XML.
+Сравнение с сохранёнными inventories исполнителя даёт те же четыре отличия
+labels; иных потерянных/добавленных scenario names нет. Exact XML execution
+coverage равна полному production inventory, пропусков/дубликатов нет.
+
+Собственные probes:
+
+1. probes/probe.cpp, report.txt, run-*-final.log, provenance.json.
+Реальные public controller/runner/adapter и C1→D; тестовый typed catalogue.
+Golden fixture: (-2,-4)x2,(-1,-3)x1,(254,252)x3,(510,508)x1,(1026,769)x2.
+Для cell 1 literal dimensions 1028x773, nonzero cells:
+  (0,0)=2,(1,1)=1,(256,256)=3,(512,512)=1,(1027,772)=2.
+Для cell 2 dimensions 514x387:
+  (0,0)=3,(128,128)=3,(256,256)=1,(513,386)=2.
+Все прочие cells проверены как zero независимым Reader и fullValidate.
+Expected counts не вычисляются production locate/group/accumulation.
+Проверены single scanAll, source/old-D SHA256, работа без исходного ASC,
+повторный новый DatasetId, сохранение старых edits и выбор нового D после
+промежуточного выбора старого. Проверены future-cell/Undo/Redo в Scan/Ready/
+prepare, revision/history/dirty и clean saved baseline, invalidation/epoch/
+receiver ABA и Close/Open same persistent project с новым runtime.
+Есть cancel после D finish, prepare refusal/bad_alloc/invalid_argument,
+malformed real products, beforeReady bad_alloc, borrowed Close/Shutdown/cancel,
+detach и Close/Shutdown сразу после Accept до handoff, duplicate/stale Ready,
+admission без project/source/receiver, CWD и owner event-loop/progress.
+Exclusive CreateFileW sharing=0 на finished D через GUI gate→Accept→handoff→
+native join не мешает успеху; Reader выполняется после unlock. В этом
+сценарии receiver не делает I/O. Это отдельно подтверждает отсутствие D
+reopen/readback/hash в проверенном production gate.
+
+2. gate/gate_probe.cpp, gate-review.txt, run-*.log, provenance.json.
+Настоящие Build/D; реальные non-SetCell QUndoCommand Undo/Redo должны
+необратимо отозвать Build. Cancel в candidate.ready() стоит непосредственно
+перед final check. Null→same и alternate→same receiver внутри prepare
+проверяют sticky ABA и Busy. TLS-destructor barrier после Qt finished
+держит native thread живым: и после Accept, и после Cancel новый Build
+запрещён, пока native completion/join не подтверждены; следующий Build
+после освобождения проходит. Случайных sleep для задания порядка нет.
+
+3. worker/worker_probes.cpp, worker-review.txt, debug.xml/release.xml,
+debug.log/release.log и provenance.json.
+Real D literal 2x2 {2,0,0,1}; move construction/assignment/destruction и
+releaseToOwner, сохранность source, retained late diagnostic после request/
+stack lifetime и moves. Foreign child в scratch переживает Discard.
+Windows sharing lock создаёт реальный refusal удаления собственного D:
+orphan и structured secondary warning сохраняются, первопричина не стирается,
+а новая операция warning не наследует. После unlock probe убирает свои файлы.
+
+Для неизменённых механизмов использованы также штатные regression tests:
+Operations.DestructorDrainsWithoutEventLoopCallbacks, native/TLS/observation
+cases, import/save/open/recovery guards и builder integrity/path/resource
+cases. Это независимая повторная проверка этих инвариантов на свежих binaries,
+но не собственные новые probes и не повторная приёмка всего метода builder.
+Builder/storage/mapping code не изменён относительно baseline, B1/B2 protections
+не обходятся: adapter напрямую один раз вызывает тот же production builder.
+
+Сохранены и не скрыты вспомогательные неуспехи/повторы:
+- Собственный probe сначала не компилировался из-за Windows macro small
+  в его helper. Raw build-debug-probe-macro-fail.log сохранён; исправлен
+  только собственный harness. Это не failure production source или tests.
+- Initial14 PASS расширены до 16 для отдельных dirty/no-source проверок.
+- Gate Debug повторён после исправления только места собственных fixtures.
+- Worker Debug дополнительно запущен напрямую из-за задержки вывода shell;
+  первый и второй outputs оба PASS и сохранены, исходного FAIL не было.
+- Были read-only shell quoting/startup проблемы; они не подменены утверждением
+  о падении tests. После перехода на cmd scripts команды завершены.
+
+NOT RUN:
+- 139 discovered non-production tool/experiment cases: вне runner acceptance;
+  не включены в PASS и не используются как доказательство метода C1/C2/D/E.
+- Representative real scans, большие process/Peak Working Set measurements,
+  cold-HDD/UNC/network faults, physical device failures и power-loss:
+  synthetic goldens/sharing locks этого не подтверждают. Отсутствие этих
+  эксплуатационных проверок не блокирует интеграцию runner по заданию.
+- Production-каталог, пользовательский Build workflow и persistence карт:
+  пока не реализованы в принимаемом этапе, проверяются в 06.4/06.5.
+
+D. ВЫВОДЫ ПО КОНТРАКТАМ
+
+Admission/snapshot/applicability — подтверждены. Нет admission без source/
+receiver; immutable snapshot удерживает physical binding, исходные cell/
+profile/resources, runtime/context и captured receiver. Worker не читает
+mutable controller/state/QML. Paths fully qualified, CWD independence
+проверена. Future-cell не отзывает Build; исключение moveHistory проверяет
+именно SetCellCommand, соседние operation kinds не получили это исключение.
+Настоящая invalidation и ABA не восстанавливают authority.
+Refs: project_controller.cpp:329–381,399–436,553–650.
+
+Typed transport/publication — подтверждены. Unique product и kind сверяются
+в worker, descriptor соответствует actual PendingDataset/snapshot, включая
+id/source/count/CompletePointCache/binary64 bits/Mapping/tileSide/path/statistics.
+Ready не переносит file guards. Fallible preparation даёт failed Ready с
+сохранённым worker cleanup; все Ready ветви получают решение. Production
+gate: initial→prepare вне mutex→candidate validation→final→noexcept commit
+вместе с Accept под decision mutex. Notifications и destruction после него.
+GUI не делает Mapping factory/full Reader/hash; существующий bounded
+diagnostic log не следует путать с отсутствием вообще любого GUI I/O.
+Требования к noexcept commit обеспечиваются typed API contract и harness;
+их реализацию новым production catalogue предстоит проверить в 06.4.
+Refs: density_operation.cpp:172–224,237–304;
+operation_runner.cpp:96–121,195–268;
+project_controller.cpp:886–949; density_build_types.h:35–54.
+
+Ownership/lease/cancellation/native completion — подтверждены. Borrowed lease
+защищает D во время reentrant prepare; controller не ждёт worker под lease.
+Accept необратим, session/receiver могут исчезнуть до handoff без удаления D.
+Worker делает retain/releaseToOwner; Discard удаляет Pending прежде directory,
+вне mutex и без recursive удаления foreign children. Locked cleanup остаётся
+secondary diagnostic. Busy требует cleanup + native completion + Qt join,
+а Ready/Builder Complete ещё не применение. Нет terminate/очереди/retry.
+Destructor/native observation fail-safe и соседние guards сохранены.
+Refs: density_operation.cpp:197–234; operation_runner.cpp:275–365,444–548;
+project_controller.cpp:951–1041.
+
+Progress/errors/resources — подтверждены в проверенной области. Fixed-size
+latest-value mailbox, phase-local counters и unknown totals; terminal success
+не публикуется через Finish. Noexcept bridges ловят exception и кооперативно
+останавливают builder. Structured BuildError и первичная ошибка сохраняются;
+cleanup отдельно. Retained diagnostics используют shared lifetime без stack/
+controller pointers и не меняют следующую операцию поздним сообщением.
+Ceilings передаются builder без увеличения. Default 32/8MiB working/metadata,
+reader 1 MiB и component reservations — accounting policy, не process/RAM cap.
+Directories/paths, bounded transport/diagnostics, candidate storage и Qt/native
+runner overhead указаны отдельно в контрактах/отчёте; будущий catalogue storage
+проверяется в 06.4. Physical free space/allocator overhead не гарантируются.
+Refs: density_operation.cpp:131–168; operation_runner.cpp:40–49;
+density_build_types.h; density_builder.h:resource policy.
+
+E. ВЕРДИКТ
+
+ACCEPTED WITH LIMITATIONS для HEAD 42147bb3c10df8008e1f8485255d8370bd02a7bf
+и только согласованной области 06.3B.
+
+Блокеров принятия и новых подтверждённых P0–P3 нет. Обязательные integration
+инварианты подтверждены code tracing, адресными deterministic probes и
+Debug/Release production regression. Ограничения перечислены явно и не
+скрывают непроверенный обязательный invariant этого этапа.
+
+Можно переходить к проектированию 06.4 через существующий typed receiver seam.
+При реализации каталога заново проверяются prepared retention/owner exchange,
+автоматический выбор новой карты, сохранение предыдущих edits/versions,
+Undo и согласованный Precise reset guard. Реальный catalogue, persistence
+карт и весь пользовательский workflow этим вердиктом завершёнными не названы.
+Следующий этап в рамках данного ревью не начат.
+
+Проверяемые сводки: evidence-audit.json, test-summary.json,
+inventory-summary.json, provenance.json; первичные XML/logs и Testing copies
+сохранены рядом. Репозиторий оставлен без изменений; commit/push не сделаны.

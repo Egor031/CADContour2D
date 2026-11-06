@@ -446,11 +446,13 @@ Canvas/ROI/rough должны получать соответствие чере
 [отчёт 06.1](reports/task-06/raster-foundation.md). 06.1 — **ACCEPTED WITH LIMITATIONS**
 по решению пользователя от 2026-10-29 после независимого ревью;
 [основания и ограничения](reports/task-06/raster-foundation.md#h-independent-review-and-acceptance).
-Зависимости 06.1/06.2 выполнены в принятых границах. Headless builder 06.3A реализован;
-его [исторические проверки, измерения и ограничения](reports/task-06/density-builder.md)
-сохранены. Повторное независимое принятие 06.3A — ACCEPTED WITH LIMITATIONS
-по источнику задания 06.3B (B1/P1, B2/P2 исправлены; новых P0–P3 нет).
-06.3B (application publication) реализована для ревью без изменения численного метода;
+Зависимости 06.1/06.2 выполнены в принятых границах.
+[Headless builder 06.3A на `bc28195`](reports/task-06/density-builder.md#i-независимое-принятие)
+и [application publication 06.3B на `42147bb`](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие)
+— **ACCEPTED WITH LIMITATIONS** по независимым отчётам и решению пользователя
+от 2026-11-06; B1/P1 и B2/P2 независимо закрыты, новых P0–P3 и блокеров нет.
+Согласованный объём 06.3 завершён без изменения численного метода; исторические
+проверки и ограничения сохранены. Следующий шаг — проектирование 06.4.
 06.4–06.8 не реализованы,
 задача 06 целиком остаётся IN PROGRESS.
 Исторический experimental ceil mapping 06.0 сохранён в стенде без изменений.
@@ -487,7 +489,8 @@ Canvas/ROI/rough должны получать соответствие чере
 Physical cold-HDD/UNC, representative real scans и физические отказы диска в 06.3A
 не проверялись; synthetic evidence не подтверждает Rough detection и эксплуатационные
 пределы. CPU/time/map-size нормативы не вводятся; addTile time не считается отдельным
-измерением Deflate. Application applicability/publication остаётся 06.3B.
+измерением Deflate. Application applicability/publication реализованы и приняты
+в согласованных границах 06.3B; это не подтверждение Rough на real scans.
 
 ---
 

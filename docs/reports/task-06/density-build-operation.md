@@ -1,5 +1,10 @@
 # 06.3B — Density Build Operation
 
+**ACCEPTED WITH LIMITATIONS** на
+`42147bb3c10df8008e1f8485255d8370bd02a7bf` по независимому ревью и решению
+пользователя от 2026-11-06; [принятие и ограничения](#h-независимое-ревью-и-принятие).
+Разделы A–G сохраняют отчёт реализации до принятия, включая первоначальные FAIL/SKIP.
+
 ## A. Baseline и источники
 
 Рабочий checkout: `D:/ZherlitsynEE/CADContour2D`, branch `main`, исходный HEAD
@@ -277,3 +282,64 @@ inventory и real-scan/эксплуатационных проверок явн�
 persistence/Autosave/Recovery. Canvas/LOD/ROI/Rough/threshold/morphology/PNG и GUI Build
 не входят в этот результат. Весь 06.3 и задача 06 не объявляются завершёнными;
 принятие 06.3B требует независимого ревью.
+
+## H. Независимое ревью и принятие
+
+2026-11-06 пользователь принял **06.3B — ACCEPTED WITH LIMITATIONS** на проверенном
+HEAD `42147bb3c10df8008e1f8485255d8370bd02a7bf`, baseline
+`bc28195971ddbe43ef36a12f38b5d49453bd85d6`. Новых подтверждённых замечаний P0–P3
+и блокеров не обнаружено. Сохранены [полный независимый отчёт A–E и отчёты probes](review063b-independent/README.md).
+До документальных правок HEAD был `42147bb`, status — чистым;
+сборки и тесты повторно не запускались. Приведённые ниже результаты относятся
+к завершённому независимому ревью, а не к этому docs-only изменению.
+
+Независимая проверка подтвердила цепочку production controller → runner → real
+DensityBuilder/C1 → typed Ready → application gate → Accept/Discard. Проверены
+immutable snapshot, future-cell/SetCell Undo/Redo без отзыва Build, настоящая
+invalidation и ABA, initial/prepare/final gates, borrowed lease, worker ownership,
+cancel до/после Accept, Busy до cleanup/native completion/Qt join, bounded progress,
+структурированные errors, resource policy и сохранность соседних операций.
+Receiver остаётся fixture каталога, а не готовым production-каталогом.
+
+| Независимая проверка | Debug | Release |
+|---|---|---|
+| Свежая сборка `all` + `all_qmllint` | PASS | PASS |
+| Adapter executable | 47 PASS | 47 PASS |
+| Production, 1124 cases | 1123 PASS / 0 FAIL / 1 SKIP | 1123 PASS / 0 FAIL / 1 SKIP |
+| Headless subset внутри production, 876 cases | 875 PASS / 0 FAIL / 1 SKIP | 875 PASS / 0 FAIL / 1 SKIP |
+| Automated UI subset внутри production | 248 PASS | 248 PASS |
+| Builder / storage / Mapping внутри production | 128 / 115 / 14 PASS | 128 / 115 / 14 PASS |
+| Собственные pipeline / gate / ownership harness | 16 / 7 / 5 PASS | 16 / 7 / 5 PASS |
+
+Поднаборы пересекаются и не суммируются. Initial/final прогоны собственных probes
+также пересекаются; группы harness не считаются новыми CTest cases. Literal golden
+counts D заданы независимо от production locate/group/accumulation; проверены
+source/previous D, history/dirty относительно saved baseline, controlled lifecycle
+barriers, locked/foreign cleanup и retained diagnostics. Эксклюзивный lock D
+через GUI gate → Accept → handoff → native join подтвердил отсутствие D reopen/
+readback/hash в проверенном gate; чтение Reader выполнялось после unlock.
+
+Последовательный discovery дал **1263 case-sensitive уникальных имени** в каждой
+конфигурации, production 1124, headless 876. Headless names совпали; четыре GUI
+pointer-printed labels различаются. [Raw различия и команды/фильтры](review063b-independent/inventory-summary.json)
+сохранены без нормализации имён или исключения tests; executable/filters/scenarios
+совпадают, XML покрывает весь production inventory без пропусков и дубликатов.
+
+Ограничения принятия:
+
+- Symlink test — **SKIP**, Windows privilege 1314; не PASS.
+- Историческое Open `Closing/Ready` осталось отдельным неразрешённым наблюдением.
+  В независимых production прогонах не повторилось, исправленным не объявляется.
+- Representative real scans, physical disk/network/power-loss faults,
+  большие process/Peak Working Set и cold-HDD/UNC performance — **NOT RUN**.
+  Synthetic/injected faults не заменяют эти проверки и не подтверждают Rough.
+- Production catalogue/VersionId/selection/Undo — 06.4, persistence D — 06.5.
+  Build GUI, Canvas/ROI/Rough и полный пользовательский workflow не приняты.
+  Commit/retention/reset contract будущего receiver требует проверки в 06.4;
+  скрытый разрушительный Precise reset не разрешён.
+
+Вместе с [принятым 06.3A](density-builder.md#i-независимое-принятие)
+**согласованный объём 06.3 завершён — ACCEPTED WITH LIMITATIONS**.
+Следующий шаг — **проектирование 06.4**; его реализация не начата.
+Задача 06 целиком остаётся **IN PROGRESS**. История sections A–G,
+первоначальных FAIL и ограничений не подменяется этим принятием.

@@ -1,5 +1,10 @@
 # 06.3A — Headless Density Builder
 
+**ACCEPTED WITH LIMITATIONS** на
+`bc28195971ddbe43ef36a12f38b5d49453bd85d6`; B1/P1 и B2/P2 независимо закрыты.
+[Решение пользователя от 2026-11-06 и основания](#i-независимое-принятие).
+Разделы A–H сохраняют историю реализации и исправлений до принятия.
+
 Последующие исправления блокеров независимого ревью B1/P1 и B2/P2 приведены
 в [разделе H](#h-исправления-блокеров-независимого-ревью).
 Разделы A–G сохраняют исходные результаты реализации на `03fd6e2`.
@@ -389,3 +394,52 @@ symlink SKIP. Новых изменений Open lifecycle или ослабле
 сам adapter, версии/GUI/persistence не реализованы. Самостоятельная проверка не является
 принятием 06.3A или всего этапа 06.3. Перед commit просмотрен diff и выполнен
 `git diff --check`; push не выполнялся.
+
+## I. Независимое принятие
+
+2026-11-06 пользователь подтвердил **06.3A — ACCEPTED WITH LIMITATIONS** на
+`bc28195971ddbe43ef36a12f38b5d49453bd85d6` по повторному независимому ревью
+от 2026-11-05. **B1/P1 и B2/P2 — FIXED AND INDEPENDENTLY VERIFIED**;
+новых подтверждённых замечаний P0–P3 к builder и блокеров принятия нет.
+[Первый и повторный независимые отчёты сохранены в Git](review063a-independent/README.md).
+Прежний **NEEDS FIXES** на `03fd6e2480710e6a959411d6623621710ec209f5`
+остаётся исторически верным; раздел H и его RED/FAIL/SKIP не переписаны.
+
+Повторное ревью независимо проверило in-range/same-length corruption event stream
+до D ingest, short transfers и сохранение их первопричин, fully qualified Windows
+paths до callbacks/I/O, immutable source, literal D counts, source/previous dataset,
+один scanAll, ресурсы, cancel/cleanup и retained PendingDataset diagnostics.
+
+| Независимая проверка на `bc28195` | Debug | Release |
+|---|---|---|
+| Штатная incremental build/dependency state и hashes | PASS, no work | PASS, no work |
+| Headless regression, 827 cases | 826 PASS / 0 FAIL / 1 SKIP | 826 PASS / 0 FAIL / 1 SKIP |
+| Builder / storage / Mapping внутри headless | 128 / 115 / 14 PASS | 128 / 115 / 14 PASS |
+| Собственные integrity/resource probes | 134 PASS | 134 PASS |
+| Собственные path/lifecycle probes | PASS | PASS |
+| Literal full-pipeline fixture scenarios | 9 PASS | 9 PASS |
+
+Поднаборы пересекаются и не суммируются. Собственные probes были заново собраны;
+clean rebuild всех production targets в том ревью **не выполнялся**. Подробности
+binary provenance, первых ошибок собственного harness и нового Release smoke
+9×100k сохранены в независимом отчёте; synthetic результаты не считаются real scans.
+SKIP — Windows file-symlink privilege 1314.
+
+Первый Open `Closing` вместо `Ready` из раздела H не отменён последующими PASS.
+Повторное ревью подтвердило неизменность Open executable/dependency graph и
+отделило наблюдение от B1/B2; точный interleaving не доказан. Это **не исправление**
+Open lifecycle и не повторное открытие/закрытие прежнего Recovery P3.
+
+Representative real scans, cold-HDD/UNC и реальное network I/O, physical disk/
+flush/power-loss faults и эксплуатационные maxima ресурсов остаются **NOT RUN**.
+Reservations/logical bytes не являются process/OS cap или гарантией свободного места;
+CRC не является аутентификацией. Качество Rough этими проверками не подтверждено.
+Форматы Point Cache/D/manifest и численный метод не пересматривались.
+
+При документальном закрытии текущий checkout был уже на
+`42147bb3c10df8008e1f8485255d8370bd02a7bf`; он не откатывался к `bc28195`.
+Сборки и тесты повторно не запускались. Вместе с
+[принятым 06.3B](density-build-operation.md#h-независимое-ревью-и-принятие)
+**согласованный объём 06.3 завершён — ACCEPTED WITH LIMITATIONS**.
+Следующий шаг — проектирование 06.4. Каталог/VersionId/selection/Undo, persistence
+карт и полный пользовательский workflow ещё не готовы; вся задача 06 — **IN PROGRESS**.

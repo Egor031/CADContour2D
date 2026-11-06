@@ -1,0 +1,88 @@
+Independent 06.3B address probes, HEAD 42147bb3c10df8008e1f8485255d8370bd02a7bf
+
+Scope: production ProjectController -> OperationRunner -> DensityOperation ->
+DensityBuilder -> real D, typed fixture catalogue receiver. This fixture is not
+the production 06.4 catalogue. No production, official tests, or docs edited.
+All probe sources, builds, fixtures, reports are below this isolated probes/ dir.
+
+Final: Debug 16 scenario groups PASS / 0 FAIL. Release 16 groups PASS / 0 FAIL.
+These include 32 variants in parameter loops. Count groups as 16, not 32 separate
+framework tests. Initial 14 groups passed in both configs before adding dirty
+baseline and no-source groups. Initial/final runs overlap; do not sum them.
+
+Own fixture:
+  measurements (-2,-4)x2; (-1,-3)x1; (254,252)x3; (510,508)x1; (1026,769)x2.
+  Literal cell1 dimensions 1028x773 and golden nonzero cells:
+    (0,0)=2 (1,1)=1 (256,256)=3 (512,512)=1 (1027,772)=2.
+  Literal cell2 dimensions 514x387, nonzero cells:
+    (0,0)=3 (128,128)=3 (256,256)=1 (513,386)=2.
+  All other cells checked as zero through independent Reader; fullValidate PASS.
+  No production locate/group/accumulation function used to derive goldens.
+  One scanAll/no spatial queries, occupied-only visit and exact totals checked.
+  Point Cache bytes and previously accepted D SHA256 unchanged; original ASC
+  removed after import; repeat build retains old edit and selects new descriptor.
+
+Coverage:
+  - Future cell SetCell/Undo/Redo in Scan, after Ready, and reentrant prepare.
+    Snapshot cell retained, future values/history/revision retained after Accept.
+  - A separate saved clean baseline1 becomes dirty8 after Ready/prepare changes;
+    Undo -> dirty2 -> clean1 while accepted D survives.
+  - Explicit invalidate and context epoch change reject despite cell ABA;
+    receiver A->B->A rejects old result. Close/Open same persisted ProjectId
+    creates fresh runtime; stale old Ready cannot publish, next real Build works.
+  - Cancel after real D finish/before Ready prevents Accept, Busy persists until
+    cleanup/join, finished worker success is distinct from map application.
+  - Prepare refusal and bad_alloc/invalid_argument/runtime_error preserve old D,
+    resolve Discard, retain exception taxonomy; no orphan result.
+  - Seven malformed real-worker-product mutations (null/mixed/missing Ready,
+    changed ID/source count/path/source-read stats) reject before receiver.
+    Throwing bad_alloc in beforeReady verifies fallible Ready failure decision.
+  - Close/Shutdown/cancel inside prepare keeps borrowed descriptor and D alive
+    throughout callback; file discarded only after callback/lease release.
+    Intentional Reader in this test callback verifies lifetime; production
+    receiver seam itself does not perform these test reads.
+  - Accept-to-worker-handoff barrier: Close/Shutdown and receiver detach do not
+    lose accepted D; post-Accept cancel NoChange; Busy before handoff; native
+    completion retained; accepted file readable before and after handoff.
+  - Phase Scan/Accumulation/Finish held by Event barriers; progress nonterminal,
+    phase-local totals, latest-value notification, owner timer responsive.
+  - No project, no receiver, and valid receiver/no source reject without new
+    operation or worker; no-source creates no directory/result.
+  - Duplicate and stale Ready cannot commit twice. Changed CWD before GUI gate
+    does not affect descriptor paths or reading finished D.
+  - Exclusive CreateFileW sharing=0 lock acquired on real D after worker Ready
+    and before owner poll. Ordinary receiver prepares descriptors only. GUI
+    publication, Accept, worker handoff, native completion all succeed under lock
+    without warnings; after unlock full Reader validation succeeds. This
+    independently excludes D reopening/readback/hash in the exercised gate.
+
+Determinism: Event condition-variable barriers and existing narrow friend hooks,
+no random sleep races. Real production work used for all D datasets; malformed
+mutations and controlled lifecycle orders are harness injection.
+
+Build/run evidence:
+  configure-debug.log, configure-release.log: fresh isolated CMake config with
+  MSVC19.51, Qt6.12, C++20. Reuses installed vcpkg dirs read-only via
+  VCPKG_MANIFEST_INSTALL=OFF; no dependencies installed/changed.
+  build-debug.log and build-release.log: 36-action independent app/probe builds.
+  build-debug-16groups.log / build-release-16groups.log: 2-action targeted rebuild
+  of the final probe after groups15/16. These are not clean production rebuilds.
+  run-debug-initial.log/run-release-initial.log: initial14 PASS.
+  run-debug-final.log/run-release-final.log: final16 PASS.
+  provenance.json: HEAD/status and SHA256 of final probe, executables, own static
+  production libs, CMake files, repo source files and included test-access headers.
+  final-targeted-build-run.cmd: reproducible final build/run using verified local
+  MSVC and SDK process-local paths; no global environment modification.
+
+Harness compilation issue (not a repository defect): after adding Windows.h for
+exclusive lock, Windows RPC macro 'small' collided with own helper small(...).
+Raw compile failure retained in build-debug-probe-macro-fail.log. Added #undef
+small in own probe only. Runtime initial14 and final16 all passed; no runtime
+failure was rerun or hidden.
+
+No P0-P3 defect established by this probe set. Gaps delegated separately to gate
+and ownership review: arbitrary non-SetCell history, exact final-gate cancel,
+prepare detach, delayed native join, move/releaseToOwner, foreign/locked cleanup
+and retained late diagnostics. Large data/physical failures/real scans/cold HDD/
+UNC were not tested by these synthetic fixtures; this probe set is not full
+06.3B acceptance by itself.

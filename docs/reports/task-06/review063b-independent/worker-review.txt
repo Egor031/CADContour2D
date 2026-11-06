@@ -1,0 +1,85 @@
+Независимая проверка worker/typed transport/ownership 06.3B
+HEAD: 42147bb3c10df8008e1f8485255d8370bd02a7bf
+Baseline: bc28195971ddbe43ef36a12f38b5d49453bd85d6
+
+Подтверждённых замечаний P0–P3 в проверенной области не найдено.
+
+Прочитаны AGENTS, README, requirements §§7–8, architecture §15/§§24–26,
+algorithms §6, implementation-plan 06.3, density-build-operation.md,
+описание builder и D v1, публичные builder/storage/mapping headers,
+adapter/runner diff и новые adapter/operation tests. Существующий builder
+не перепроектировался и не переоценивался как метод для real scans.
+
+Статически прослежены:
+- density_operation.cpp:237–304: immutable captured snapshot; source physical
+  retention; единственный вызов настоящего DensityBuilder::build на строке 278;
+  те же resource/path/profile входы, без bypass B1/B2; обработка fallible Ready
+  с сохранением worker ownership. До try возможны только allocations/path
+  conversion до создания файлов; outer runner переводит исключение в failure.
+- density_operation.cpp:172–224: bounded scalar/QString/Mapping value checks.
+  Descriptor сверяется с actual PendingDataset id/source/count/contract/tileSide,
+  exact mapping и всеми BuildStatistics, snapshot — по identity и binary64 bits.
+  Mapping immutable value с private constructor, фабрика на GUI не вызывается.
+  WorkerDensityProduct и PendingDataset отсутствуют в ReadyOutcome.
+- operation_runner.cpp:195–224: строго один product, matching operation kind,
+  null/wrong/mixed density products отвергаются; при отказе guards сохраняются.
+  229–268: Ready целиком готовится до mailbox, исключение даёт failed Ready.
+- density_operation.cpp:131–168 и operation_runner.cpp:40–49: noexcept bridge
+  не выбрасывает; mailbox фиксированного размера с latest-value overwrite.
+  Счётчики phase-local, Finish/Complete отображаются Finalizing/unknown total.
+  Известная первичная build failure обрабатывается раньше late cancel/bridge flag.
+- Late diagnostic context: adapter shared DensityOperationDiagnostics ->
+  builder shared Diagnostics -> PendingDataset diagnosticRetention. Ссылки на
+  stack Bridge/WorkerControl/controller не сохраняются для late diagnostics.
+- density_operation.cpp:197–234; runner:288–355: worker-only directory guards,
+  PendingDataset уничтожается до directory guard; только собственный output и
+  пустые созданные directories, без recursive foreign-child cleanup. Accept
+  отдельно делает retain/releaseToOwner вне mutex; late cancellation не отзывает
+  это решение. Secondary cleanup diagnostic не заменяет primary failure.
+- Builder ceilings передаются без увеличения, adapter Qt/native/directory/transport
+  overhead и receiver storage описаны отдельно от builder accounting. Эти
+  reservations не объявлены process/physical memory или свободным disk-space cap.
+
+Собственные probes (worker_probes.cpp, production sources без изменений):
+1. Pending move construction/assignment уничтожает заменяемый D, сохраняет
+   перемещённый D; releaseToOwner повторяемо возвращает empty после передачи;
+   принятый файл переживает все guards. Literal D counts {2,0,0,1}, shape 2x2.
+2. Перемещённый PendingDataset при discard удаляет ровно свой файл; moved-from
+   owners не удаляют его раньше времени и не удаляют source cache.
+3. После возврата builder, разрушения request и всех moves callback context
+   всё ещё удерживается. Windows sharing lock провоцирует настоящий отказ
+   QFile.remove; callback получает CleanupFailure/Cleanup, context живёт во
+   время callback и освобождается после pending destruction. Orphan сохранён
+   до снятия lock и удалён только самим probe.
+4. Через production controller/runner/adapter receiver.prepare создаёт foreign
+   child внутри scratch и отказывает. D удалён, чужое содержимое сохранено,
+   structured cleanup warning виден; probe удаляет только созданный им child.
+5. Через тот же pipeline output блокируется в prepare и получает Discard.
+   Nested Density CleanupFailed не стирается directory warning; orphan остаётся
+   доступным. После снятия lock/cleanup следующий Build не наследует warning.
+
+Все source/fixtures/output probe размещены в review/worker; постоянные source
+cache, создаваемые fixture, находятся в её отдельном data-XXXXXX под worker.
+Corruption/I/O injection вне этих файлов не выполнялась. Штатный operation logger
+может писать стандартный application diagnostic log, как в production tests.
+
+Проверки:
+- debug.cmd: fresh configure и 37-step target worker_probes build, Debug /MDd,
+  MSVC 19.51.36260.0, Qt 6.12.0, installed zlib 1.3.2/GTest dependencies.
+  Первый runtime debug.log + debug.xml: 5 PASS / 0 FAIL / 0 SKIP, 2711 ms.
+- Из-за задержки вывода PowerShell login shell был начат дополнительный прямой
+  запуск уже собранного exe (debug-direct.log/xml): 5 PASS / 0 FAIL, 1917 ms.
+  Это не rerun-until-pass; исходного test FAIL не было и первый evidence сохранён.
+- release.cmd: fresh isolated configure, 37-step target worker_probes build
+  --parallel 1, Release /MD; release.log + release.xml: 5 PASS / 0 FAIL /
+  0 SKIP, 326 ms. Debug/Release binaries собирают один и тот же probe source
+  и production HEAD, а не импортируют старые application libs из checkout build.
+
+provenance.json сохраняет HEAD/status, SHA256 production sources, собственных
+probe/commands, binaries, CMakeCache/build.ninja и original XML/log evidence.
+Никаких production/tests/docs edits, commit, push или CTest discovery здесь нет.
+
+Непроверенные этим узким набором вопросы: real representative scans, physical
+disk/power failure, cold-HDD/UNC performance и production catalogue 06.4/06.5.
+Applicability/publication/native completion и общая регрессия распределены
+другим независимым проверкам root; этот отчёт не подменяет их результаты.

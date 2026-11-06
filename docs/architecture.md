@@ -762,10 +762,11 @@ source-order pages и тем же BBox index, в том числе на HDD, п�
 [Принятие и границы](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
 В 06.3A реализован самостоятельный синхронный headless builder Point Cache → C1 → D.
 Его исторические проверки и измерения приведены в [отчёте 06.3A](reports/task-06/density-builder.md).
-Повторное независимое принятие **06.3A — ACCEPTED WITH LIMITATIONS** сообщено
-в задании 06.3B: B1/P1 и B2/P2 исправлены и проверены, новых P0–P3 нет.
-Production application-интеграция 06.3B описана в
-[новом отчёте](reports/task-06/density-build-operation.md); каталог/GUI/persistence
+**06.3A и 06.3B — ACCEPTED WITH LIMITATIONS** по независимым отчётам и решению
+пользователя от 2026-11-06: [06.3A на `bc28195`](reports/task-06/density-builder.md#i-независимое-принятие),
+[06.3B на `42147bb`](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие).
+B1/P1 и B2/P2 независимо закрыты; новых P0–P3 и блокеров нет.
+Согласованный объём 06.3 завершён; следующий шаг — проектирование 06.4. Каталог/GUI/persistence
 06.4–06.8 не реализованы, задача 06 целиком остаётся IN PROGRESS.
 Исторические отчёты не меняются; основания и пределы —
 [algorithms.md, §6](algorithms.md#6-построение-density-map), этапы —
@@ -2086,7 +2087,7 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** 06.1, D v1 06.2 и builder 06.3A — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); application adapter 06.3B реализован для ревью. Каталог/выбор — 06.4, persistence D — 06.5, real-scan/эксплуатационная приёмка — 06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным профилем без универсальных production limits.
+- **Density production details:** 06.1, D v1 06.2, builder 06.3A и application adapter 06.3B — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); согласованный объём 06.3 завершён. Далее проектирование каталога/выбора 06.4, persistence D — 06.5, real-scan/эксплуатационная приёмка — 06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным профилем без универсальных production limits.
 - **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.

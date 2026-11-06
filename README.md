@@ -560,24 +560,30 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**06.3B — Density Build Operation: READY FOR INDEPENDENT REVIEW.**
+**06.3B — Density Build Operation: ACCEPTED WITH LIMITATIONS.**
+Принята пользователем 2026-11-06 на проверенном
+`42147bb3c10df8008e1f8485255d8370bd02a7bf`; новых P0–P3 и блокеров нет.
 Реальный Point Cache → C1 → D запускается через C++ `buildDensity` и единственный
 existing OperationRunner. Typed receiver заранее готовит candidate добавления/выбора;
 initial/final gates и borrowed lease защищают Accept/Discard и worker ownership.
 Без receiver admission отклоняется до worker: production catalogue/Undo — 06.4,
 persistence D — 06.5, GUI Build не добавлен. Форматы manifest v1 и сохранение cell
 сохранены. [Проверки, ресурсы, ограничения и вердикт](docs/reports/task-06/density-build-operation.md).
-Final Debug/Release `all all_qmllint` — PASS; production в каждой конфигурации —
+Независимые Debug/Release `all all_qmllint` — PASS; production в каждой конфигурации —
 **1123 PASS / 0 FAIL / 1 SKIP** из 1124, включая **47/47** adapter cases.
 Exact headless inventories — 876/876; четыре existing GUI pointer-printed labels
 различаются в полном inventory, commands/filters совпадают. Evidence сохраняет
 первые fixture failures и промежуточные прогоны.
+[Принятие и сохранённые независимые отчёты](docs/reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие).
+При документальном закрытии сборки и тесты не повторялись.
 
 **06.3A — Headless Density Builder: ACCEPTED WITH LIMITATIONS.**
-Повторное независимое принятие сообщено в задании 06.3B: B1/P1 и B2/P2
-исправлены и проверены, новых P0–P3 нет. Следующие числа — историческое evidence,
-не новые проверки 06.3B: Debug/Release 826 PASS / 0 FAIL / 1 SKIP, builder 128 PASS,
-integrity/resource probes 134 PASS. Исходные отчёты и artifacts не переписывались.
+Принята пользователем 2026-11-06 на проверенном
+`bc28195971ddbe43ef36a12f38b5d49453bd85d6`; B1/P1 и B2/P2 независимо закрыты,
+новых P0–P3 и блокеров нет. [Первый и повторный независимые отчёты и принятие](docs/reports/task-06/density-builder.md#i-независимое-принятие)
+сохранены. Их Debug/Release результаты: headless 826 PASS / 0 FAIL / 1 SKIP,
+builder 128 PASS и отдельные integrity/resource probes 134 PASS;
+пересекающиеся поднаборы не суммируются и не являются новыми запусками при закрытии.
 Синхронный C++ entry point по immutable request/retained Point Cache делает ровно
 один scanAll, bounded event grouping и occupied-only checked accumulation,
 использует production mapping 06.1 и штатный D Writer, возвращает move-only
@@ -595,8 +601,10 @@ counts, shapes, keys и implicit zeros. [Результаты и статус](d
 [RED/GREEN, история и ограничения](docs/reports/task-06/density-builder.md#h-исправления-блокеров-независимого-ревью).
 SKIP — только Windows symlink privilege 1314. Свежий smoke 9×100k и audit — PASS;
 историческая matrix 9×1 млн на `03fd6e2` остаётся отдельным evidence исходной реализации.
-Это не принятие 06.3 целиком. OperationRunner/application publication реализованы
-в 06.3B; каталог версий/выбор/Undo — 06.4, ещё не реализованы. Форматы Point Cache/D/manifest
+Согласованный объём **06.3 завершён — ACCEPTED WITH LIMITATIONS**:
+headless builder и OperationRunner/application publication приняты.
+Следующий шаг — проектирование 06.4; production-каталог версий/выбор/Undo
+и persistence карт (06.5) ещё не реализованы. Форматы Point Cache/D/manifest
 и принятые 06.1/06.2/Recovery P3 сохранены.
 
 **06.2 D v1 — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
@@ -638,9 +646,10 @@ scanAll с bounded events и обработкой только occupied groups. 
 отдельно. Отчёты/evidence сохраняют исходные рекомендации и ограничения.
 
 **Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1,
-headless D storage 06.2 и реализован самостоятельный builder 06.3A.
-Application-интеграция **06.3B** реализована для ревью; **06.4–06.8 не начаты**;
-версии, Canvas и ROI ещё не реализованы. 06.3B не объявляется автоматически принятой.
+headless D storage 06.2; **06.3A и 06.3B — ACCEPTED WITH LIMITATIONS**,
+согласованный объём 06.3 завершён. Следующий шаг — **проектирование 06.4**;
+**06.4–06.8 не начаты**. Production-каталог, persistence карт, Canvas/ROI
+и полный пользовательский workflow ещё не готовы.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).

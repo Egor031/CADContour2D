@@ -33,10 +33,12 @@ Headless D v1 **06.2 — ACCEPTED WITH LIMITATIONS** пользователем 
 [Принятие, результаты по источникам и tracked evidence](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
 В 06.3A реализован самостоятельный синхронный headless builder Point Cache → C1 → D:
 [API, собственные проверки, измерения и ограничения](reports/task-06/density-builder.md).
-Повторное независимое принятие 06.3A — **ACCEPTED WITH LIMITATIONS**, сообщено
-в задании 06.3B (B1/P1, B2/P2 исправлены; новых P0–P3 нет). Исторические отчёты сохранены.
-Application-интеграция [06.3B](reports/task-06/density-build-operation.md) реализована
-для ревью; 06.4–06.8 не начаты.
+**06.3A и 06.3B — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-11-06:
+[06.3A на `bc28195`, B1/P1 и B2/P2 независимо закрыты](reports/task-06/density-builder.md#i-независимое-принятие),
+[06.3B на `42147bb`, новых P0–P3 и блокеров нет](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие).
+Независимые отчёты сохранены в tracked documentation; история FAIL/SKIP не переписана.
+Согласованный объём 06.3 завершён; следующий шаг — **проектирование 06.4**.
+06.4–06.8 не начаты: production-каталог, persistence карт и полный workflow не готовы.
 Задача 06 целиком остаётся **IN PROGRESS**.
 [Архитектура](architecture.md#15-density-map),
 [численные условия и ограничения](algorithms.md#6-построение-density-map),
@@ -108,8 +110,8 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [06.0D/P1: sparse scaling C1](reports/task-06/density-construction-p1.md) — P1 закрыт с ограничениями.
 - [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; ACCEPTED WITH LIMITATIONS после независимого ревью и решения пользователя.
 - [06.2: Density storage](reports/task-06/density-storage.md#независимое-ревью-и-принятие) — **ACCEPTED WITH LIMITATIONS**, независимое ревью D `8d622e0` — **READY WITH LIMITATIONS**, storage-блокеров 06.3 нет; отдельный Recovery P3 `085a5f1` — **FIXED AND VERIFIED**. Исходный отчёт ревью и summary/hashes сохранены рядом с отчётом реализации.
-- [06.3A: Headless Density Builder](reports/task-06/density-builder.md) — production C1→D, независимый spatial oracle тестов, ресурсы/lifecycle и full-pipeline measurements; application publication остаётся 06.3B.
-- [06.3B: Density Build Operation](reports/task-06/density-build-operation.md) — production adapter, typed receiver/candidate, snapshot applicability, lease/ownership и Debug/Release integration evidence; каталог/выбор — 06.4.
+- [06.3A: Headless Density Builder](reports/task-06/density-builder.md#i-независимое-принятие) — **ACCEPTED WITH LIMITATIONS** на `bc28195`, B1/P1 и B2/P2 независимо закрыты; [первый и повторный независимые отчёты](reports/task-06/review063a-independent/README.md).
+- [06.3B: Density Build Operation](reports/task-06/density-build-operation.md#h-независимое-ревью-и-принятие) — **ACCEPTED WITH LIMITATIONS** на `42147bb`, новых P0–P3 и блокеров нет; [сохранённые независимые отчёты](reports/task-06/review063b-independent/README.md). Согласованный объём 06.3 завершён; каталог/выбор — 06.4, persistence карт — 06.5.
 
 Отчёты сохраняют результаты своих этапов; согласованное направление Close задано нормативными
 документами выше, а не ретроспективной правкой результатов экспериментов.

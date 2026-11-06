@@ -1,0 +1,44 @@
+{
+  "debug": {
+    "inventory": 1214,
+    "unique": 1214,
+    "selected": 827,
+    "by_executable": {
+      "density_builder_tests": 128,
+      "density_storage_tests": 115,
+      "raster_mapping_tests": 14,
+      "recovery_tests": 68,
+      "open_tests": 84,
+      "save_tests": 45,
+      "persistence_tests": 26,
+      "asc_xyz_tests": 42,
+      "dependency_smoke": 1,
+      "cache_tests": 166,
+      "project_tests": 32,
+      "operation_tests": 51,
+      "import_application_tests": 25,
+      "nonzero_z_confirmation_tests": 30
+    }
+  },
+  "release": {
+    "inventory": 1214,
+    "unique": 1214,
+    "selected": 827,
+    "by_executable": {
+      "density_builder_tests": 128,
+      "density_storage_tests": 115,
+      "raster_mapping_tests": 14,
+      "recovery_tests": 68,
+      "open_tests": 84,
+      "save_tests": 45,
+      "persistence_tests": 26,
+      "asc_xyz_tests": 42,
+      "dependency_smoke": 1,
+      "cache_tests": 166,
+      "project_tests": 32,
+      "operation_tests": 51,
+      "import_application_tests": 25,
+      "nonzero_z_confirmation_tests": 30
+    }
+  }
+}

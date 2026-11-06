@@ -1,0 +1,74 @@
+Independent controller/runner review 06.3B
+HEAD: 42147bb3c10df8008e1f8485255d8370bd02a7bf
+Baseline: bc28195971ddbe43ef36a12f38b5d49453bd85d6
+
+Confirmed new P0-P3 defects: none found in this review slice.
+This is controller/runner evidence, not production catalogue acceptance.
+
+Static coverage and relevant locations:
+- project_controller.cpp:329-381: future-cell changes preserve revision, dirty and
+  Undo/Redo. Density exception is restricted to actual SetCellCommand on history
+  movement; other operation gates retain their prior rules.
+- project_controller.cpp:399-436,553-650: typed receiver admission; immutable
+  source/cell/profile/resources; captured receiver; runtime identity/context epoch;
+  same source physical binding and exact binary64 bounds; sticky revocation.
+  Receiver replacement/detach revokes before pointer exchange, excluding ABA.
+- project_controller.cpp:694-708,886-949: one leased Ready; initial validation;
+  receiver.prepare outside command/decision mutex; candidate descriptor validation;
+  final applicability; noexcept commit and Accept via lease mutex. Notifications
+  and candidate/old owner destruction occur after mutex release. Every branch
+  supplies a decision; duplicate/stale Ready cannot acquire a second decision.
+- project_controller.cpp:306-327,951-1041: Close/Cancel/Shutdown invalidate authority;
+  Accept is irrevocable; terminal state follows physical runner release.
+- operation_runner.cpp:96-121: borrowed lease prevents worker cleanup during
+  reentrant preparation. The Accept callback executes under decision mutex with
+  Pending/cancellation check.
+- operation_runner.cpp:171-365: product count/kind/coherence validation; fallible
+  complete Ready transport; worker decision wait also requires lease release;
+  Density releaseToOwner/cleanup runs worker-side, outside mutex.
+- operation_runner.cpp:444-548: one bounded mailbox, native completion observation
+  plus Qt join before release, destructor drain without queued event delivery.
+  Native guard code remains unchanged by this stage. Native/TLS/observation
+  regressions in Operations continue to exercise the common runner mechanism.
+- density_build_types.h:35-54: prepare/current-state preservation and bounded
+  noexcept owner exchange are the receiver's contract. Actual 06.4 catalogue,
+  VersionId, domain history and destructive Precise reset are not implemented here.
+- density_operation.cpp and operation_types reviewed at the application boundary;
+  detailed pending-file/diagnostics/storage verification belongs to the other
+  independent review slice.
+
+Own executable: gate_probe.cpp + CMakeLists.txt. It builds production libraries
+directly from the checkout through add_subdirectory, rather than linking old libs.
+Builds use existing dependencies with VCPKG_MANIFEST_INSTALL=OFF; no dependencies or
+global tools changed. Full commands: debug.cmd, release.cmd. Exact provenance and
+hashes: provenance.json. Source/test/documentation files in checkout were not edited.
+
+Own cases, all through public ProjectController::buildDensity and actual builder D:
+1. non-SetCell QUndoCommand Undo in prepare irreversibly revokes Build.
+2. non-SetCell QUndoCommand Redo in prepare irreversibly revokes Build.
+3. Cancel in candidate.ready() immediately before final gate prevents commit,
+   yields Cancelled and cleans D on worker. Last receiver callback before the gate.
+4. Detach-to-null then restore same receiver in prepare does not restore authority.
+5. Replace receiver then restore same receiver in prepare likewise cannot commit.
+6. Accepted real D remains Busy after QThread::finished while native TLS destructor
+   is blocked. A second Build is rejected; late Cancel is NoChange; after native
+   release/join a second Build succeeds.
+7. Cancel after real D Ready likewise preserves Busy through the same delayed TLS
+   cleanup, then permits the next Build after physical completion.
+Controlled orders use Event barriers and production runner factory hooks. Fake
+worker products are not used. The injected history command tests the future-command
+exclusion deliberately; it is not claimed to be a production history command.
+
+Results:
+Debug: initial clean compilation 36/36 PASS; initial run 7 PASS / 0 FAIL.
+Final fixture path was corrected from default QTemporaryDir to review/gate/
+fixture-XXXXXX. Only own probe was recompiled, 2/2 PASS; final run 7 PASS / 0 FAIL.
+Release: clean compilation 36/36 PASS; final run 7 PASS / 0 FAIL.
+Both final scripts exited 0. No compile or probe failure occurred. Initial Debug
+run log/executable and hashes retained as initial-*; repetitions were for own
+fixture placement correction, not rerun-until-pass.
+
+Configure warnings concern installed Qt optional QmlAssetDownloaderPrivate and
+WrapVulkanHeaders; configure/build succeeded. Runtime fixtures are exclusively
+owned files below review/gate and are removed by their RAII fixture destructor.
+These probes do not measure real scans, physical failures or HDD/UNC performance.

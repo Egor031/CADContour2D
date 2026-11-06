@@ -1,0 +1,269 @@
+ПОВТОРНОЕ НЕЗАВИСИМОЕ РЕВЬЮ 06.3A — B1/B2
+2026-11-05. Вердикт: ACCEPTED WITH LIMITATIONS.
+
+A. BASELINE И ГРАНИЦЫ
+
+Checkout: D:/ZherlitsynEE/CADContour2D; branch main.
+Проверенный HEAD: bc28195971ddbe43ef36a12f38b5d49453bd85d6.
+Baseline исправлений: 03fd6e2480710e6a959411d6623621710ec209f5.
+Исходный baseline этапа: 20a74277f3b077a8e52348264d876d266908af04.
+Один новый commit: «fix density event integrity and Windows path validation».
+Diff исправлений: 27 файлов, 2204 insertions / 13 deletions; production scope —
+density_builder.cpp (60 изменённых строк diff) и комментарии density_builder.h,
+44 новых regressions, относящиеся contracts/README/report/evidence. D storage,
+Mapping, Point Cache и application/Open implementation не менялись.
+
+Рабочее дерево до и после проверки чистое. Удалённый refs/heads/main доступен,
+но указывает на 03fd6e2, а не bc28195. Новый локальный commit пока не опубликован.
+Принятие ниже относится только к локальному bc28195; переключения/отката ветки,
+commit, push, production/test/doc исправлений reviewer не выполнял.
+
+Применены действующие AGENTS.md и исходные ограничения read-only ревью. Родительских
+D:/AGENTS.md и D:/ZherlitsynEE/AGENTS.md нет; дополнительных локальных AGENTS не найдено.
+Повторно изучены текущий README, diff реализации/тестов/contracts и раздел H отчёта,
+новые compressed evidence и Open observation. Контракты requirements/architecture/
+algorithms/plan, density-map-format и результаты предыдущего независимого полного
+ревью сохраняются; новый diff не меняет прежние Required. D/E и C1/C2 не переоткрывались.
+
+Среда прежняя: Windows 10 Pro 10.0.19045 x64, i5-7500, MSVC 19.51.36260.0,
+Qt 6.12.0, C++20, CMake 3.30.5/Ninja 1.12.1, zlib 1.3.2. Использован существующий
+build/task02-env.cmd с process-local vcvars/PATH, глобальная среда не менялась.
+
+Соответствие binaries исходникам:
+  - обе штатные incremental build-команды PASS, Ninja «no work to do»;
+  - finalSourceSha256 исправления 3/3 совпали с текущими файлами;
+  - density object/lib/benchmark exe совпали с frozen evidence исполнителя;
+  - новые собственные probes заново скомпилированы и слинкованы с текущими
+    Debug/Release production libraries соответствующей конфигурации;
+  - все 14 headless executable, core/cache/density libs и tracked src/tests
+    захэшированы в summary.json; запущены именно обнаруженные CTest binaries;
+  - benchmark exe SHA-256: 82fcb3bacb4f66776f3285c3697c6f2e165a622d156e6e4bdf316081b86e9064.
+Это проверка incremental build/dependency state и hashes; clean rebuild всех
+production targets в повторном ревью не выполнялся.
+
+06.1/06.2 остаются ACCEPTED WITH LIMITATIONS; прежний Recovery P3 остаётся
+FIXED AND VERIFIED. Они не используются вместо проверки исправленного builder.
+
+B. ЗАМЕЧАНИЯ И ЗАКРЫТИЕ БЛОКЕРОВ
+
+Новых подтверждённых замечаний P0–P3 к 06.3A не найдено. Блокеров принятия нет.
+
+B1/P1 — FIXED AND INDEPENDENTLY VERIFIED
+
+Production: density_builder.cpp:155, 416–422, 552–562, 581–582.
+Group содержит expected CRC32 точных LE32 event bytes. CRC write chunk вычисляется
+до transfer seam и сохраняется после exact successful write. При чтении CRC
+накапливается независимо по фактически полученному buffer. Проверка после
+length/index/count/EOF precedes tile-copy/ingest группы. Несовпадение возвращает
+InconsistentEvents/Accumulation с group context, success/pending не выходит.
+
+Независимый прежний сценарий [(0,0),(1,0),(2,0)], cell=1, literal [1,2]: normal
+build корректен, in-range bitflip больше не даёт [0,3]/success, а отклоняется.
+Проверка расширена до 40005 measurements / 160020 spool bytes, нескольких append
+и read chunks, обеих tileSide 256/512 и capacities 1/31/20000. Обнаружены:
+first/last/offset65536 bitflip, same-length replacement, перестановка stream даже
+при неизменных spatial counts, pre-write и post-read buffer mutations. Для каждой
+такой порчи CRC mismatch возникает до D ingest повреждённой группы.
+
+Short read/write сохраняют отдельную ScratchIO причину; truncate/extra bytes и
+invalid indices не подменены checksum handling. Source и предыдущий законченный D
+проверены SHA-256/буквальными counts и сохранены; failed build оставляет только
+собственные исходные fixtures, без result/spools. Это operation-local injections,
+не physical device fault validation. CRC — контроль случайного повреждения,
+не криптографическая аутентификация.
+
+Собственные integrity/resource probes: 134 scenarios PASS / 0 FAIL в Debug и
+столько же в Release. Код/точные команды/логи: resources/resource-review.md,
+resources/spool_probe.cpp, resources/probe-debug.log, resources/probe-release.log.
+
+B2/P2 — FIXED AND INDEPENDENTLY VERIFIED
+
+Production: density_builder.cpp:57–92 и 703–709.
+Единый syntax-only fullyQualifiedPath применяется по snapshot до Engine,
+filesystem queries, progress/cancel/diagnostic callbacks. Qt isAbsolute больше
+не служит доказательством fully qualified Windows path. Поддержаны rooted ASCII
+drive и структурно полный UNC server/share, canonical backslash namespace aliases;
+relative/drive-relative/root-relative, malformed UNC, unsupported devices и NUL
+отклоняются без разрешения через CWD.
+
+В Debug и Release независимо выполнены:
+  - 30 invalid literal forms × source/output/scratch = 90 requests:
+    InvalidInput/Preflight, 0 callbacks, CWD не меняется, файловых остатков нет;
+  - 14 qualified forms × три поля = 42 requests: первый progress -> cancel,
+    Cancelled до filesystem I/O. Покрыты slash/backslash, lowercase/Unicode,
+    drive roots, UNC и canonical drive/UNC namespace aliases;
+  - полный Unicode drive Build со сменой CWD из callbacks: output остаётся по
+    заданному абсолютному пути, D Reader возвращает literal [2,1], source сохранён;
+  - ещё два full builds, отдельно перемещённые PendingDataset, move-assignment
+    и late diagnostic context/destruction order.
+
+Прежние D:relative-result.density и D:relative-scratch теперь отвергаются до
+callbacks. UNC/namespace positives подтверждают синтаксис/отмену, не network/device
+I/O. Логи/код: lifecycle/review.md, main.cpp, run-debug.log, run-release.log.
+
+ОТДЕЛЬНОЕ BASELINE-НАБЛЮДЕНИЕ OPEN
+
+Первый Debug run исполнителя действительно содержит один FAIL:
+OpenApplication.Atomicity/OpenLifecycle.CancelInvalidateShutdownAndPreparationFailureNeverReplacePrevious/3,
+tests/open_tests.cpp:590, Closing вместо Ready. Исходный compressed XML/hash сверены.
+Его последующие 10 PASS и полный rerun не отменяют этого FAIL. Это не прежний
+исправленный Recovery P3 и не разрешённое исключение для любого Recovery failure.
+
+Независимо установлено сильнее одной лишь неизменности source: оба текущих
+open_tests.exe (Debug и Release) побитово совпадают по SHA-256 с executable
+предыдущего независимого ревью 03fd6e2. Open helper/application/CMake не менялись,
+cadcontour_density отсутствует в их link dependency graph. В нашем новом полном
+Debug и Release этот test прошёл, все 84 Open tests — PASS в каждой конфигурации.
+
+Static trace: tests/operation_test_support.h:45–47 ждёт только !operation.active;
+project_controller.cpp:817 выключает active, а :828–837 может оставить Closing
+с retired recovery sessions и запланировать finishRecoverySessions. Это согласуется
+с недостаточным ожиданием в fixture. Точное interleaving исходного неуспешного
+запуска не инструментировано и остаётся inference; baseline observation не
+объявлено исправленным или окончательно диагностированным.
+
+Влияние на приёмку: неблокирующее наблюдение вне зависимости builder. Независимость
+исполняемого Open кода от B1/B2 подтверждена; обязательные builder invariants этим
+FAIL не опровергнуты. Самостоятельного нового дефекта production Open по одному
+такому исходу не утверждаем. Evidence: benchmark/evidence-independent-verification.json,
+benchmark/audit-notes.md, исходный docs/benchmarks/density063a-review-fixes/open-lifecycle-observation.json.
+
+C. КОМАНДЫ, НОВЫЕ ПРОВЕРКИ И EVIDENCE
+
+Review root: D:/ZherlitsynEE/reviews/CADContour2D/06.3A-bc28195-20261105.
+Точные build/discovery/CTest/probe/benchmark команды: commands.txt и отчёты подкаталогов.
+Machine-readable результат и hashes: summary.json; воспроизведение parser: summarize.py.
+
+Проверка                                  Debug                       Release
+Headless targets incremental build        PASS, Ninja no work         PASS, Ninja no work
+Case-sensitive CTest inventory            1214 / 1214 unique          1214 / 1214 unique
+Новая широкая production headless серия   826 PASS / 0 FAIL / 1 SKIP   826 PASS / 0 FAIL / 1 SKIP
+В том числе builder                       128 PASS                    128 PASS
+В том числе D storage                     115 PASS                    115 PASS
+В том числе raster mapping                14 PASS                     14 PASS
+В том числе Recovery application/crash     68 PASS                     68 PASS
+В том числе Open                          84 PASS                     84 PASS
+Собственные integrity/resource probes      134 PASS / 0 FAIL           134 PASS / 0 FAIL
+Собственные path/lifecycle probes          PASS                        PASS
+Прежний literal full-pipeline probe        9 scenarios PASS            9 scenarios PASS
+Новый benchmark 9x100000 + audit            NOT RUN                     PASS
+
+Discovery запускался последовательно: Debug, затем Release. Python exact strings
+подтвердили отсутствие case-sensitive дублей, 827 уникальных выбранных имён,
+тождественность Debug/Release selection. Selection получен по executable basename
+14 headless targets и production label. Поднаборы в таблице пересекаются/включены
+в широкий набор, складывать их как независимые tests нельзя.
+
+CTest выполнялся один раз в конфигурации, без rerun-until-pass. Оба новых широких
+запуска прошли с первого раза. Единственный SKIP —
+Persistence.StoragePath.FileSymlinkEscape, Windows privilege 1314.
+Новые logs/JUnit: test-debug.log/headless-debug.xml и test-release.log/headless-release.xml.
+Real duration: 131.12s Debug / 91.55s Release. Новых Recovery failures нет.
+
+Собственный pipeline_probe.cpp скопирован из предыдущего review и заново собран
+с текущими libs. Expected counts заданы буквально integer fixtures и adjacent
+binary64 bits без production locate/group/accumulation oracle. В конфигурации
+9 scenarios / 3291826 cell/contract comparisons / 0 failures; это не миллионы
+уникальных unit tests. Проверены duplicates65537, negative и degenerate coordinates,
+decimal/nextafter boundaries, partial groups/tiles и обе tileSide, повторные chunks,
+sparse extents4096/524288, checked uint64/huge pair addressing, общие exact и
+one-unit-less resource ceilings, metadata mismatch/corrupt own source copy,
+actual short prefix transfers, cancellation после accumulation и после D finish,
+source/previous sentinel dataset preservation и cleanup. Root logs: probes/run-*.log.
+
+Сверка claims исполнителя отдельно от новых запусков:
+  compressed/uncompressed SHA-256 архивов RED/GREEN/broad runs/repeats/names/compile
+  log совпали; parser подтвердил RED44 = 12 PASS/32 FAIL, GREEN44 PASS, первый
+  Debug825/1/1 и финальные Debug/Release826/0/1. RED исторически выполнен на старом
+  production, а не повторялся нами откатом checkout. Assertions не ослаблялись.
+  Historical 1M audit и frozen fresh100k audit — PASS, не заменяют новый benchmark.
+
+Независимый новый Release benchmark: 9x100000, audit PASS, builds/tests в измеряемое
+окно не выполнялись. Каждый успешный run сверил все physical tile keys/shapes/counts
+с независимым spatial oracle, implicit zeros и provenance. scanAll=1, queries=0,
+events W/R=400000 bytes, source/scanned/events/accumulated/tile/D totals=100000.
+irregular64/small-chunk/sparse64: 64 groups, 256 tiles, D=354326 bytes. Увеличение
+пустых axes до524288 не увеличило groups/spools/tiles. Fixed-area16/128 дают
+64/512 tiles. Scratch после процесса пуст; exe hash before/after одинаков.
+
+Observed maxima counters: owned working reservation13342592, metadata16448,
+scratch1138624/combined1795712 bytes, files261/handles5. Working reservation зависит
+в том числе от длины путей; одинакового global footprint между разными fixture roots
+не утверждаем. Representative warm median943.3998ms — адресный sample, без
+before/after speedup или эксплуатационных нормативов. Preparation/build/oracle
+разделены, nested phase times не складывались, logical I/O не выдан за physical
+I/O, lifetime process memory peak не выдан за owned per-build peak.
+Raw/summary/audit: benchmark/reproduced-100k*.json и reproduced-100k-audit.log.
+Raw SHA-256: 95d836c54b5a6b5a28b42b767b16e7d7e3b15679049897bdf05e95bdc321d6d1.
+
+Служебная история own probes сохранена: первоначальный Debug integrity harness
+ошибочно ожидал Release-only metadata128; Debug фактически144 из-за STL proxy16.
+Исправлена только собственная assertion, первый FAIL log сохранён отдельно.
+Окончательные Debug/Release134 scenarios прошли. Это не production resource defect,
+не failure штатных tests и не изменение их assertions. Ещё одна shell preparation
+ошибка New-Item -LiteralPath описана в lifecycle/review.md до создания fixture.
+
+D. РЕСУРСЫ, LIFECYCLE И ОГРАНИЧЕНИЯ
+
+CRC находится в существующей Group metadata, дополнительных containers/буферов,
+source scans и I/O-проходов по payload нет. Expected CRC входит в существующий bounded write,
+actual — в существующий bounded read ≤64KiB. Общий work/cancel/checkpoint механизм
+сохраняется. Custom allocator заряжает весь sizeof tree node до allocation.
+В измеренном MSVC layout sizeof Group остался16, Release node64; fingerprint занял
+прежний padding. Одна group+head дают128 Release,144 Debug с container proxy;
+Debug proxy не является ростом от CRC. При равной occupancy Release peaks
+128/1088/4160/8256/16448 соответствуют прежним 1/16/64/128/256 groups.
+Exact/one-less metadata и combined working ceilings независимо проверены.
+
+Сохраняются phased simultaneous RAM reservations с учётом живущей metadata,
+reader/events и D buffer/codec/sort/readback, удержание 4*N event reservation до
+D finish и передача D остатка scratch/combined, общие files/handles/work ceilings.
+Компоненты не получают каждый полный общий бюджет. Это owned requests/reservations
+и logical bytes, не process/OS cap, не physical allocation/free-space guarantee.
+Initial ceilings не объявлены испытанными эксплуатационными maxima.
+
+Source binding/snapshot, CacheId/count/binary64 bounds, один C1 scanAll без spatial
+queries, Mapping numerical semantics, checked uint64 counts и X-fast partial
+addressing сохранены. Wire formats Point Cache/D/manifest не менялись.
+
+Retained diagnostic context/PendingDataset API не менялись в fix; новые own probes
+снова проверили move из BuildOutput и move-assignment двух живых pending, callbacks
+после исчезновения request/BuildOutput, destruction order и освобождение retention.
+Win32 delete-share barriers делают late cleanup failures управляемыми без sleep.
+Нет найденных dangling stack references/cycles. Primary failure не маскируется
+cleanup; failure/cancel удаляют только собственные ресурсы. Existing/source/previous D
+сохраняются, discard/releaseToOwner и cancellation после finish работают.
+
+NOT RUN: clean rebuild всех production targets, GUI/lint, отдельно маркированный
+большой cache integration, новый 1M/42M performance pipeline, реальное UNC/network I/O,
+physical disk-full/flush/device faults, power loss, controlled cold-HDD, security audit,
+representative real scans. Namespace/UNC syntax tests отменены до I/O. Synthetic
+correctness не доказывает Rough quality; operation-local faults не доказывают
+поведение физических устройств. Эти границы не скрыты и не являются сами по себе
+блокерами headless builder.
+
+E. ВЕРДИКТ
+
+ACCEPTED WITH LIMITATIONS для headless 06.3A на
+bc28195971ddbe43ef36a12f38b5d49453bd85d6.
+
+Оба прежних блокера B1/P1 и B2/P2 закрыты независимыми Debug/Release probes.
+Новых подтверждённых P0–P3 к builder и блокеров принятия нет. Ограничения:
+непроверенные physical/network/real-scan conditions и отдельное историческое Open
+baseline observation с недоказанным точным interleaving. Его влияние допустимо
+для этой приёмки, поскольку неизменный executable/graph находится вне builder,
+а новые обязательные builder contracts проверены самостоятельно. FAIL не удалён,
+не назван исправленным и не отнесён автоматически к прежнему Recovery P3.
+
+Зависимость headless builder достаточна для проектирования 06.3B. OperationRunner
+adapter и application publication, каталог версий, persistence, Canvas/ROI/Rough
+не реализованы и в рамках ревью не начинались. 06.3 целиком не объявлен завершённым.
+Будущие правила пользователя сохраняются: cell следующего Build изменяем;
+второй Build запрещён до завершения/отмены и cleanup/join первого; успешно принятая
+новая карта автоматически становится рабочей. Отсутствие этих application функций
+не считается дефектом 06.3A. Старое late-Build правило не применено вместо уточнения.
+
+Прежний NEEDS FIXES на 03fd6e2 остаётся исторически верным; этот отчёт его не
+переписывает. Удалённый main пока 03fd6e2, поэтому настоящий вердикт не является
+принятием опубликованного старого HEAD. Production/tests/docs не изменены,
+commit/push не выполнялись; собственные evidence изолированы в review root.
