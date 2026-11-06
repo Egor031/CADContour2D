@@ -52,6 +52,14 @@ WorkerOutcome WorkerOutcome::failed(OperationFailure failure) noexcept
     return result;
 }
 
+WorkerOutcome WorkerOutcome::success(std::unique_ptr<WorkerDensityProduct> product) noexcept
+{
+    WorkerOutcome result;
+    result.status = WorkerStatus::Succeeded;
+    result.density = std::move(product);
+    return result;
+}
+
 WorkerOutcome WorkerOutcome::success(std::unique_ptr<persistence::SaveTransaction> product) noexcept
 {
     WorkerOutcome result;

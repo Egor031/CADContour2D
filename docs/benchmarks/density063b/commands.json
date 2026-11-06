@@ -1,0 +1,144 @@
+[
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-debug --target density_operation_tests operation_tests --parallel 4",
+    "stage": "initial",
+    "exit_code": 0,
+    "log": "build-debug-initial.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-debug --target all all_qmllint --parallel 4",
+    "stage": "expanded",
+    "exit_code": 0,
+    "log": "build-debug.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-release --target all all_qmllint --parallel 4",
+    "stage": "expanded",
+    "exit_code": 0,
+    "log": "build-release.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-debug --target density_operation_tests operation_tests --parallel 4",
+    "stage": "intermediate46",
+    "exit_code": 0,
+    "log": "build-debug-final-incremental.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-debug --target all all_qmllint --parallel 4",
+    "stage": "before-taxonomy",
+    "exit_code": 0,
+    "log": "build-debug-final.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-release --target all all_qmllint --parallel 4",
+    "stage": "before-taxonomy",
+    "exit_code": 0,
+    "log": "build-release-final.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-debug --target all all_qmllint --parallel 4",
+    "stage": "final",
+    "exit_code": 0,
+    "log": "build-debug-verified.log.gz"
+  },
+  {
+    "command": "build\\task02-env.cmd cmake --build --preset windows-release --target all all_qmllint --parallel 4",
+    "stage": "final",
+    "exit_code": 0,
+    "log": "build-release-verified.log.gz"
+  },
+  {
+    "command": "build\\windows-debug\\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-debug-initial.xml",
+    "stage": "initial35",
+    "exit_code": 1,
+    "log": "adapter-debug-initial.log.gz",
+    "xml": "adapter-debug-initial.xml.gz"
+  },
+  {
+    "command": "build\\windows-debug\\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-debug.xml",
+    "stage": "intermediate46",
+    "exit_code": 0,
+    "log": "adapter-debug-intermediate.log.gz",
+    "xml": "adapter-debug-intermediate.xml.gz"
+  },
+  {
+    "command": "build\\windows-debug\\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-debug-final.xml",
+    "stage": "before-taxonomy47",
+    "exit_code": 0,
+    "log": "before-taxonomy-adapter-debug-final.log.gz",
+    "xml": "before-taxonomy-adapter-debug-final.xml.gz"
+  },
+  {
+    "command": "build\\windows-release\\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-release-final.xml",
+    "stage": "before-taxonomy47",
+    "exit_code": 0,
+    "log": "before-taxonomy-adapter-release-final.log.gz",
+    "xml": "before-taxonomy-adapter-release-final.xml.gz"
+  },
+  {
+    "command": "build\\windows-debug\\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-debug-final.xml",
+    "stage": "final47",
+    "exit_code": 0,
+    "log": "adapter-debug-final.log.gz",
+    "xml": "adapter-debug-final.xml.gz"
+  },
+  {
+    "command": "build\\windows-release\\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-release-final.xml",
+    "stage": "final47",
+    "exit_code": 0,
+    "log": "adapter-release-final.log.gz",
+    "xml": "adapter-release-final.xml.gz"
+  },
+  {
+    "command": "ctest --preset windows-debug -L production --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063b/production-debug.xml",
+    "stage": "before-taxonomy",
+    "exit_code": 0,
+    "log": "before-taxonomy-production-debug.log.gz",
+    "xml": "before-taxonomy-production-debug.xml.gz"
+  },
+  {
+    "command": "ctest --preset windows-debug -L production --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063b/production-debug.xml",
+    "stage": "final",
+    "exit_code": 0,
+    "log": "production-debug.log.gz",
+    "xml": "production-debug.xml.gz"
+  },
+  {
+    "command": "ctest --preset windows-release -L production --output-on-failure --output-junit D:/ZherlitsynEE/CADContour2D/build/density063b/production-release.xml",
+    "stage": "final",
+    "exit_code": 0,
+    "log": "production-release.log.gz",
+    "xml": "production-release.xml.gz"
+  },
+  {
+    "command": "ctest --preset windows-debug --show-only=json-v1",
+    "stage": "before-taxonomy",
+    "exit_code": 0,
+    "output": "before-taxonomy-inventory-debug.json.gz"
+  },
+  {
+    "command": "ctest --preset windows-release --show-only=json-v1",
+    "stage": "before-taxonomy",
+    "exit_code": 0,
+    "output": "before-taxonomy-inventory-release.json.gz"
+  },
+  {
+    "command": "ctest --preset windows-debug --show-only=json-v1",
+    "stage": "final",
+    "exit_code": 0,
+    "output": "inventory-debug.json.gz"
+  },
+  {
+    "command": "ctest --preset windows-release --show-only=json-v1",
+    "stage": "final",
+    "exit_code": 0,
+    "output": "inventory-release.json.gz"
+  },
+  {
+    "command": "inline Python: assert exact case-sensitive all-debug/all-release inventories equal",
+    "stage": "before-taxonomy",
+    "exit_code": 1,
+    "cause": "AssertionError: all; four pre-existing member-function-pointer GUI labels differ. No raw shell log was redirected; exact observed inventories and differences are preserved.",
+    "evidence": "before-taxonomy-inventories.json"
+  }
+]

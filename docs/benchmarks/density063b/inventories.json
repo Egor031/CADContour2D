@@ -1,0 +1,99 @@
+{
+  "discovery_order": [
+    "debug",
+    "release"
+  ],
+  "prior_exact_comparison_failure": "First inline equality assert failed for four existing pointer-printed GUI labels; original comparison preserved in before-taxonomy-inventories.json.",
+  "debug": {
+    "inventory": 1263,
+    "unique": 1263,
+    "production": 1124,
+    "headless": 876,
+    "production_by_target": {
+      "asc_xyz_tests": 42,
+      "cache_tests": 166,
+      "density_builder_tests": 128,
+      "density_operation_tests": 47,
+      "density_storage_tests": 115,
+      "dependency_smoke": 1,
+      "gui_file_tests": 68,
+      "gui_import_tests": 80,
+      "gui_recovery_tests": 50,
+      "import_application_tests": 25,
+      "nonzero_z_confirmation_tests": 30,
+      "open_tests": 84,
+      "operation_tests": 53,
+      "persistence_tests": 26,
+      "project_tests": 32,
+      "qml_integration_tests": 14,
+      "raster_mapping_tests": 14,
+      "recovery_tests": 68,
+      "save_tests": 45,
+      "view_model_tests": 36
+    }
+  },
+  "release": {
+    "inventory": 1263,
+    "unique": 1263,
+    "production": 1124,
+    "headless": 876,
+    "production_by_target": {
+      "asc_xyz_tests": 42,
+      "cache_tests": 166,
+      "density_builder_tests": 128,
+      "density_operation_tests": 47,
+      "density_storage_tests": 115,
+      "dependency_smoke": 1,
+      "gui_file_tests": 68,
+      "gui_import_tests": 80,
+      "gui_recovery_tests": 50,
+      "import_application_tests": 25,
+      "nonzero_z_confirmation_tests": 30,
+      "open_tests": 84,
+      "operation_tests": 53,
+      "persistence_tests": 26,
+      "project_tests": 32,
+      "qml_integration_tests": 14,
+      "raster_mapping_tests": 14,
+      "recovery_tests": 68,
+      "save_tests": 45,
+      "view_model_tests": 36
+    }
+  },
+  "all_comparison": {
+    "exact_case_sensitive_equal": false,
+    "debug_only": [
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <1B-44 52-8B F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <41-AB 51-8B F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <DB-29 52-8B F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <DE-4E 52-8B F6-7F 00-00>"
+    ],
+    "release_only": [
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <50-51 A5-93 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <70-54 A5-93 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <80-4E A5-93 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <B0-50 A5-93 F6-7F 00-00>"
+    ]
+  },
+  "production_comparison": {
+    "exact_case_sensitive_equal": false,
+    "debug_only": [
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <1B-44 52-8B F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <41-AB 51-8B F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <DB-29 52-8B F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <DE-4E 52-8B F6-7F 00-00>"
+    ],
+    "release_only": [
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <50-51 A5-93 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <70-54 A5-93 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <80-4E A5-93 F6-7F 00-00>",
+      "AscGui.Signals/StateNotificationDeletion.R1DeletionAtStateNotificationBoundaryStopsContinuation/8-byte object <B0-50 A5-93 F6-7F 00-00>"
+    ]
+  },
+  "headless_comparison": {
+    "exact_case_sensitive_equal": true,
+    "debug_only": [],
+    "release_only": []
+  },
+  "all_commands_and_gtest_filters_equal": true
+}

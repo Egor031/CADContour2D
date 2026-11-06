@@ -377,7 +377,7 @@ metadata/state потребуется расширить версиониров�
 работы 06.0 с ограничениями; Raster Foundation 06.1 завершён и принят пользователем
 с ограничениями (2026-10-29). Headless storage D v1 06.2 — **ACCEPTED WITH LIMITATIONS**
 (2026-10-29). В 06.3A реализован самостоятельный headless Point Cache → C1 → D builder;
-application-интеграция 06.3B, версии 06.4, Canvas и ROI ещё не реализованы.
+application-интеграция 06.3B реализована для ревью; версии 06.4, Canvas и ROI ещё не реализованы.
 Пользователь согласовал **D + C1** как архитектурную основу дальнейшей разработки.
 Это закрывает исследование 06.0, сохраняя раздельно исторический вердикт независимого
 06.0D `INCONCLUSIVE` и последующее `P1 CLOSED WITH LIMITATIONS`.
@@ -391,8 +391,8 @@ application-интеграция 06.3B, версии 06.4, Canvas и ROI ещё 
 | 06.0D/P1 | Исправление sparse scaling C1 | `P1 CLOSED WITH LIMITATIONS` |
 | 06.1 | Raster Foundation и численные контракты | Завершён; `ACCEPTED WITH LIMITATIONS` |
 | 06.2 | Каноническое тайловое хранилище D | Завершён; `ACCEPTED WITH LIMITATIONS` |
-| 06.3A | Самостоятельный headless builder Point Cache → C1 → D | `READY FOR INDEPENDENT REVIEW`; без принятия |
-| 06.3B | OperationRunner и application publication Build | Не начат |
+| 06.3A | Самостоятельный headless builder Point Cache → C1 → D | `ACCEPTED WITH LIMITATIONS`, повторное независимое принятие сообщено в задании 06.3B |
+| 06.3B | OperationRunner и application publication Build | `READY FOR INDEPENDENT REVIEW`; [отчёт](reports/task-06/density-build-operation.md) |
 | 06.4 | Версии и Project State | Не начат |
 | 06.5 | Save/Open/Recovery | Не начат |
 | 06.6 | Engineering Canvas и отображение | Не начат |
@@ -486,11 +486,15 @@ LOD и необязательный PNG-export разделены по
   Общие phase/resource/work budgets, structured failures, cooperative cancel/progress,
   scoped cleanup и retained late diagnostic context. Независимый spatial test oracle
   и opt-in full-pipeline benchmark; [результаты и ограничения](reports/task-06/density-builder.md).
-  Это реализация для независимого ревью, не пользовательское принятие 06.3.
-- **06.3B — следующий шаг, не реализован:** adapter существующего OperationRunner,
-  применимость snapshot и safe ownership handoff через existing publication gate.
-  Ready/Accept/Discard и permission/revocation не добавлены в 06.3A. Каталог версий,
-  выбор/Undo остаются 06.4, persistence карт — 06.5.
+  Повторно независимо принят с ограничениями по источнику задания 06.3B:
+  B1/P1 и B2/P2 исправлены, новых P0–P3 нет; исторические отчёты сохранены.
+- **06.3B — реализован для ревью:** adapter существующего OperationRunner,
+  immutable snapshot, build-specific applicability, typed receiver/candidate,
+  borrowed lease и worker-side handoff/cleanup. Future-cell/SetCell Undo/Redo
+  не отзывают текущий Build; принятый candidate добавляет и выбирает новую карту,
+  сохраняя прошлые версии/правки. Без receiver Build отклоняется до worker.
+  [Проверки и ограничения](reports/task-06/density-build-operation.md).
+  Каталог версий, выбор/Undo остаются 06.4, persistence карт — 06.5.
 - **Завершение:** end-to-end Point Cache → C1 → D совпадает с независимым count oracle,
   включая повторные measurements. Измерены CPU/time/memory/I/O и compression cost;
   контролируются scratch, output, metadata, files/handles. Preflight отличает
@@ -506,7 +510,8 @@ LOD и необязательный PNG-export разделены по
 - **Завершение:** каждый успешный Build создаёт новую версию, включая те же параметры;
   нет автоматической замены/удаления. Выбор версии одним действием делает её рабочей
   без пересчёта; подготовлен C++ reset guard для 11. Проверены отказ без смены данных
-  и выбора, late Build без перехвата выбора, независимый `cell` будущего Build,
+  и выбора, автоматический выбор принятой новой карты после смены выбора во время Build,
+  независимый `cell` будущего Build,
   Undo/Redo по ссылкам без копирования datasets и lifetime save/recovery/worker refs.
 
 #### 06.5. Save/Open/Recovery
@@ -785,7 +790,7 @@ LOD и необязательный PNG-export разделены по
 ### Какие решения действительно блокируют этапы
 
 - Cache layout и index construction — решены в принятой задаче 03; v1 описан в [point-cache-format.md](point-cache-format.md).
-- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1 и headless D layout/versioning/API 06.2 — ACCEPTED WITH LIMITATIONS. Headless C1→D и event/group resource accounting реализованы в 06.3A; проверки и ограничения — в отчёте. Следующий application шаг — 06.3B; real-scan и эксплуатационная приёмка остаётся 06.8.
+- D + C1 согласованы, исследование 06.0 завершено с ограничениями. Raster Foundation 06.1, headless D layout/versioning/API 06.2 и builder 06.3A — ACCEPTED WITH LIMITATIONS. C1→D и event/group resource accounting реализованы в 06.3A, application adapter 06.3B — для ревью; проверки и ограничения — в отдельных отчётах. Следующие шаги — версии/Project State 06.4 и persistence 06.5; real-scan и эксплуатационная приёмка остаются 06.8.
 - Intensity/mask/threshold/morphology — решения 07–10 до принятия rough detection; необязательный PNG-export не блокирует построение 06.
 - Reference boundary и one-sided validator — блокируют принятие automatic precise geometry.
 - Representative real scans — блокируют подтверждение алгоритмов, **но не** разработку storage/UI и экспериментальных prototypes.
@@ -850,6 +855,7 @@ Performance-нормативы пока отсутствуют. Для их оп
 Raster Foundation 06.1 — ACCEPTED WITH LIMITATIONS по решению пользователя
 от 2026-10-29. Headless D v1 06.2 — ACCEPTED WITH LIMITATIONS по решению пользователя
 от той же даты после независимого READY WITH LIMITATIONS и отдельного Recovery P3.
-Headless C1 builder 06.3A реализован; [проверки и статус](reports/task-06/density-builder.md)
-не заменяют независимого принятия. Следующий application шаг — 06.3B.
-06.3B и 06.4–06.8 ещё не начаты, задача 06 целиком остаётся IN PROGRESS.
+Headless C1 builder 06.3A повторно независимо принят с ограничениями по источнику
+задания 06.3B; [исторический отчёт](reports/task-06/density-builder.md) сохранён.
+Application 06.3B реализована для ревью; [проверки и статус](reports/task-06/density-build-operation.md).
+06.4–06.8 ещё не начаты, задача 06 целиком остаётся IN PROGRESS.

@@ -10,6 +10,13 @@ target_link_libraries(dependency_smoke PRIVATE
 )
 
 include(GoogleTest)
+add_executable(density_operation_tests operation_test_main.cpp density_operation_tests.cpp)
+set_target_properties(density_operation_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
+target_link_libraries(density_operation_tests PRIVATE cadcontour_application GTest::gtest)
+target_compile_options(density_operation_tests PRIVATE /W4 /permissive- /fp:precise /utf-8)
+gtest_discover_tests(density_operation_tests DISCOVERY_MODE PRE_TEST TEST_PREFIX DensityOperation.
+    PROPERTIES LABELS production TIMEOUT 60)
+
 add_executable(density_builder_tests density_builder_tests.cpp)
 set_target_properties(density_builder_tests PROPERTIES AUTOMOC OFF AUTOUIC OFF)
 target_link_libraries(density_builder_tests PRIVATE cadcontour_density GTest::gtest_main)

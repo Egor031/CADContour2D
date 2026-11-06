@@ -76,8 +76,10 @@ add_library(cadcontour_application STATIC
     src/application/native_thread_completion.h src/application/native_thread_completion.cpp
     src/application/operation_diagnostics.h src/application/operation_diagnostics.cpp
     src/application/import_operation.h src/application/import_operation.cpp
+    src/application/density_build_types.h
+    src/application/density_operation.h src/application/density_operation.cpp
 )
-target_link_libraries(cadcontour_application PUBLIC cadcontour_core cadcontour_io cadcontour_persistence Qt6::Core Qt6::Gui)
+target_link_libraries(cadcontour_application PUBLIC cadcontour_core cadcontour_io cadcontour_persistence cadcontour_density Qt6::Core Qt6::Gui)
 target_link_libraries(cadcontour_application PRIVATE spdlog::spdlog_header_only)
 target_compile_definitions(cadcontour_application PRIVATE SPDLOG_WCHAR_FILENAMES)
 target_compile_options(cadcontour_application PRIVATE /W4 /permissive- /fp:precise /utf-8)

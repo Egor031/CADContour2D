@@ -1,0 +1,490 @@
+{
+  "date": "2026-11-05",
+  "baseline": "bc28195971ddbe43ef36a12f38b5d49453bd85d6",
+  "branch": "main",
+  "initial_worktree": "clean",
+  "verdict": "READY FOR INDEPENDENT REVIEW",
+  "accepted": false,
+  "push": false,
+  "build_all_and_all_qmllint": {
+    "debug": "PASS",
+    "release": "PASS"
+  },
+  "production": {
+    "debug": {
+      "tests": 1124,
+      "pass": 1123,
+      "fail": 0,
+      "skip": 1,
+      "failed": [],
+      "skipped": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "xml_seconds": "478",
+      "headless_subset": {
+        "tests": 876,
+        "pass": 875,
+        "fail": 0,
+        "skip": 1,
+        "failed": [],
+        "skipped": [
+          "Persistence.StoragePath.FileSymlinkEscape"
+        ]
+      },
+      "by_target": {
+        "asc_xyz_tests": {
+          "tests": 42,
+          "pass": 42,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "cache_tests": {
+          "tests": 166,
+          "pass": 166,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "density_builder_tests": {
+          "tests": 128,
+          "pass": 128,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "density_operation_tests": {
+          "tests": 47,
+          "pass": 47,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "density_storage_tests": {
+          "tests": 115,
+          "pass": 115,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "dependency_smoke": {
+          "tests": 1,
+          "pass": 1,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "gui_file_tests": {
+          "tests": 68,
+          "pass": 68,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "gui_import_tests": {
+          "tests": 80,
+          "pass": 80,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "gui_recovery_tests": {
+          "tests": 50,
+          "pass": 50,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "import_application_tests": {
+          "tests": 25,
+          "pass": 25,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "nonzero_z_confirmation_tests": {
+          "tests": 30,
+          "pass": 30,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "open_tests": {
+          "tests": 84,
+          "pass": 84,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "operation_tests": {
+          "tests": 53,
+          "pass": 53,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "persistence_tests": {
+          "tests": 26,
+          "pass": 25,
+          "fail": 0,
+          "skip": 1,
+          "failed": [],
+          "skipped": [
+            "Persistence.StoragePath.FileSymlinkEscape"
+          ]
+        },
+        "project_tests": {
+          "tests": 32,
+          "pass": 32,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "qml_integration_tests": {
+          "tests": 14,
+          "pass": 14,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "raster_mapping_tests": {
+          "tests": 14,
+          "pass": 14,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "recovery_tests": {
+          "tests": 68,
+          "pass": 68,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "save_tests": {
+          "tests": 45,
+          "pass": 45,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "view_model_tests": {
+          "tests": 36,
+          "pass": 36,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        }
+      }
+    },
+    "release": {
+      "tests": 1124,
+      "pass": 1123,
+      "fail": 0,
+      "skip": 1,
+      "failed": [],
+      "skipped": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ],
+      "xml_seconds": "223",
+      "headless_subset": {
+        "tests": 876,
+        "pass": 875,
+        "fail": 0,
+        "skip": 1,
+        "failed": [],
+        "skipped": [
+          "Persistence.StoragePath.FileSymlinkEscape"
+        ]
+      },
+      "by_target": {
+        "asc_xyz_tests": {
+          "tests": 42,
+          "pass": 42,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "cache_tests": {
+          "tests": 166,
+          "pass": 166,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "density_builder_tests": {
+          "tests": 128,
+          "pass": 128,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "density_operation_tests": {
+          "tests": 47,
+          "pass": 47,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "density_storage_tests": {
+          "tests": 115,
+          "pass": 115,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "dependency_smoke": {
+          "tests": 1,
+          "pass": 1,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "gui_file_tests": {
+          "tests": 68,
+          "pass": 68,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "gui_import_tests": {
+          "tests": 80,
+          "pass": 80,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "gui_recovery_tests": {
+          "tests": 50,
+          "pass": 50,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "import_application_tests": {
+          "tests": 25,
+          "pass": 25,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "nonzero_z_confirmation_tests": {
+          "tests": 30,
+          "pass": 30,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "open_tests": {
+          "tests": 84,
+          "pass": 84,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "operation_tests": {
+          "tests": 53,
+          "pass": 53,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "persistence_tests": {
+          "tests": 26,
+          "pass": 25,
+          "fail": 0,
+          "skip": 1,
+          "failed": [],
+          "skipped": [
+            "Persistence.StoragePath.FileSymlinkEscape"
+          ]
+        },
+        "project_tests": {
+          "tests": 32,
+          "pass": 32,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "qml_integration_tests": {
+          "tests": 14,
+          "pass": 14,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "raster_mapping_tests": {
+          "tests": 14,
+          "pass": 14,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "recovery_tests": {
+          "tests": 68,
+          "pass": 68,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "save_tests": {
+          "tests": 45,
+          "pass": 45,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        },
+        "view_model_tests": {
+          "tests": 36,
+          "pass": 36,
+          "fail": 0,
+          "skip": 0,
+          "failed": [],
+          "skipped": []
+        }
+      }
+    }
+  },
+  "adapter": {
+    "debug": {
+      "tests": 47,
+      "pass": 47,
+      "fail": 0,
+      "skip": 0,
+      "failed": [],
+      "skipped": [],
+      "small_pipeline": {
+        "admission_ns": 172600,
+        "prepare_ns": 31064900,
+        "commit_ns": 31074700,
+        "native_join_terminal_ns": 31936000,
+        "progress_notifications": 10,
+        "source_points": 3,
+        "scan_all_calls": 1,
+        "events_written": 3,
+        "events_read": 3,
+        "output_bytes": 478,
+        "working_owned_peak": 13357272,
+        "retained_descriptors": 1
+      }
+    },
+    "release": {
+      "tests": 47,
+      "pass": 47,
+      "fail": 0,
+      "skip": 0,
+      "failed": [],
+      "skipped": [],
+      "small_pipeline": {
+        "admission_ns": 64000,
+        "prepare_ns": 19412800,
+        "commit_ns": 19414300,
+        "native_join_terminal_ns": 20605000,
+        "progress_notifications": 5,
+        "source_points": 3,
+        "scan_all_calls": 1,
+        "events_written": 3,
+        "events_read": 3,
+        "output_bytes": 478,
+        "working_owned_peak": 13357248,
+        "retained_descriptors": 1
+      }
+    }
+  },
+  "history": {
+    "adapter-debug-initial": {
+      "tests": 35,
+      "pass": 33,
+      "fail": 2,
+      "skip": 0,
+      "failed": [
+        "ReceiverRefusalAndExceptionsPreservePreviousCatalogue",
+        "OwnerEventLoopRemainsResponsiveWhileRealWorkerIsHeld"
+      ],
+      "skipped": []
+    },
+    "adapter-debug-intermediate": {
+      "tests": 46,
+      "pass": 46,
+      "fail": 0,
+      "skip": 0,
+      "failed": [],
+      "skipped": []
+    },
+    "before-taxonomy-adapter-debug-final": {
+      "tests": 47,
+      "pass": 47,
+      "fail": 0,
+      "skip": 0,
+      "failed": [],
+      "skipped": []
+    },
+    "before-taxonomy-adapter-release-final": {
+      "tests": 47,
+      "pass": 47,
+      "fail": 0,
+      "skip": 0,
+      "failed": [],
+      "skipped": []
+    },
+    "before-taxonomy-production-debug": {
+      "tests": 1124,
+      "pass": 1123,
+      "fail": 0,
+      "skip": 1,
+      "failed": [],
+      "skipped": [
+        "Persistence.StoragePath.FileSymlinkEscape"
+      ]
+    },
+    "initial_adapter_failure_explanation": "Two fixture expectations/order errors: null receiver refusal expected Failed instead of Discarded; progress/event-loop assertion checked Accept before controller consumed Ready.",
+    "taxonomy_fix": "Internal validation now uses InvalidDensityProduct tag; std::invalid_argument from receiver.prepare is CandidatePreparationFailed. Existing test gains mode3; final builds/discovery/adapter/production repeated.",
+    "inventory_assert_failure": "First exact all-names equality assert failed: four existing pointer-printed GUI labels differ; full differences retained in inventories.json. Headless exact names and all normalized-config commands/filters match."
+  },
+  "subsets_overlap": true,
+  "not_run": [
+    "139 discovered non-production cases (experimental/tool/integration labels)",
+    "representative real scans",
+    "large performance/Peak Working Set",
+    "UNC/cold-cache/physical I/O faults/power loss",
+    "manual Build UI (absent by scope)"
+  ],
+  "open_lifecycle_observation": "Historical Closing/Ready remains unresolved; no recurrence in current runs."
+}

@@ -522,6 +522,9 @@ QString ProjectViewModel::phaseText() const
     case OperationPhase::Computing: return QStringLiteral("Вычисление");
     case OperationPhase::Parsing: return QStringLiteral("Разбор ASC/XYZ и подготовка сортируемых блоков");
     case OperationPhase::BuildingCache: return QStringLiteral("Построение Point Cache: сортировка, индекс и проверка");
+    case OperationPhase::Scan: return QStringLiteral("Чтение Point Cache");
+    case OperationPhase::Grouping: return QStringLiteral("Группировка измерений");
+    case OperationPhase::Accumulation: return QStringLiteral("Накопление точных counts");
     case OperationPhase::Finalizing: return QStringLiteral("Проверка результата");
     case OperationPhase::Cleanup: return QStringLiteral("Освобождение ресурсов");
     }
@@ -543,6 +546,7 @@ QString ProjectViewModel::operationText() const
     const auto name = [&] {
         switch (operation.kind) {
         case OperationKind::Import: return QStringLiteral("Импорт ASC/XYZ");
+        case OperationKind::DensityBuild: return QStringLiteral("Построение карты плотности");
         case OperationKind::Save: return QStringLiteral("Сохранение проекта");
         case OperationKind::Open: return QStringLiteral("Открытие проекта");
         case OperationKind::RecheckCache: return QStringLiteral("Ограниченная проверка Point Cache");
@@ -583,6 +587,7 @@ QString ProjectViewModel::operationText() const
             case FailureReason::PreparationFailed: reason = QStringLiteral("Не удалось подготовить операцию"); break;
             case FailureReason::PublicationFailed: reason = QStringLiteral("Не удалось применить результат"); break;
             case FailureReason::InvalidProduct: reason = QStringLiteral("Некорректный результат"); break;
+            case FailureReason::DensityFailed: reason = QStringLiteral("Не удалось построить карту плотности"); break;
             default: break;
             }
         }

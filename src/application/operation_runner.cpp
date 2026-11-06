@@ -30,6 +30,9 @@ bool validImportTransport(const WorkerImportProduct &p)
 }
 static_assert(std::is_nothrow_copy_constructible_v<ImportReadyProduct>);
 static_assert(std::is_nothrow_copy_assignable_v<ImportReadyProduct>);
+static_assert(std::is_nothrow_copy_constructible_v<density::BuildError>);
+static_assert(std::is_nothrow_copy_assignable_v<density::BuildError>);
+static_assert(std::is_nothrow_move_assignable_v<ReadyOutcome>);
 } // namespace
 
 bool WorkerControl::cancelled() const noexcept
@@ -192,16 +195,29 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         }
         const auto products = int(bool(outcome.product)) + int(bool(outcome.imported)) + int(bool(outcome.save))
             + int(bool(outcome.loaded)) + int(bool(outcome.recovery)) + int(bool(outcome.restored))
-            + int(bool(outcome.discovered));
+            + int(bool(outcome.discovered)) + int(bool(outcome.density));
         if (outcome.status == WorkerStatus::Succeeded && (products != (snapshot.kind == OperationKind::CloseRecovery ? 0 : 1)
+            || (snapshot.kind == OperationKind::Verification) != bool(outcome.product)
+            || (snapshot.kind == OperationKind::Import) != bool(outcome.imported)
+            || (snapshot.kind == OperationKind::DensityBuild) != bool(outcome.density)
             || (snapshot.kind == OperationKind::Save) != bool(outcome.save)
             || (snapshot.kind == OperationKind::Open || snapshot.kind == OperationKind::RecheckCache) != bool(outcome.loaded)
             || (snapshot.kind == OperationKind::Autosave || snapshot.kind == OperationKind::RejectRecovery) != bool(outcome.recovery)
             || (snapshot.kind == OperationKind::RestoreRecovery) != bool(outcome.restored)
-            || (snapshot.kind == OperationKind::DiscoverRecovery) != bool(outcome.discovered)))
-            outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
-        if (outcome.status == WorkerStatus::Succeeded && outcome.imported && !validImportTransport(*outcome.imported))
-            outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::InvalidProduct, phase));
+            || (snapshot.kind == OperationKind::DiscoverRecovery) != bool(outcome.discovered))) {
+            outcome.status = WorkerStatus::Failed;
+            outcome.failure = OperationFailure::make(FailureReason::InvalidProduct, phase);
+        }
+        if (outcome.status == WorkerStatus::Succeeded && outcome.imported && !validImportTransport(*outcome.imported)) {
+            outcome.status = WorkerStatus::Failed;
+            outcome.failure = OperationFailure::make(FailureReason::InvalidProduct, phase);
+        }
+        if (outcome.status == WorkerStatus::Succeeded && outcome.density
+            && (!snapshot.density || !snapshot.densityReceiver
+                || snapshot.id != context->id || !outcome.density->valid(*snapshot.density))) {
+            outcome.status = WorkerStatus::Failed;
+            outcome.failure = OperationFailure::make(FailureReason::InvalidProduct, phase);
+        }
     } catch (const std::bad_alloc &) {
         outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::OutOfMemory, phase));
     } catch (const std::exception &error) {
@@ -209,22 +225,42 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
     } catch (...) {
         outcome = WorkerOutcome::failed(OperationFailure::make(FailureReason::UnknownException, phase));
     }
+    // Prepare the complete immutable transport before publishing Ready. A throwing
+    // preparation becomes one failed Ready, with the worker still owning cleanup.
+    ReadyOutcome ready;
+    try {
+        ready.status = outcome.status;
+        ready.failure = outcome.failure;
+        if (outcome.status == WorkerStatus::Succeeded) {
+            ready.product = std::move(outcome.product);
+            if (outcome.imported)
+                ready.imported = outcome.imported->ready;
+            if (outcome.density)
+                ready.density = outcome.density->ready;
+            if (outcome.save)
+                ready.save = outcome.save->prepared();
+            ready.loaded = std::move(outcome.loaded);
+            if (outcome.recovery) {
+                ready.recovery = outcome.recovery->prepared();
+                ready.recoveryLease = outcome.recovery->lease();
+            }
+            ready.restored = std::move(outcome.restored);
+            ready.discovered = std::move(outcome.discovered);
+        }
+    } catch (const std::bad_alloc &) {
+        outcome.status = WorkerStatus::Failed;
+        outcome.failure = OperationFailure::make(FailureReason::OutOfMemory, OperationPhase::Finalizing);
+        ready = ReadyOutcome{};
+        ready.failure = outcome.failure;
+    } catch (...) {
+        outcome.status = WorkerStatus::Failed;
+        outcome.failure = OperationFailure::make(FailureReason::PublicationFailed, OperationPhase::Finalizing);
+        ready = ReadyOutcome{};
+        ready.failure = outcome.failure;
+    }
     {
         std::lock_guard lock(context->mutex);
-        context->outcome.status = outcome.status;
-        context->outcome.failure = outcome.failure;
-        context->outcome.product = std::move(outcome.product);
-        if (outcome.imported)
-            context->outcome.imported = outcome.imported->ready;
-        if (outcome.save)
-            context->outcome.save = outcome.save->prepared();
-        context->outcome.loaded = std::move(outcome.loaded);
-        if (outcome.recovery) {
-            context->outcome.recovery = outcome.recovery->prepared();
-            context->outcome.recoveryLease = outcome.recovery->lease();
-        }
-        context->outcome.restored = std::move(outcome.restored);
-        context->outcome.discovered = std::move(outcome.discovered);
+        context->outcome = std::move(ready);
         context->ready = true;
         if (context->zRequest) { // also clear a request if a test hook/worker threw
             context->zRequest.reset();
@@ -252,6 +288,11 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         context->waitingForDecision = false;
         decision = context->decision;
     }
+    if (outcome.density) {
+        std::lock_guard lock(context->mutex);
+        context->progress = {OperationPhase::Cleanup, 0, std::nullopt};
+        context->progressDirty = true;
+    }
     try {
         if (hooks && hooks->beforeOwnershipFinalization)
             hooks->beforeOwnershipFinalization(decision);
@@ -265,6 +306,9 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
         outcome.imported->directory->setAutoRemove(false);
         outcome.imported->data.cache.releaseToOwner();
     }
+    if (decision == PublicationDecision::Accept && outcome.status == WorkerStatus::Succeeded
+        && outcome.density)
+        outcome.density->accept();
     if (decision == PublicationDecision::Accept && outcome.save) {
         // Accept is permission only. File I/O runs here, outside the decision mutex.
         const auto receipt = outcome.save->commit();
@@ -297,6 +341,16 @@ void OperationRunner::execute(const std::shared_ptr<detail::OperationContext> &c
     outcome.recovery.reset();
     outcome.save.reset();
     outcome.imported.reset();
+    if (outcome.density) {
+        const bool warning = outcome.density->cleanup();
+        if (warning) {
+            std::lock_guard lock(context->mutex);
+            context->cleanupWarning = true;
+            if (outcome.density->diagnostics)
+                context->outcome.failure.densityCleanupError = outcome.density->diagnostics->cleanupError;
+        }
+        outcome.density.reset();
+    }
     // Product destruction and all scratch/capture cleanup run outside the mutex, on worker.
     context->outcome.product.reset();
     try {

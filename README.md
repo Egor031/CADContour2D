@@ -118,7 +118,7 @@ Refinement строит компактные CAD-примитивы с continuit
 - Immutable persistent point cache заменяет повторный разбор ASC/XYZ и позволяет работать без исходного файла.
 - Ячейка density map соответствует области `cell × cell` мм; zoom/pan не меняют разрешение. Новая карта строится явно; требования предусматривают сохранение всех версий с собственным Rough-состоянием и переключение без пересчёта — [requirements.md, §8](docs/requirements.md#8-фиксированный-размер-cell).
 - Rough использует counts/аналитическую mask исходного разрешения, precise — реальные точки. Тяжёлые операции запускаются явно.
-- Каждый успешный Build создаёт новую постоянную версию; выбор версии одним действием делает её рабочей, с подтверждением необходимого Precise reset до смены выбора. Late Build не перехватывает выбор; автоматической замены/удаления версий нет.
+- Каждый принятый Build добавляет и выбирает новую карту, сохраняя прежние версии/правки. Выбор версии одним действием делает её рабочей, с подтверждением необходимого Precise reset до смены выбора; автоматической замены/удаления версий нет. Изменение будущего `cell`/Undo/Redo не отменяет выполняющийся Density Build.
 - ROI не разрушает исходную карту; неоднозначный выбор детали не заменяется выбором самого большого объекта.
 - Повторный rough-search заменяет результат без сопоставления со старым и предупреждает о потере ручных правок. Полный повторный поиск holes может найти удалённое отверстие заново.
 - Обычные последующие операции не возвращают удалённые/отфильтрованные holes как cutouts или precise holes и не используют их области для reduced-cloud extraction.
@@ -185,6 +185,22 @@ QML — presentation layer. Project/domain state, geometry, I/O, обработ�
 Проверены OpenCV 4.12.0#7, Eigen 5.0.1, GoogleTest 1.17.0#3 и spdlog 1.17.0#1. У OpenCV отключены default features, включая ненужные сейчас GUI/video integrations. OpenCV/Eigen пока проверяются отдельным headless dependency smoke; production application использует Qt и spdlog для ограниченного rotating operation log. В 06.2 zlib 1.3.2#1 объявлен прямой production-зависимостью headless D storage (ранее уже присутствовал транзитивно).
 
 ### Configure / Build / Tests
+
+Density Build Operation 06.3B: `density_operation_tests` использует реальные
+ProjectController/OperationRunner, Point Cache → C1 → D и typed fixture receiver.
+В MSVC CMD-среде выше проверены `all all_qmllint` Debug/Release; в среде с Qt `bin`
+в process-local PATH выполнены:
+
+```bat
+build\windows-debug\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-debug-final.xml
+build\windows-release\density_operation_tests.exe --gtest_output=xml:build/density063b/adapter-release-final.xml
+```
+
+**47/47 PASS** в каждой конфигурации. Широкие production результаты, команды,
+первоначальные failures, inventories и ограничения — в
+[отчёте 06.3B](docs/reports/task-06/density-build-operation.md) и
+[evidence](docs/benchmarks/density063b/README.md). Production catalogue — 06.4;
+без receiver Build отклоняется до worker, GUI Build не добавлен.
 
 Headless builder 06.3A: target `density_builder_tests` проверяет полный
 Point Cache → C1 → D через независимый spatial oracle, а
@@ -544,7 +560,24 @@ build\windows-release\operation_probe.exe
 
 ## Project Status
 
-**06.3A — Headless Density Builder: READY FOR INDEPENDENT REVIEW.**
+**06.3B — Density Build Operation: READY FOR INDEPENDENT REVIEW.**
+Реальный Point Cache → C1 → D запускается через C++ `buildDensity` и единственный
+existing OperationRunner. Typed receiver заранее готовит candidate добавления/выбора;
+initial/final gates и borrowed lease защищают Accept/Discard и worker ownership.
+Без receiver admission отклоняется до worker: production catalogue/Undo — 06.4,
+persistence D — 06.5, GUI Build не добавлен. Форматы manifest v1 и сохранение cell
+сохранены. [Проверки, ресурсы, ограничения и вердикт](docs/reports/task-06/density-build-operation.md).
+Final Debug/Release `all all_qmllint` — PASS; production в каждой конфигурации —
+**1123 PASS / 0 FAIL / 1 SKIP** из 1124, включая **47/47** adapter cases.
+Exact headless inventories — 876/876; четыре existing GUI pointer-printed labels
+различаются в полном inventory, commands/filters совпадают. Evidence сохраняет
+первые fixture failures и промежуточные прогоны.
+
+**06.3A — Headless Density Builder: ACCEPTED WITH LIMITATIONS.**
+Повторное независимое принятие сообщено в задании 06.3B: B1/P1 и B2/P2
+исправлены и проверены, новых P0–P3 нет. Следующие числа — историческое evidence,
+не новые проверки 06.3B: Debug/Release 826 PASS / 0 FAIL / 1 SKIP, builder 128 PASS,
+integrity/resource probes 134 PASS. Исходные отчёты и artifacts не переписывались.
 Синхронный C++ entry point по immutable request/retained Point Cache делает ровно
 один scanAll, bounded event grouping и occupied-only checked accumulation,
 использует production mapping 06.1 и штатный D Writer, возвращает move-only
@@ -562,8 +595,8 @@ counts, shapes, keys и implicit zeros. [Результаты и статус](d
 [RED/GREEN, история и ограничения](docs/reports/task-06/density-builder.md#h-исправления-блокеров-независимого-ревью).
 SKIP — только Windows symlink privilege 1314. Свежий smoke 9×100k и audit — PASS;
 историческая matrix 9×1 млн на `03fd6e2` остаётся отдельным evidence исходной реализации.
-Это не принятие 06.3 целиком. OperationRunner/application publication — 06.3B,
-каталог версий/выбор/Undo — 06.4; они не реализованы. Форматы Point Cache/D/manifest
+Это не принятие 06.3 целиком. OperationRunner/application publication реализованы
+в 06.3B; каталог версий/выбор/Undo — 06.4, ещё не реализованы. Форматы Point Cache/D/manifest
 и принятые 06.1/06.2/Recovery P3 сохранены.
 
 **06.2 D v1 — ACCEPTED WITH LIMITATIONS** по решению пользователя от 2026-10-29.
@@ -606,8 +639,8 @@ scanAll с bounded events и обработкой только occupied groups. 
 
 **Задача 06: IN PROGRESS** — выполнены исследования, Raster Foundation 06.1,
 headless D storage 06.2 и реализован самостоятельный builder 06.3A.
-Application-интеграция **06.3B** и **06.4–06.8 не начаты**; версии, Canvas и ROI
-ещё не реализованы. Собственные проверки 06.3A не заменяют независимого принятия.
+Application-интеграция **06.3B** реализована для ревью; **06.4–06.8 не начаты**;
+версии, Canvas и ROI ещё не реализованы. 06.3B не объявляется автоматически принятой.
 [Последовательность, зависимости и критерии](docs/implementation-plan.md#06-density-map-engineering-canvas-и-roi),
 [архитектура D + C1](docs/architecture.md#15-density-map),
 [численные контракты и evidence](docs/algorithms.md#6-построение-density-map).

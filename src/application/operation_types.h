@@ -5,6 +5,7 @@
 #include "persistence/save_transaction.h"
 #include "persistence/project_open.h"
 #include "persistence/recovery_store.h"
+#include "density_build_types.h"
 
 #include <QTemporaryDir>
 #include <QUuid>
@@ -27,7 +28,8 @@ struct NonZeroZRequest {
     double value = 0;
     bool operator==(const NonZeroZRequest &) const = default;
 };
-enum class OperationPhase { Preparing, Computing, Parsing, BuildingCache, Finalizing, Cleanup };
+enum class OperationPhase { Preparing, Computing, Parsing, BuildingCache, Scan, Grouping,
+                            Accumulation, Finalizing, Cleanup };
 enum class WorkerStatus { Succeeded, Cancelled, Failed };
 enum class PublicationDecision { Pending, Accept, Discard };
 enum class OperationStatus { Idle, Starting, Running, Cancelling, Finishing,
@@ -35,9 +37,9 @@ enum class OperationStatus { Idle, Starting, Running, Cancelling, Finishing,
 enum class ShutdownState { Open, Closing, Ready };
 enum class FailureCategory { InvalidInput, ResourceUnavailable, ExecutionFailure };
 enum class FailureReason { PreparationFailed, LaunchFailed, NativeObservationFailed, OutOfMemory, StandardException,
-                           UnknownException, InvalidProduct, PublicationFailed, ImportFailed, CandidatePreparationFailed, SaveFailed, OpenFailed, RecoveryFailed };
+                           UnknownException, InvalidProduct, PublicationFailed, ImportFailed, CandidatePreparationFailed, SaveFailed, OpenFailed, RecoveryFailed, DensityFailed };
 enum class OperationKind { Verification, Import, Save, Open, RecheckCache, Autosave,
-                           DiscoverRecovery, RestoreRecovery, RejectRecovery, CloseRecovery };
+                           DiscoverRecovery, RestoreRecovery, RejectRecovery, CloseRecovery, DensityBuild };
 
 struct OperationFailure {
     FailureCategory category = FailureCategory::ExecutionFailure;
@@ -49,6 +51,8 @@ struct OperationFailure {
     std::optional<persistence::SaveError> saveError;
     std::optional<persistence::Error> openError;
     std::optional<persistence::Error> recoveryError;
+    std::optional<density::BuildError> densityError;
+    std::optional<density::BuildError> densityCleanupError; // secondary; never replaces the primary failure
     static OperationFailure make(FailureReason reason, OperationPhase phase,
                                  const char *detail = nullptr) noexcept;
 };
@@ -62,6 +66,7 @@ struct OperationProgress {
 };
 
 struct OperationSnapshot {
+    OperationId id = 0;
     OperationStamp stamp{};
     double cell = 0;
     // No stamp is invented for NoProject. Epoch distinguishes changes of application context.
@@ -70,6 +75,8 @@ struct OperationSnapshot {
     OperationKind kind = OperationKind::Verification;
     bool replacementConfirmed = false;
     bool nonZeroZConsumerAvailable = false;
+    std::shared_ptr<const DensityBuildSnapshot> density;
+    std::shared_ptr<DensityPublicationReceiver> densityReceiver;
     // Actual version identity / Rough revision belong here when those inputs exist.
 };
 
@@ -102,6 +109,7 @@ struct WorkerOutcome {
     OperationFailure failure;
     std::unique_ptr<VerificationProduct> product;
     std::unique_ptr<WorkerImportProduct> imported;
+    std::unique_ptr<WorkerDensityProduct> density;
     std::unique_ptr<persistence::SaveTransaction> save;
     std::shared_ptr<const persistence::LoadedProject> loaded;
     std::unique_ptr<persistence::RecoveryTransaction> recovery;
@@ -109,6 +117,7 @@ struct WorkerOutcome {
     std::shared_ptr<const std::vector<persistence::RecoveryCandidate>> discovered;
     static WorkerOutcome success(std::unique_ptr<VerificationProduct> product) noexcept;
     static WorkerOutcome success(std::unique_ptr<WorkerImportProduct> product) noexcept;
+    static WorkerOutcome success(std::unique_ptr<WorkerDensityProduct> product) noexcept;
     static WorkerOutcome success(std::unique_ptr<persistence::SaveTransaction> product) noexcept;
     static WorkerOutcome success(std::shared_ptr<const persistence::LoadedProject> product) noexcept;
     static WorkerOutcome success(std::nullptr_t) noexcept { return success(std::unique_ptr<VerificationProduct>{}); }
@@ -122,6 +131,7 @@ struct ReadyOutcome {
     OperationFailure failure;
     std::unique_ptr<VerificationProduct> product;
     std::optional<ImportReadyProduct> imported;
+    std::shared_ptr<const DensityReadyProduct> density;
     std::shared_ptr<const persistence::SavedProject> save;
     std::shared_ptr<const persistence::LoadedProject> loaded;
     std::shared_ptr<const persistence::RecoveryRecord> recovery;
@@ -143,6 +153,7 @@ struct OperationState {
     bool publicationRevoked = false;
     bool cancellationRequested = false;
     bool cleanupWarning = false;
+    std::optional<density::BuildError> densityCleanupWarning;
     std::optional<std::uint32_t> completionObservationError;
 };
 

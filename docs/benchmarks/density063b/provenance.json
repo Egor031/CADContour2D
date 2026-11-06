@@ -1,0 +1,80 @@
+{
+  "baseline": "bc28195971ddbe43ef36a12f38b5d49453bd85d6",
+  "source_sha256": {
+    "CMakeLists.txt": "3ed0b28e60cf7fd262a778ffd7d8242078126d7231335e6227a8061b92687922",
+    "src/application/density_build_types.h": "23c5b0a8e9a35288bf01e81f04ab4094f89539478ceb0ecc490fd7d82f5bedee",
+    "src/application/density_operation.cpp": "00d5f8b3ed38f6f222177a8bf3bf26dbae09b5ef04d46d026e3304b85558932e",
+    "src/application/density_operation.h": "c009287512c28a23eb0d9778adfaf7b466665e2c06728ae132b9a51b0fa8c3b0",
+    "src/application/operation_runner.cpp": "f5b528259ddaf9b15ad16048dbf62d771ff975647bb4b0f2b2e24a0bed63ae9e",
+    "src/application/operation_types.cpp": "c4d03e3d88d49d865229bd76233c64eb235a6cf04dc60d3120bece015b6e7549",
+    "src/application/operation_types.h": "a12d9a3606dd197f413a666be05e395d6536cc201a7379f76f2b05e571ea001f",
+    "src/application/project_controller.cpp": "2ed6cbb1d2e2ce8c3f48246e43425cfab7b7c68af4c139b6536f57107e621552",
+    "src/application/project_controller.h": "2abebc5add1a389ecb9e330a1181fa4ea8a88be5242b1f76a59d6f7fd69993a2",
+    "src/ui/project_view_model.cpp": "6288b5cc7d73736a5ad198fdb3faa1219b3875186e88ad67f26773d4904e68c8",
+    "tests/CMakeLists.txt": "4da7603bb9ac789359724cb207f63446eacf1f64d00fa8ea9f09010e7e6bcf99",
+    "tests/density_operation_tests.cpp": "50b50ac259b739f785584d44dfd0c518139698ddb68433b3fdfb28c76414a23c",
+    "tests/operation_tests.cpp": "de5f85007b04f1e543b28adfc41bbca1ab8a6807252b2cf579191c11c72ca75f"
+  },
+  "binaries": {
+    "debug": {
+      "cadcontour_application.lib": {
+        "bytes": 20530116,
+        "sha256": "605a3a11ec4a93e09b95d24d6505cd6f329ad9f643ce97b08795d1d49f017813"
+      },
+      "density_operation_tests.exe": {
+        "bytes": 4941312,
+        "sha256": "f91f8a089b1580bc922e69235dc8d6f879c00ebf18ac2820f97205a17bcb8849"
+      },
+      "operation_tests.exe": {
+        "bytes": 5031936,
+        "sha256": "1822de90ac23aed2bf4bf56f0f46e3090445f0f7ec08f94887e01b37e44dcf8f"
+      },
+      "open_tests.exe": {
+        "bytes": 5073408,
+        "sha256": "a682d155e9f46cce3e09f96e683a722eea8edfb342fd0eace494791dc8a33d0a"
+      },
+      "recovery_tests.exe": {
+        "bytes": 5263872,
+        "sha256": "5607eaa532ed08d60c56cd918d35ea440c56acb6394f1c58dc55e4a0eaf9bf58"
+      },
+      "gui_file_tests.exe": {
+        "bytes": 5913600,
+        "sha256": "8373316d490a9f7ee827bc39a0757e3bd949dd3b2f7de2e5e398aa40509d1bbb"
+      },
+      "gui_recovery_tests.exe": {
+        "bytes": 5787648,
+        "sha256": "5c6d3e4113fec620e2bd071301eca19d06c2e2e141dd027c495ee8953487c1da"
+      }
+    },
+    "release": {
+      "cadcontour_application.lib": {
+        "bytes": 10264632,
+        "sha256": "3e4eb6caaa47ab5f7ccde185ec6d16574937946abdb62259095105b3dc614c4e"
+      },
+      "density_operation_tests.exe": {
+        "bytes": 1213440,
+        "sha256": "b1fdbce6709cb2f5de11890864bcb82a3af1c5806720df140e5c684156ac2ef8"
+      },
+      "operation_tests.exe": {
+        "bytes": 906752,
+        "sha256": "b31a85fc08f218d85d7dc4e20d56dd8acd000275264427689d00de3d8ddf1a8e"
+      },
+      "open_tests.exe": {
+        "bytes": 1106432,
+        "sha256": "684941849f13ce060e65a7919be12b4f5ae703b2cb6530295915ee67d9edda9d"
+      },
+      "recovery_tests.exe": {
+        "bytes": 1191424,
+        "sha256": "d0dcd837be3c3c7b5ce7616e154ed13789b383b1186fdc8377bd78c9b9f6e2b6"
+      },
+      "gui_file_tests.exe": {
+        "bytes": 1412608,
+        "sha256": "8922f6efb70b2dc9c26247624afef22b293ab3ef67597409f53b4c8b6f20e0ca"
+      },
+      "gui_recovery_tests.exe": {
+        "bytes": 1359360,
+        "sha256": "55f95e2b44ea3e2ad203848ee1bdf73765be8e3566f3ab6f4b7bcf3bc95067a0"
+      }
+    }
+  }
+}

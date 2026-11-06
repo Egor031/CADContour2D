@@ -551,8 +551,9 @@ O(1) RAM и явный work budget; превышение возвращает `R
 
 Полный численный контракт, MSVC/environment requirements и правила представимости —
 [algorithms.md, §6](algorithms.md#raster-foundation-061-численный-контракт).
-Foundation используется headless D reader/writer (06.2); Density Build/Project State/
-persistence остаются 06.3–06.8. Проверки и ограничения Foundation —
+Foundation используется headless D reader/writer (06.2), builder (06.3A) и
+application adapter (06.3B); каталог/Project State/persistence остаются 06.4–06.8.
+Проверки и ограничения Foundation —
 [отчёт 06.1](reports/task-06/raster-foundation.md).
 
 ---
@@ -760,9 +761,12 @@ source-order pages и тем же BBox index, в том числе на HDD, п�
 **READY WITH LIMITATIONS** и отдельного Recovery P3.
 [Принятие и границы](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
 В 06.3A реализован самостоятельный синхронный headless builder Point Cache → C1 → D.
-Его собственные проверки и измерения приведены в [отчёте 06.3A](reports/task-06/density-builder.md);
-это не независимое принятие. Application-интеграция 06.3B и этапы 06.4–06.8
-не реализованы; задача 06 целиком остаётся IN PROGRESS.
+Его исторические проверки и измерения приведены в [отчёте 06.3A](reports/task-06/density-builder.md).
+Повторное независимое принятие **06.3A — ACCEPTED WITH LIMITATIONS** сообщено
+в задании 06.3B: B1/P1 и B2/P2 исправлены и проверены, новых P0–P3 нет.
+Production application-интеграция 06.3B описана в
+[новом отчёте](reports/task-06/density-build-operation.md); каталог/GUI/persistence
+06.4–06.8 не реализованы, задача 06 целиком остаётся IN PROGRESS.
 Исторические отчёты не меняются; основания и пределы —
 [algorithms.md, §6](algorithms.md#6-построение-density-map), этапы —
 [implementation-plan.md, задача 06](implementation-plan.md#06-density-map-engineering-canvas-и-roi).
@@ -863,10 +867,11 @@ context удерживается shared ownership внутри PendingDataset. C
 диагностируется отдельно, а после finish до return исключает success. Последний cancel
 checkpoint предшествует возврату. Форматы D/Point Cache/manifest не меняются.
 
-06.3B должен связать immutable request → PendingDataset с существующим OperationRunner
-и application gate (§§24–26), сохраняя applicability и ownership handoff. Ready/Accept/
-Discard, publication permission и выбор версии в 06.3A не добавлены. Каталог версий,
-выбор/Undo — 06.4. Synthetic full-pipeline проверки не подтверждают Rough detection;
+06.3B связывает immutable request → PendingDataset с существующим OperationRunner
+и typed application gate (§§24–26). Отдельный receiver готовит candidate для добавления
+и выбора новой карты; без receiver admission отклоняется до запуска worker. Каталог
+версий и выбор/Undo подключаются к этому seam в 06.4, persistence D — в 06.5.
+Synthetic full-pipeline проверки не подтверждают Rough detection;
 physical cold-HDD/UNC, representative real scans и power-loss остаются непроверенными.
 Benchmarks не задают нормативов времени, размеров карты или числа occupied files.
 
@@ -887,10 +892,12 @@ Precise (§6.2), C++ guard запрашивает подтверждение д�
 «Черновая / Точная» остаётся view state и не меняет active version. Версии не хранят
 автоматически восстанавливаемый Precise Stage.
 
-Publication Build проверяет исходный проект, snapshot и актуальность права принятия;
-поздний результат не перехватывает выбор другой версии. В 06.4 следует проверить
-этот случай отдельно от совместимости уже сохранённых карт (§23), не ослабляя
-существующий отзыв публикации (§25). Undo/Redo хранит ссылки на datasets (§27).
+Publication Build проверяет исходный проект, snapshot и актуальность права принятия.
+Принятая новая карта добавляется и выбирается даже после выбора старой во время Build;
+предыдущие версии/правки сохраняются. Failure/Cancel/Discard не меняют выбор.
+`cell` и его SetCell Undo/Redo во время Build относятся только к следующему запуску,
+сохраняют inputRevision/history/dirty и не отзывают этот Build. Остальные relevant
+invalidation/Close/Open/Shutdown необратимо отзывают публикацию. Undo/Redo версий — 06.4.
 
 ---
 
@@ -1163,6 +1170,48 @@ noexcept atomic commit → Accept
 Snapshot включает идентичность целевой версии и применимое состояние её Rough-входов, когда операция относится к Rough Stage. Изменение активной версии не позволяет старому worker записать результат в другую версию или заменить более новые правки. Совместимость сохранённой карты (§23) не является разрешением публикации задержанного результата.
 
 Snapshot сам по себе не обеспечивает этот инвариант. Для операции над открытым проектом gate сверяет OperationId, исходный ProjectIdentity/InputRevision, отсутствие отзыва публикации и открытое состояние приложения непосредственно перед commit. При появлении версий/Rough-входов их идентичность и ревизия включаются в тот же контракт; это не критерий совместимости сохранённых версий.
+
+DensityBuild (06.3B) имеет отдельную applicability: id/kind, active/Pending,
+runtime project identity и context epoch, постоянный ProjectId, исходные CacheId/count,
+binary64 bounds и retained physical binding, captured receiver и отсутствие
+cancel/revocation/shutdown. Context epoch и runtime identity защищают Close/Open ABA
+даже при одинаковых сохранённых ProjectId/CacheId. InputRevision сравнивается
+по прежним правилам для других операций; future-cell и выбор старой карты не входы Build.
+
+Admission фиксирует immutable Density snapshot с cell/profile/resource policy и
+уникальным fully qualified output scope. Один existing worker создаёт scope/scratch,
+вызывает production builder один раз и оставляет PendingDataset локально.
+Ready содержит typed immutable descriptor с уже validated Mapping, metadata,
+provenance, completed path и statistics. GUI gate не создаёт Mapping и не читает D.
+Без подключённого DensityPublicationReceiver Build не запускается; 06.4 подключает
+production catalogue к этому seam, временной currentDensity в ProjectState нет.
+
+Initial gate предшествует fallible receiver.prepare с borrowed lease вне decision
+mutex. Candidate заранее удерживает descriptor/retention и готовит добавление и
+выбор новой карты; nullptr означает отказ, включая неподтверждённый Precise reset.
+Prepare не меняет domain state/history/выбор. Final gate повторяет applicability
+непосредственно перед lease.accept: Pending/cancel проверяются под mutex вместе с
+ограниченным noexcept owner exchange и записью Accept. Без I/O, allocations,
+callbacks или тяжёлого destruction в commit. Notifications и освобождение старого
+владельца идут после mutex. Reentrant Close/Shutdown/detach во время prepare
+отзывают старую публикацию; receiver удерживается, lease не даёт worker удалить D.
+GUI не ждёт worker под lease. Замена receiver не перенаправляет старый результат.
+
+При Accept worker удерживает собственный scope и вызывает PendingDataset.releaseToOwner
+после освобождения lease; accepted files сохраняются даже при Close/Shutdown до
+этого handoff. При Discard worker очищает исключительно собственные файлы и пустые
+каталоги вне mutex; locked/orphan files дают secondary cleanup diagnostic.
+Managed retention не сохраняет карту в manifest v1/Autosave/Recovery (06.5).
+Worker Succeeded означает построенный D; Accept — принятое владение; terminal
+Succeeded требует также native completion и Qt join. Builder Complete/Finish
+не является применением результата. Busy сохраняется до join, без очереди/retry.
+
+Builder policy отдельно ограничивает RAM/metadata/reader buffers, scratch/output/
+combined bytes, files/handles/work/mapping checks. Directory metadata, bounded typed
+transport/candidate и runner/native handles учитываются отдельно; process memory cap
+не заявляется. Progress — phase-local latest-value mailbox без per-point events,
+unknown totals сохраняются. Bridge failure останавливает builder и остаётся primary
+adapter failure; поздний cancel не скрывает integrity/I/O errors, cleanup — secondary.
 
 Импорт для создания или замены проекта (§13) использует тот же контракт атомарного принятия, но не требует заранее открытого проекта или фиктивного ProjectIdentity. Gate проверяет OperationId, применимость именно этого запроса создания/замены к исходному контексту приложения, отсутствие отзыва публикации и открытое состояние приложения. Задержанный результат не может заменить проект, открытый или созданный после запуска импорта. Подготовка нового состояния и передачи владения cache не меняет текущий проект и его историю; только успешный commit принимает новый проект.
 
@@ -2037,7 +2086,7 @@ Point Cache Format и Spatial Index для v1 определены в §§12–1
 Compression не требуется для v1; возможное дальнейшее развитие формата не
 блокирует следующие этапы.
 
-- **Density production details:** Raster Foundation 06.1 и headless D v1 06.2 — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); storage-зависимость 06.3 выполнена. Следующий шаг — спецификация 06.3A; полный C1→D, event/group resources и end-to-end — 06.3/06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным кандидатом.
+- **Density production details:** 06.1, D v1 06.2 и builder 06.3A — ACCEPTED WITH LIMITATIONS (§§11/15, [format](density-map-format.md)); application adapter 06.3B реализован для ревью. Каталог/выбор — 06.4, persistence D — 06.5, real-scan/эксплуатационная приёмка — 06.8. Storage side 256/512 поддержаны; construction group 512 остаётся инженерным профилем без универсальных production limits.
 - **Density versions/persistence:** representation identity/provenance, связей datasets и versioned layout — 06.4–06.5 (§28.4). Новая версия при каждом Build и рабочий выбор одним действием уже определены (§15); automatic Precise restoration не утверждено (§6.2).
 - **Analytical/display mapping:** threshold/intensity/morphology/detection — задачи 07–10; bounded display LOD/cache — 06.6 (§33); PNG bit depth — только необязательный экспорт. Численные условия — [algorithms.md, §6](algorithms.md#6-построение-density-map).
 - **Project Persistence:** UTF-8 JSON manifest v1 и metadata foundation реализованы в 05.1 (§28); Save/Save As и atomic publication — в 05.2 (§28.1), Open/partial availability — в 05.3 (§28.2), C++ Autosave/Recovery — в 05.4 (§31.1). GUI workflow — 05.5.

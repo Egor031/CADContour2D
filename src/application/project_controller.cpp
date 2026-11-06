@@ -8,6 +8,7 @@
 #include <QUuid>
 
 #include <cassert>
+#include <bit>
 #include <cstring>
 #include <limits>
 #include <memory>
@@ -75,7 +76,9 @@ ProjectController::ProjectController(QString storageRoot, QObject *parent)
         emit operationChanged();
     });
     connect(&runner_, &OperationRunner::progressAvailable, this, [this](OperationId id, OperationProgress progress) {
-        if (id != operation_.id || !operation_.active || operation_.decision != PublicationDecision::Pending)
+        if (id != operation_.id || !operation_.active
+            || (operation_.decision != PublicationDecision::Pending
+                && !(operation_.kind == OperationKind::DensityBuild && progress.phase == OperationPhase::Cleanup)))
             return;
         const bool phaseChanged = operation_.progress.phase != progress.phase;
         operation_.progress = progress;
@@ -342,7 +345,8 @@ CommandResult ProjectController::setCell(double value)
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::HistoryExhausted);
     auto command = std::make_unique<SetCellCommand>(session_->state, value);
     CommandScope guard(*this);
-    if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave) invalidateOperation();
+    if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave
+        && operation_.kind != OperationKind::DensityBuild) invalidateOperation();
     session_->history.push(command.release()); // QUndoStack owns the command and calls redo().
     emit stateChanged();
     return result;
@@ -365,7 +369,11 @@ CommandResult ProjectController::moveHistory(bool undo)
     if (session_->state.inputRevision() == std::numeric_limits<std::uint64_t>::max())
         return CommandResult::rejected(CommandError::UnsafeState, ErrorDetail::RevisionExhausted);
     CommandScope guard(*this);
-    if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave) invalidateOperation();
+    // The Density exception is limited to the actual SetCell command being moved.
+    const auto *command = session_->history.command(session_->history.index() - (undo ? 1 : 0));
+    if (operation_.kind != OperationKind::Save && operation_.kind != OperationKind::Autosave
+        && !(operation_.kind == OperationKind::DensityBuild
+             && dynamic_cast<const SetCellCommand *>(command))) invalidateOperation();
     if (undo)
         session_->history.undo();
     else
@@ -386,6 +394,45 @@ CommandResult ProjectController::startOperation(OperationWork work,
 CommandResult ProjectController::importAscXyz(ImportRequest request)
 {
     return startImport(std::move(request), {});
+}
+
+CommandResult ProjectController::setDensityReceiver(std::shared_ptr<DensityPublicationReceiver> receiver)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (receiver == densityReceiver_) return CommandResult::noChange();
+    CommandScope guard(*this);
+    if (operation_.kind == OperationKind::DensityBuild) invalidateOperation();
+    densityReceiver_.swap(receiver); // captured old receiver remains retained by its snapshot
+    return CommandResult::applied();
+}
+
+CommandResult ProjectController::buildDensity(DensityBuildRequest request)
+{
+    const auto entry = checkEntry();
+    if (entry.outcome == CommandOutcome::Rejected) return entry;
+    if (preemptAutosave()) return CommandResult::rejected(CommandError::Busy);
+    if (!session_) return CommandResult::rejected(CommandError::NoProject);
+    if (!densityReceiver_ || !cacheAvailable() || !session_->state.dataset())
+        return CommandResult::rejected(CommandError::UnsafeState);
+    try {
+        auto snapshot = std::make_shared<DensityBuildSnapshot>();
+        snapshot->projectId = session_->state.projectId();
+        const auto &source = *session_->state.dataset();
+        snapshot->source = ImportedDataset{.cacheId = source.cacheId, .location = source.location,
+            .pointCount = source.pointCount, .minimum = source.minimum, .maximum = source.maximum};
+        snapshot->cell = session_->state.cell();
+        snapshot->tileSide = request.tileSide;
+        snapshot->groupSide = request.groupSide;
+        snapshot->eventCapacity = request.eventCapacity;
+        snapshot->resources = request.resources;
+        snapshot->outputScope = storageRoot_ + QStringLiteral("/density-")
+            + QUuid::createUuid().toString(QUuid::WithoutBraces);
+        return startWork(densityBuildWork(snapshot), OperationKind::DensityBuild, false,
+                         snapshot, densityReceiver_);
+    } catch (const std::bad_alloc &) {
+        return CommandResult::rejected(CommandError::ResourceUnavailable, ErrorDetail::OutOfMemory);
+    }
 }
 
 std::optional<ImportContext> ProjectController::importContext() const noexcept
@@ -502,7 +549,8 @@ CommandResult ProjectController::startImport(ImportRequest request, io::ZHandler
     return result;
 }
 
-CommandResult ProjectController::startWork(OperationWork work, OperationKind kind, bool confirmed)
+CommandResult ProjectController::startWork(OperationWork work, OperationKind kind, bool confirmed,
+    std::shared_ptr<const DensityBuildSnapshot> density, std::shared_ptr<DensityPublicationReceiver> receiver)
 {
     const auto entry = checkEntry();
     if (entry.outcome == CommandOutcome::Rejected
@@ -526,6 +574,9 @@ CommandResult ProjectController::startWork(OperationWork work, OperationKind kin
         snapshot.projectContext = snapshot.stamp;
     }
     snapshot.kind = kind;
+    snapshot.id = lastOperationId_ + 1;
+    snapshot.density = std::move(density);
+    snapshot.densityReceiver = std::move(receiver);
     snapshot.contextEpoch = contextEpoch_;
     snapshot.replacementConfirmed = confirmed;
     snapshot.nonZeroZConsumerAvailable = !zConsumer_.isNull();
@@ -562,6 +613,7 @@ void ProjectController::invalidateOperation()
 
 bool ProjectController::applicable(OperationId id) const noexcept
 {
+    if (snapshot_.kind == OperationKind::DensityBuild) return densityApplicable(id);
     const auto current = session_ ? std::optional(session_->state.operationStamp()) : std::nullopt;
     const bool sameContext = snapshot_.kind == OperationKind::Save || snapshot_.kind == OperationKind::Autosave
         ? current && snapshot_.projectContext && current->projectIdentity == snapshot_.projectContext->projectIdentity
@@ -573,6 +625,29 @@ bool ProjectController::applicable(OperationId id) const noexcept
         && ((snapshot_.kind != OperationKind::Import && snapshot_.kind != OperationKind::Open
              && snapshot_.kind != OperationKind::RestoreRecovery) || !snapshot_.projectContext
             || snapshot_.replacementConfirmed);
+}
+
+bool ProjectController::densityApplicable(OperationId id) const noexcept
+{
+    if (shutdown_ != ShutdownState::Open || !operation_.active || id != operation_.id
+        || snapshot_.id != id || operation_.kind != OperationKind::DensityBuild
+        || snapshot_.kind != OperationKind::DensityBuild
+        || operation_.decision != PublicationDecision::Pending || operation_.publicationRevoked
+        || operation_.cancellationRequested || snapshot_.contextEpoch != contextEpoch_
+        || !session_ || !snapshot_.projectContext || !snapshot_.density
+        || !snapshot_.densityReceiver || snapshot_.densityReceiver != densityReceiver_
+        || snapshot_.projectContext->projectIdentity != session_->state.runtimeIdentity()
+        || !cacheAvailable()) return false;
+    const auto *current = session_->state.dataset();
+    const auto &captured = snapshot_.density->source;
+    const auto same = [](double a, double b) noexcept {
+        return std::bit_cast<std::uint64_t>(a) == std::bit_cast<std::uint64_t>(b);
+    };
+    return current && snapshot_.density->projectId == session_->state.projectId()
+        && current->location == captured.location && current->cacheId == captured.cacheId
+        && current->pointCount == captured.pointCount
+        && same(current->minimum.x, captured.minimum.x) && same(current->minimum.y, captured.minimum.y)
+        && same(current->maximum.x, captured.maximum.x) && same(current->maximum.y, captured.maximum.y);
 }
 
 std::unique_ptr<ProjectController::ProjectSession>
@@ -627,6 +702,10 @@ void ProjectController::processReady(OperationId id)
     auto lease = runner_.leaseReady(id);
     if (!lease)
         return;
+    if (operation_.kind == OperationKind::DensityBuild) {
+        processDensityReady(id, lease);
+        return;
+    }
     CommandScope guard(*this);
     // Every path supplies a decision; lease keeps Discard cleanup on the worker.
     struct DecisionGuard {
@@ -804,6 +883,72 @@ void ProjectController::processReady(OperationId id)
     emit operationChanged();
 }
 
+void ProjectController::processDensityReady(OperationId id, ReadyProductLease &lease)
+{
+    struct InvalidDensityProduct : std::invalid_argument { using std::invalid_argument::invalid_argument; };
+    struct DecisionGuard {
+        OperationRunner &runner;
+        OperationId id;
+        ~DecisionGuard() { runner.decide(id, PublicationDecision::Discard); }
+    } decisionGuard{runner_, id};
+    const auto &outcome = lease.outcome();
+    operation_.workerStatus = outcome.status;
+    if (outcome.status == WorkerStatus::Failed) operation_.failure = outcome.failure;
+    std::unique_ptr<DensityPublicationCandidate> candidate;
+    // This binding and the lease survive reentrant Close, detach and Shutdown in prepare.
+    const auto receiver = snapshot_.densityReceiver;
+    bool committed = false;
+    try {
+        if (outcome.status == WorkerStatus::Succeeded && densityApplicable(id)) {
+            if (!outcome.density || outcome.product || outcome.imported || outcome.save || outcome.loaded
+                || outcome.recovery || outcome.recoveryLease || outcome.restored || outcome.discovered
+                || outcome.density->snapshot != snapshot_.density
+                || !validDensityReady(*snapshot_.density, *outcome.density))
+                throw InvalidDensityProduct("invalid density Ready descriptor");
+            // Fallible application preparation may refuse a destructive Precise reset.
+            // It owns no project mutation and runs without the decision mutex/command guard.
+            candidate = receiver->prepare(outcome.density);
+            if (candidate && candidate->ready() != outcome.density)
+                throw InvalidDensityProduct("density candidate changed its descriptor");
+            CommandScope guard(*this);
+            if (candidate && densityApplicable(id)) {
+                struct Commit { DensityPublicationCandidate &candidate; OperationState &operation; }
+                    commit{*candidate, operation_};
+                // No callbacks or event delivery between the final gate and this mutex gate.
+                committed = lease.accept(&commit, [](void *data) noexcept {
+                    auto &value = *static_cast<Commit *>(data);
+                    value.candidate.commit();
+                    value.operation.decision = PublicationDecision::Accept;
+                });
+            }
+        }
+    } catch (const std::bad_alloc &) {
+        operation_.failure = OperationFailure::make(FailureReason::OutOfMemory, OperationPhase::Finalizing);
+    } catch (const InvalidDensityProduct &error) {
+        operation_.failure = OperationFailure::make(FailureReason::InvalidProduct,
+                                                   OperationPhase::Finalizing, error.what());
+    } catch (const std::exception &error) {
+        operation_.failure = OperationFailure::make(FailureReason::CandidatePreparationFailed,
+                                                   OperationPhase::Finalizing, error.what());
+    } catch (...) {
+        operation_.failure = OperationFailure::make(FailureReason::CandidatePreparationFailed,
+                                                   OperationPhase::Finalizing);
+    }
+    {
+        CommandScope guard(*this);
+        if (!committed) {
+            operation_.decision = PublicationDecision::Discard;
+            runner_.decide(id, PublicationDecision::Discard);
+        }
+        operation_.status = OperationStatus::Finishing;
+        operationDiagnostic(committed ? "accept" : "discard", operation_, operationClock_.elapsed());
+        if (committed) emit stateChanged();
+        emit operationChanged();
+    }
+    // Notifications and candidate/old-owner destruction are outside the decision mutex.
+    if (committed) candidate->notify();
+}
+
 void ProjectController::finishOperation(OperationId id, WorkerStatus status, OperationFailure failure, bool warning)
 {
     if (id != operation_.id || !operation_.active)
@@ -814,6 +959,7 @@ void ProjectController::finishOperation(OperationId id, WorkerStatus status, Ope
     if (status == WorkerStatus::Failed && !operation_.failure)
         operation_.failure = failure;
     operation_.cleanupWarning = warning;
+    operation_.densityCleanupWarning = failure.densityCleanupError;
     operation_.active = false;
     if (operation_.decision == PublicationDecision::Pending)
         operation_.decision = PublicationDecision::Discard;

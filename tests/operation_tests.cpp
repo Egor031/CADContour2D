@@ -940,3 +940,52 @@ TEST(Operations, NoProjectEmptyWorkAndPreparationBadAllocRejectOrFailWithoutMuta
     EXPECT_EQ(controller.operation().failure->reason, FailureReason::OutOfMemory);
     EXPECT_EQ(OperationTestAccess::generation(controller), 0);
 }
+
+TEST(Operations, DensityProductsCannotEnterVerificationThroughNullWrongKindOrMixedOutcome)
+{
+    for (int malformed = 0; malformed < 3; ++malformed) {
+        SCOPED_TRACE(malformed);
+        ProjectController controller;
+        ProjectControllerTestAccess::newProject(controller);
+        ASSERT_EQ(OperationTestAccess::start(controller,
+            [malformed](const auto &input, const auto &) {
+                if (malformed == 0)
+                    return WorkerOutcome::success(std::unique_ptr<WorkerDensityProduct>{});
+                auto outcome = malformed == 1 ? WorkerOutcome{} : success(input);
+                outcome.status = WorkerStatus::Succeeded;
+                outcome.density = std::make_unique<WorkerDensityProduct>();
+                return outcome;
+            }).outcome, CommandOutcome::Applied);
+        ASSERT_TRUE(finish(controller));
+        EXPECT_EQ(controller.operation().workerStatus, WorkerStatus::Failed);
+        EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
+        EXPECT_EQ(controller.operation().decision, PublicationDecision::Discard);
+        ASSERT_TRUE(controller.operation().failure);
+        EXPECT_EQ(controller.operation().failure->reason, FailureReason::InvalidProduct);
+        EXPECT_EQ(OperationTestAccess::generation(controller), 0);
+    }
+}
+
+TEST(Operations, DensityCleanupDiagnosticSurvivesInvalidProductWithoutReplacingPrimaryError)
+{
+    ProjectController controller;
+    ProjectControllerTestAccess::newProject(controller);
+    ASSERT_EQ(OperationTestAccess::start(controller, [](const auto &input, const auto &) {
+        auto outcome = success(input);
+        outcome.density = std::make_unique<WorkerDensityProduct>();
+        outcome.density->diagnostics = std::make_shared<DensityOperationDiagnostics>();
+        outcome.density->diagnostics->cleanupError = density::BuildError{
+            density::BuildErrorCode::CleanupFailure, density::BuildPhase::Cleanup,
+            QStringLiteral("injected secondary Density cleanup failure")};
+        return outcome;
+    }).outcome, CommandOutcome::Applied);
+    ASSERT_TRUE(finish(controller));
+    ASSERT_TRUE(controller.operation().failure);
+    EXPECT_EQ(controller.operation().failure->reason, FailureReason::InvalidProduct);
+    EXPECT_EQ(controller.operation().status, OperationStatus::Failed);
+    EXPECT_TRUE(controller.operation().cleanupWarning);
+    ASSERT_TRUE(controller.operation().densityCleanupWarning);
+    EXPECT_EQ(controller.operation().densityCleanupWarning->code, density::BuildErrorCode::CleanupFailure);
+    EXPECT_EQ(controller.operation().densityCleanupWarning->detail,
+              QStringLiteral("injected secondary Density cleanup failure"));
+}

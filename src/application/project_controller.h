@@ -3,6 +3,7 @@
 #include "core/project_state.h"
 #include "operation_runner.h"
 #include "import_operation.h"
+#include "density_operation.h"
 
 #include <QObject>
 #include <QUndoStack>
@@ -54,6 +55,9 @@ public:
 
     CommandResult newProject();
     CommandResult importAscXyz(ImportRequest request);
+    // No default owner: 06.4 supplies the version catalogue through this typed seam.
+    CommandResult setDensityReceiver(std::shared_ptr<DensityPublicationReceiver> receiver);
+    CommandResult buildDensity(DensityBuildRequest request = {});
     CommandResult saveProject(SaveRequest request = {});
     CommandResult saveProjectAs(SaveRequest request);
     CommandResult openProject(OpenRequest request);
@@ -98,6 +102,7 @@ private:
     friend class SaveTestAccess;
     friend class OpenTestAccess;
     friend class RecoveryTestAccess;
+    friend class DensityOperationTestAccess;
     class CommandScope;
     // Reverse destruction order: undo commands disappear before their referenced state.
     // DatasetLocation retains accepted files across session/controller destruction.
@@ -124,7 +129,9 @@ private:
     CommandResult moveHistory(bool undo);
     CommandResult startOperation(OperationWork work,
                                 std::function<void(VerificationState &)> finalize = {});
-    CommandResult startWork(OperationWork work, OperationKind kind, bool replacementConfirmed = false);
+    CommandResult startWork(OperationWork work, OperationKind kind, bool replacementConfirmed = false,
+                            std::shared_ptr<const DensityBuildSnapshot> density = {},
+                            std::shared_ptr<DensityPublicationReceiver> receiver = {});
     CommandResult startImport(ImportRequest request, io::ZHandler handler);
     CommandResult startSave(SaveRequest request, bool saveAs);
     bool cacheAvailable() const noexcept;
@@ -134,6 +141,8 @@ private:
     void invalidateOperation();
     bool applicable(OperationId id) const noexcept;
     void processReady(OperationId id);
+    void processDensityReady(OperationId id, ReadyProductLease &lease);
+    bool densityApplicable(OperationId id) const noexcept;
     void finishOperation(OperationId id, WorkerStatus status, OperationFailure failure, bool warning);
     void finishCommand();
     void notifyNonZeroZConfirmation();
@@ -161,6 +170,7 @@ private:
         QString, persistence::RecoveryRecord, std::shared_ptr<const persistence::RecoveryLease>,
         persistence::RecoveryLimits, std::function<bool()>)> recoveryPrepare_;
     QString importSourcePath_;
+    std::shared_ptr<DensityPublicationReceiver> densityReceiver_;
     OperationSnapshot snapshot_;
     std::uint64_t contextEpoch_ = 0;
     // Internal fault seam; tests can cancel/invalidate or fail during preparation.

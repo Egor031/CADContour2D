@@ -33,7 +33,10 @@ Headless D v1 **06.2 — ACCEPTED WITH LIMITATIONS** пользователем 
 [Принятие, результаты по источникам и tracked evidence](reports/task-06/density-storage.md#независимое-ревью-и-принятие).
 В 06.3A реализован самостоятельный синхронный headless builder Point Cache → C1 → D:
 [API, собственные проверки, измерения и ограничения](reports/task-06/density-builder.md).
-Это не независимое принятие. Application-интеграция 06.3B и 06.4–06.8 не начаты.
+Повторное независимое принятие 06.3A — **ACCEPTED WITH LIMITATIONS**, сообщено
+в задании 06.3B (B1/P1, B2/P2 исправлены; новых P0–P3 нет). Исторические отчёты сохранены.
+Application-интеграция [06.3B](reports/task-06/density-build-operation.md) реализована
+для ревью; 06.4–06.8 не начаты.
 Задача 06 целиком остаётся **IN PROGRESS**.
 [Архитектура](architecture.md#15-density-map),
 [численные условия и ограничения](algorithms.md#6-построение-density-map),
@@ -106,6 +109,7 @@ Standalone Recovery — NOT VERIFIED; keyboard/visible focus — PARTIAL VERIFIC
 - [06.1: Raster Foundation](reports/task-06/raster-foundation.md) — production mapping, numerical verification и work policy; ACCEPTED WITH LIMITATIONS после независимого ревью и решения пользователя.
 - [06.2: Density storage](reports/task-06/density-storage.md#независимое-ревью-и-принятие) — **ACCEPTED WITH LIMITATIONS**, независимое ревью D `8d622e0` — **READY WITH LIMITATIONS**, storage-блокеров 06.3 нет; отдельный Recovery P3 `085a5f1` — **FIXED AND VERIFIED**. Исходный отчёт ревью и summary/hashes сохранены рядом с отчётом реализации.
 - [06.3A: Headless Density Builder](reports/task-06/density-builder.md) — production C1→D, независимый spatial oracle тестов, ресурсы/lifecycle и full-pipeline measurements; application publication остаётся 06.3B.
+- [06.3B: Density Build Operation](reports/task-06/density-build-operation.md) — production adapter, typed receiver/candidate, snapshot applicability, lease/ownership и Debug/Release integration evidence; каталог/выбор — 06.4.
 
 Отчёты сохраняют результаты своих этапов; согласованное направление Close задано нормативными
 документами выше, а не ретроспективной правкой результатов экспериментов.
